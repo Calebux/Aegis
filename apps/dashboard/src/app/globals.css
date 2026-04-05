@@ -1,0 +1,64 @@
+/* Aegis Dashboard — minimal base styles */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0e1a;
+  --surface: #111827;
+  --border: #1f2937;
+  --accent: #6366f1;
+  --accent-dim: #312e81;
+  --text: #f9fafb;
+  --text-muted: #9ca3af;
+  --green: #22c55e;
+  --yellow: #eab308;
+  --red: #ef4444;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", "Geist", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100dvh;
+}
+
+header nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+
+.network-badge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  background: var(--accent-dim);
+  color: #a5b4fc;
+}
+
+main { padding: 2rem; max-width: 1400px; margin: 0 auto; }
+
+h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem; }
+h2 { font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+
+@media (max-width: 900px) {
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .grid-4, .grid-2 { grid-template-columns: 1fr; }
+}
