@@ -8,6 +8,8 @@
     "apps/*"
   ],
   "scripts": {
+    "aegis": "cd packages/orchestrator && tsx src/index.ts",
+    "dev:horizon": "cd packages/orchestrator && tsx src/services/horizon-x402-server.ts",
     "build": "npm run build --workspaces --if-present",
     "dev": "npm run dev --workspace=apps/dashboard",
     "lint": "npm run lint --workspaces --if-present",
