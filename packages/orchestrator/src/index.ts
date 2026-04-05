@@ -285,9 +285,11 @@ async function runScout(
     console.warn("   ⚠ Scout not authorized — skipping");
     return "[scout skipped — spend not authorized]";
   }
-  // Inject freshly generated secret so the real agent can sign when implemented
-  process.env.SCOUT_SECRET_KEY = wallet.keypair.secret();
-  const agent = new ScoutAgent();
+  const agent = new ScoutAgent({
+    keypair: wallet.keypair,
+    shieldContractId: SHIELD_CONTRACT_ID,
+    registryContractId: REGISTRY_CONTRACT_ID,
+  });
   const { result, spentStroops } = await agent.run(instruction);
   wallet.spent = Number(spentStroops);
   return result;

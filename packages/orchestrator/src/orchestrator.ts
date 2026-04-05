@@ -49,7 +49,12 @@ export class Orchestrator {
     this.keypair = keypairFromSecret(config.secretKey);
     this.anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    this.scout = new ScoutAgent();
+    // TODO: generate dedicated keypairs per agent and fund via Friendbot
+    this.scout = new ScoutAgent({
+      keypair: this.keypair,
+      shieldContractId: process.env.SHIELD_CONTRACT_ID ?? "",
+      registryContractId: process.env.REGISTRY_CONTRACT_ID ?? "",
+    });
     this.ledger = new LedgerAgent();
     this.signal = new SignalAgent();
     this.scribe = new ScribeAgent();
