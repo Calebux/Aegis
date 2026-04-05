@@ -14,6 +14,7 @@
 
 import { NextRequest } from "next/server";
 import * as http from "http";
+import { setLastRun } from "@/lib/runStore";
 
 export const dynamic = "force-dynamic";
 // Allow the pipeline to run longer than the default 60s
@@ -79,7 +80,30 @@ export async function POST(req: NextRequest) {
         // Dynamically import runAegis to avoid top-level side-effects
         const { runAegis } = await import("@aegis/orchestrator");
 
-        await runAegis(task, emit);
+        // Wrap emit to intercept the complete event and persist run state
+        const wrappedEmit = (type: string, payload: unknown) => {
+          emit(type, payload);
+
+          if (type === "complete") {
+            const p = payload as {
+              wallets: Record<string, string>;
+              spent: Record<string, number>;
+              reputation: Record<string, number>;
+              timestamp: string;
+            };
+            setLastRun({
+              agents: {
+                scout:  { publicKey: p.wallets.scout,  spentStroops: p.spent.scout,  reputationBps: p.reputation.scout },
+                ledger: { publicKey: p.wallets.ledger, spentStroops: p.spent.ledger, reputationBps: p.reputation.ledger },
+                signal: { publicKey: p.wallets.signal, spentStroops: p.spent.signal, reputationBps: p.reputation.signal },
+                scribe: { publicKey: p.wallets.scribe, spentStroops: p.spent.scribe, reputationBps: p.reputation.scribe },
+              },
+              timestamp: p.timestamp,
+            });
+          }
+        };
+
+        await runAegis(task, wrappedEmit);
 
       } catch (err) {
         emit("error", { message: String(err) });

@@ -415,7 +415,32 @@ export async function runAegis(
     level: "success",
   });
 
-  emit("complete", report);
+  // Emit the complete event in the shape the dashboard expects
+  emit("complete", {
+    report: report.report,
+    wallets: {
+      scout:  wallets.scout.publicKey(),
+      ledger: wallets.ledger.publicKey(),
+      signal: wallets.signal.publicKey(),
+      scribe: wallets.scribe.publicKey(),
+    },
+    spent: {
+      scout:  scoutOut.spent,
+      ledger: ledgerOut.spent,
+      signal: signalOut.spent,
+      scribe: scribeOut.spent,
+    },
+    // Base reputation of 5000 BPS (50/100) awarded for task completion.
+    // Full on-chain reputation from the Identity Registry would require
+    // a contract read; this default reflects a freshly-registered agent.
+    reputation: {
+      scout:  5000,
+      ledger: 5000,
+      signal: 5000,
+      scribe: 5000,
+    },
+    timestamp: report.timestamp,
+  });
 
   if (writeOutput) {
     const outputDir = path.resolve(process.cwd(), "output");

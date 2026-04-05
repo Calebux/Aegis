@@ -2,58 +2,53 @@
  * GET /api/status
  *
  * Returns live wallet balances, spend, and reputation for all agents.
- * The dashboard polls this endpoint via SWR.
  *
- * TODO: connect to Horizon API and Soroban contracts to return real data.
+ * When a pipeline run has completed, queries Stellar Horizon for real XLM
+ * balances using the wallet addresses persisted in the run store.
+ * Returns an empty array before the first run.
  */
 
 import { NextResponse } from "next/server";
-import type { WalletBalance } from "@aegis/shared";
+import { getHorizonServer } from "@aegis/shared";
+import { getLastRun, type AgentId } from "@/lib/runStore";
 
 export const dynamic = "force-dynamic";
 
-// Stub data — replace with real Horizon + contract queries
-const STUB_BALANCES: WalletBalance[] = [
-  {
-    agentId: "scout",
-    publicKey: "GABC…SCOUT",
-    xlmBalance: "10000.0000000",
-    spentStroops: 250_000n,
-    capStroops: 1_000_000n,
-    reputationBps: 5_250,
-  },
-  {
-    agentId: "ledger",
-    publicKey: "GDEF…LEDGER",
-    xlmBalance: "10000.0000000",
-    spentStroops: 100_000n,
-    capStroops: 500_000n,
-    reputationBps: 6_000,
-  },
-  {
-    agentId: "signal",
-    publicKey: "GHIJ…SIGNAL",
-    xlmBalance: "10000.0000000",
-    spentStroops: 0n,
-    capStroops: 750_000n,
-    reputationBps: 5_000,
-  },
-  {
-    agentId: "scribe",
-    publicKey: "GKLM…SCRIBE",
-    xlmBalance: "10000.0000000",
-    spentStroops: 0n,
-    capStroops: 2_000_000n,
-    reputationBps: 5_000,
-  },
-];
+const AGENTS: AgentId[] = ["scout", "ledger", "signal", "scribe"];
 
 export async function GET() {
-  // Serialise BigInt as string for JSON transport
-  const payload = STUB_BALANCES.map((b) => ({
-    ...b,
-    spentStroops: b.spentStroops.toString(),
-    capStroops: b.capStroops.toString(),
-  }));
-  return NextResponse.json(payload);
+  const run = getLastRun();
+
+  if (!run) {
+    // No run has completed yet — return empty so the dashboard shows idle state
+    return NextResponse.json([]);
+  }
+
+  const horizon = getHorizonServer();
+
+  const balances = await Promise.all(
+    AGENTS.map(async (agentId) => {
+      const agent = run.agents[agentId];
+
+      let xlmBalance = "0.0000000";
+      try {
+        const account = await horizon.loadAccount(agent.publicKey);
+        const native = account.balances.find((b) => b.asset_type === "native");
+        xlmBalance = native?.balance ?? "0.0000000";
+      } catch {
+        // Account may not yet exist on Horizon (funding lag) — return 0
+      }
+
+      return {
+        agentId,
+        publicKey: agent.publicKey,
+        xlmBalance,
+        spentStroops: agent.spentStroops.toString(),
+        capStroops:   "10000000", // 1 XLM default cap
+        reputationBps: agent.reputationBps,
+      };
+    })
+  );
+
+  return NextResponse.json(balances);
 }
