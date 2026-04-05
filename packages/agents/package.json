@@ -8,6 +8,7 @@
     "dev:ledger": "tsx watch src/ledger/index.ts",
     "dev:signal": "tsx watch src/signal/index.ts",
     "dev:scribe": "tsx watch src/scribe/index.ts",
+    "dev:horizon-x402": "tsx watch src/horizon-x402-server.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
