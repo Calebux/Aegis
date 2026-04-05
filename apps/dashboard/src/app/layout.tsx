@@ -3,22 +3,26 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Aegis — Multi-Agent Intelligence",
-  description: "Governed multi-agent intelligence on Stellar — live task execution, wallet balances, and agent reputation",
+  title: "AEGIS / FIELD",
+  description: "Multi-agent intelligence on Stellar",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <header>
-          <nav>
-            <span className="logo">
-              <span className="logo-shield">⬡</span> Aegis
+        <header className="site-header">
+          <span className="hdr-brand">
+            AEGIS<span className="slash"> / </span>FIELD
+          </span>
+          <span className="hdr-sub">Agent Control Module</span>
+          <div className="hdr-right">
+            <span className="sys-ok">
+              <span className="sys-dot" />
+              SYS.OK
             </span>
-            <span className="tagline">Governed multi-agent intelligence on Stellar</span>
-            <span className="network-badge">Stellar Testnet</span>
-          </nav>
+            <span>Stellar · Testnet</span>
+          </div>
         </header>
         <main>{children}</main>
       </body>
