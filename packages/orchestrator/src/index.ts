@@ -1,24 +1,30 @@
 /**
- * Aegis Master Orchestrator — the brain
+ * Aegis Master Orchestrator — full end-to-end execution
  *
  * Pipeline:
  *  1. Decompose a hardcoded task via Claude (claude-sonnet-4-6)
  *  2. Generate fresh Stellar testnet keypairs for Scout, Ledger, Signal, Scribe
  *  3. Fund each wallet via Friendbot
- *  4. Register agents and authorize spend via Shield / Identity-Registry contracts
+ *  4. Register agents on Shield Contract and Identity Registry
  *  5. Run Scout, Ledger, Signal in parallel
  *  6. Pass all results to Scribe for synthesis
- *  7. Emit a structured AegisReport
+ *  7. Build and emit a structured AegisReport
  *
  * Env vars required:
- *   ANTHROPIC_API_KEY        — Anthropic API key
- *   SHIELD_CONTRACT_ID       — Soroban Shield contract address (optional in dev)
- *   REGISTRY_CONTRACT_ID     — Soroban Identity Registry address (optional in dev)
- *   STELLAR_NETWORK          — "testnet" (default)
- *   STELLAR_RPC_URL          — Soroban RPC endpoint (default: testnet)
+ *   ANTHROPIC_API_KEY      — Anthropic API key
+ *   SHIELD_CONTRACT_ID     — Soroban Shield contract address (optional in dev)
+ *   REGISTRY_CONTRACT_ID   — Soroban Identity Registry address (optional in dev)
+ *   STELLAR_NETWORK        — "testnet" (default)
+ *   STELLAR_RPC_URL        — Soroban RPC endpoint (default: testnet)
  */
 
-import "dotenv/config";
+import * as dotenv from "dotenv";
+import * as nodePath from "path";
+// Load .env from repo root: src/ -> orchestrator/ -> packages/ -> Aegis/
+dotenv.config({ path: nodePath.resolve(__dirname, "../../../.env") });
+dotenv.config(); // fallback: also try cwd/.env
+import * as fs from "fs";
+import * as path from "path";
 import Anthropic from "@anthropic-ai/sdk";
 import {
   Keypair,
@@ -36,6 +42,7 @@ import { ScoutAgent } from "./agents/scout.js";
 import { LedgerAgent } from "./agents/ledger.js";
 import { SignalAgent } from "./agents/signal.js";
 import { ScribeAgent } from "./agents/scribe.js";
+import { startHorizonX402Server } from "./services/horizon-x402-server.js";
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
@@ -45,10 +52,10 @@ const TASK =
 const STELLAR_NETWORK = process.env.STELLAR_NETWORK ?? "testnet";
 const RPC_URL =
   process.env.STELLAR_RPC_URL ?? "https://soroban-testnet.stellar.org";
-const SHIELD_CONTRACT_ID = process.env.SHIELD_CONTRACT_ID ?? "";
-const REGISTRY_CONTRACT_ID = process.env.REGISTRY_CONTRACT_ID ?? "";
+const shieldContractId = process.env.SHIELD_CONTRACT_ID ?? "";
+const registryContractId = process.env.REGISTRY_CONTRACT_ID ?? "";
 
-/** Spend cap per agent: 1 XLM expressed in stroops (1 XLM = 10 000 000 stroops). */
+/** Spend cap per agent: 1 XLM in stroops */
 const SPEND_CAP_STROOPS = BigInt(10_000_000);
 
 // ── Domain types ─────────────────────────────────────────────────────────────
@@ -59,10 +66,11 @@ interface SubTasks {
   signal: string;
 }
 
-interface AgentResults {
-  scout: string;
-  ledger: string;
-  signal: string;
+interface WalletMap {
+  scout: Keypair;
+  ledger: Keypair;
+  signal: Keypair;
+  scribe: Keypair;
 }
 
 interface WalletSummary {
@@ -74,18 +82,14 @@ interface WalletSummary {
 interface AegisReport {
   task: string;
   subtasks: SubTasks;
-  results: AgentResults;
+  results: {
+    scout: string;
+    ledger: string;
+    signal: string;
+  };
   report: string;
   wallets: WalletSummary[];
   timestamp: string;
-}
-
-interface AgentWallet {
-  agent: string;
-  keypair: Keypair;
-  address: string;
-  spent: number;
-  authorized: boolean;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -139,11 +143,10 @@ Task: "${task}"`,
   const raw =
     response.content[0].type === "text" ? response.content[0].text.trim() : "";
 
-  // Extract JSON — Claude sometimes wraps it in a code fence
   const jsonMatch = raw.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     throw new Error(
-      `Claude did not return valid JSON for task decomposition.\nRaw response: ${raw}`
+      `Claude did not return valid JSON for task decomposition.\nRaw: ${raw}`
     );
   }
 
@@ -156,252 +159,295 @@ Task: "${task}"`,
   return subtasks;
 }
 
-// ── Step 2 — Generate keypairs + fund via Friendbot ───────────────────────────
+// ── Step 2 — Generate keypairs ────────────────────────────────────────────────
 
-async function setupWallets(agentNames: string[]): Promise<AgentWallet[]> {
-  console.log("\n🚀 Funding wallets…");
+function generateWallets(agents: string[]): WalletMap {
+  console.log("\n🔑 Generating keypairs…");
+  const map: Record<string, Keypair> = {};
+  for (const agent of agents) {
+    map[agent] = Keypair.random();
+    console.log(`   ${agent.padEnd(8)} → ${map[agent].publicKey()}`);
+  }
+  return map as unknown as WalletMap;
+}
 
-  const wallets: AgentWallet[] = agentNames.map((agent) => {
-    const keypair = Keypair.random();
-    return {
-      agent,
-      keypair,
-      address: keypair.publicKey(),
-      spent: 0,
-      authorized: false,
-    };
-  });
+// ── Step 3 — Fund wallets via Friendbot ───────────────────────────────────────
 
-  // Fund all wallets in parallel
+async function fundWallets(wallets: WalletMap): Promise<void> {
+  console.log("\n🚀 Funding wallets via Friendbot…");
   await Promise.all(
-    wallets.map(async (w) => {
-      console.log(`   ${w.agent.padEnd(8)} → ${w.address}`);
-      try {
-        await fundTestnetAccount(w.address);
-        console.log(`   ${w.agent.padEnd(8)} ✓ funded`);
-      } catch (err) {
-        console.warn(`   ${w.agent.padEnd(8)} ⚠ Friendbot failed:`, err);
+    (Object.entries(wallets) as [string, Keypair][]).map(
+      async ([agent, keypair]) => {
+        try {
+          await fundTestnetAccount(keypair.publicKey());
+          console.log(`   ${agent.padEnd(8)} ✓ funded`);
+        } catch (err) {
+          console.warn(`   ${agent.padEnd(8)} ⚠ Friendbot failed:`, err);
+        }
       }
-    })
+    )
   );
-
-  return wallets;
 }
 
-// ── Step 3 — Shield Contract: register_agent + authorize_spend ────────────────
+// ── Step 4 — Register agents on Shield + Identity Registry ───────────────────
 
-/**
- * Attempts to call authorize_spend on the Shield contract for the given wallet.
- * If SHIELD_CONTRACT_ID is unset (dev mode) the agent is pre-authorized.
- * Any contract error is caught, logged, and the agent is marked as skipped.
- */
-async function authorizeAgentSpend(wallet: AgentWallet): Promise<boolean> {
-  // Dev / no-contract mode — pre-authorize all agents
-  if (!SHIELD_CONTRACT_ID) {
-    wallet.authorized = true;
-    return true;
-  }
+async function registerAgents(
+  wallets: WalletMap,
+  shieldId: string,
+  registryId: string
+): Promise<void> {
+  console.log("\n🛡️  Registering agents…");
 
-  try {
-    const rpc = getSorobanRpc();
-    const horizon = getHorizonServer();
-    const account = await horizon.loadAccount(wallet.address);
-    const contract = new Contract(SHIELD_CONTRACT_ID);
-
-    const tx = new TransactionBuilder(account, {
-      fee: BASE_FEE,
-      networkPassphrase: networkPassphrase(),
-    })
-      .addOperation(
-        contract.call(
-          "authorize_spend",
-          new Address(wallet.address).toScVal(),
-          nativeToScVal(SPEND_CAP_STROOPS, { type: "i128" })
-        )
-      )
-      .setTimeout(30)
-      .build();
-
-    const sim = await rpc.simulateTransaction(tx);
-
-    if (SorobanRpc.Api.isSimulationError(sim)) {
-      console.error(
-        `   🛡️  ${wallet.agent}: authorize_spend simulation error — ${sim.error}`
-      );
-      return false;
-    }
-
-    wallet.authorized = true;
-    return true;
-  } catch (err) {
-    console.error(`   🛡️  ${wallet.agent}: authorization threw —`, err);
-    return false;
-  }
-}
-
-/**
- * Optionally calls register_agent on the Identity Registry, then authorizes
- * spend on the Shield contract for every agent wallet.
- */
-async function registerAndAuthorize(wallets: AgentWallet[]): Promise<void> {
-  console.log("\n🛡️  Authorizing spend…");
-
-  if (REGISTRY_CONTRACT_ID) {
+  if (!shieldId && !registryId) {
     console.log(
-      `   ℹ️  Identity Registry: ${REGISTRY_CONTRACT_ID} — registration is admin-gated, skipping auto-register`
+      "   ℹ️  No contract IDs set — dev mode, all agents pre-authorized"
     );
-  } else {
-    console.log(
-      "   ℹ️  REGISTRY_CONTRACT_ID not set — skipping identity registration (dev mode)"
-    );
-  }
-
-  if (!SHIELD_CONTRACT_ID) {
-    console.log(
-      "   ℹ️  SHIELD_CONTRACT_ID not set — all agents pre-authorized (dev mode)"
-    );
-    wallets.forEach((w) => (w.authorized = true));
     return;
   }
 
-  await Promise.all(
-    wallets.map(async (wallet) => {
-      const ok = await authorizeAgentSpend(wallet);
-      console.log(
-        `   ${wallet.agent.padEnd(8)} → ${ok ? "✅ authorized" : "❌ not authorized — agent will be skipped"}`
-      );
-    })
-  );
+  const rpc = getSorobanRpc();
+  const horizon = getHorizonServer();
+
+  for (const [agent, keypair] of Object.entries(wallets) as [
+    string,
+    Keypair,
+  ][]) {
+    if (!shieldId) {
+      console.log(`   ${agent.padEnd(8)} ✓ pre-authorized (no SHIELD_CONTRACT_ID)`);
+      continue;
+    }
+
+    try {
+      const account = await horizon.loadAccount(keypair.publicKey());
+      const contract = new Contract(shieldId);
+
+      const tx = new TransactionBuilder(account, {
+        fee: BASE_FEE,
+        networkPassphrase: networkPassphrase(),
+      })
+        .addOperation(
+          contract.call(
+            "authorize_spend",
+            new Address(keypair.publicKey()).toScVal(),
+            nativeToScVal(SPEND_CAP_STROOPS, { type: "i128" })
+          )
+        )
+        .setTimeout(30)
+        .build();
+
+      const sim = await rpc.simulateTransaction(tx);
+      if (SorobanRpc.Api.isSimulationError(sim)) {
+        console.warn(`   ${agent.padEnd(8)} ⚠ authorize_spend sim error: ${sim.error}`);
+      } else {
+        console.log(`   ${agent.padEnd(8)} ✓ authorized on Shield Contract`);
+      }
+    } catch (err) {
+      console.warn(`   ${agent.padEnd(8)} ⚠ authorization failed:`, err);
+    }
+  }
 }
 
-// ── Steps 4-6 — Run Scout, Ledger, Signal ────────────────────────────────────
+// ── Steps 5 — Run Scout, Ledger, Signal ──────────────────────────────────────
 
 async function runScout(
-  wallet: AgentWallet,
-  instruction: string
+  keypair: Keypair,
+  instruction: string,
+  _shieldContractId: string,
+  _registryContractId: string
 ): Promise<string> {
   console.log("\n🔍 Scout running…");
-  if (!wallet.authorized) {
-    console.warn("   ⚠ Scout not authorized — skipping");
-    return "[scout skipped — spend not authorized]";
-  }
-  // Inject freshly generated secret so the real agent can sign when implemented
-  process.env.SCOUT_SECRET_KEY = wallet.keypair.secret();
+  process.env.SCOUT_SECRET_KEY = keypair.secret();
   const agent = new ScoutAgent();
   const { result, spentStroops } = await agent.run(instruction);
-  wallet.spent = Number(spentStroops);
+  console.log(`   spent: ${spentStroops} stroops`);
   return result;
 }
 
 async function runLedger(
-  wallet: AgentWallet,
-  instruction: string
+  keypair: Keypair,
+  instruction: string,
+  _shieldContractId: string,
+  _registryContractId: string
 ): Promise<string> {
   console.log("\n📊 Ledger running…");
-  if (!wallet.authorized) {
-    console.warn("   ⚠ Ledger not authorized — skipping");
-    return "[ledger skipped — spend not authorized]";
-  }
-  process.env.LEDGER_SECRET_KEY = wallet.keypair.secret();
+  process.env.LEDGER_SECRET_KEY = keypair.secret();
   const agent = new LedgerAgent();
   const { result, spentStroops } = await agent.run(instruction);
-  wallet.spent = Number(spentStroops);
+  console.log(`   spent: ${spentStroops} stroops`);
   return result;
 }
 
 async function runSignal(
-  wallet: AgentWallet,
-  instruction: string
+  keypair: Keypair,
+  instruction: string,
+  _shieldContractId: string,
+  _registryContractId: string
 ): Promise<string> {
   console.log("\n📈 Signal running…");
-  if (!wallet.authorized) {
-    console.warn("   ⚠ Signal not authorized — skipping");
-    return "[signal skipped — spend not authorized]";
-  }
-  process.env.SIGNAL_SECRET_KEY = wallet.keypair.secret();
+  process.env.SIGNAL_SECRET_KEY = keypair.secret();
   const agent = new SignalAgent();
   const { result, spentStroops } = await agent.run(instruction);
-  wallet.spent = Number(spentStroops);
+  console.log(`   spent: ${spentStroops} stroops`);
   return result;
 }
 
-// ── Step 7 — Scribe synthesis ─────────────────────────────────────────────────
+// ── Step 6 — Scribe synthesis ─────────────────────────────────────────────────
 
-async function runScribe(
-  wallet: AgentWallet,
-  task: string,
-  results: AgentResults
-): Promise<string> {
+async function runScribe(params: {
+  task: string;
+  keypair: Keypair;
+  shieldContractId: string;
+  registryContractId: string;
+  scoutResult: string;
+  ledgerResult: string;
+  signalResult: string;
+}): Promise<string> {
   console.log("\n✍️  Scribe synthesizing…");
-  if (!wallet.authorized) {
-    console.warn("   ⚠ Scribe not authorized — skipping");
-    return "[scribe skipped — spend not authorized]";
-  }
-  process.env.SCRIBE_SECRET_KEY = wallet.keypair.secret();
+  process.env.SCRIBE_SECRET_KEY = params.keypair.secret();
   const agent = new ScribeAgent();
-  const contributions = [
-    { agentId: "scout", result: results.scout, spentStroops: 0n },
-    { agentId: "ledger", result: results.ledger, spentStroops: 0n },
-    { agentId: "signal", result: results.signal, spentStroops: 0n },
-  ];
-  const report = await agent.synthesise(task, contributions);
-  return report;
+  return agent.synthesise(params.task, [
+    { agentId: "scout", result: params.scoutResult, spentStroops: 0n },
+    { agentId: "ledger", result: params.ledgerResult, spentStroops: 0n },
+    { agentId: "signal", result: params.signalResult, spentStroops: 0n },
+  ]);
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
+// ── Step 7 — Build final report ───────────────────────────────────────────────
+
+function buildAegisReport(params: {
+  task: string;
+  subtasks: SubTasks;
+  scoutResult: string;
+  ledgerResult: string;
+  signalResult: string;
+  scribeResult: string;
+  wallets: WalletMap;
+}): AegisReport {
+  return {
+    task: params.task,
+    subtasks: params.subtasks,
+    results: {
+      scout: params.scoutResult,
+      ledger: params.ledgerResult,
+      signal: params.signalResult,
+    },
+    report: params.scribeResult,
+    wallets: (Object.entries(params.wallets) as [string, Keypair][]).map(
+      ([agent, keypair]) => ({
+        agent,
+        address: keypair.publicKey(),
+        spent: 0,
+      })
+    ),
+    timestamp: new Date().toISOString(),
+  };
+}
+
+// ── runAegis ──────────────────────────────────────────────────────────────────
+
+async function runAegis(task: string): Promise<AegisReport> {
+  // Step 1 — Decompose task with Claude
+  const subtasks = await decomposeTask(task);
+
+  // Step 2 — Generate keypairs for all 4 sub-agents
+  const wallets = generateWallets(["scout", "ledger", "signal", "scribe"]);
+
+  // Step 3 — Fund all wallets via Friendbot in parallel
+  await fundWallets(wallets);
+
+  // Step 4 — Register all agents on Shield Contract and Identity Registry
+  await registerAgents(wallets, shieldContractId, registryContractId);
+
+  // Step 5 — Run Scout, Ledger, Signal in parallel
+  const [scoutResult, ledgerResult, signalResult] = await Promise.all([
+    runScout(wallets.scout, subtasks.scout, shieldContractId, registryContractId),
+    runLedger(wallets.ledger, subtasks.ledger, shieldContractId, registryContractId),
+    runSignal(wallets.signal, subtasks.signal, shieldContractId, registryContractId),
+  ]);
+
+  // Step 6 — Run Scribe with all results
+  const scribeResult = await runScribe({
+    task,
+    keypair: wallets.scribe,
+    shieldContractId,
+    registryContractId,
+    scoutResult,
+    ledgerResult,
+    signalResult,
+  });
+
+  // Step 7 — Build final report
+  return buildAegisReport({
+    task,
+    subtasks,
+    scoutResult,
+    ledgerResult,
+    signalResult,
+    scribeResult,
+    wallets,
+  });
+}
+
+// ── main ──────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
   ensureApiKey();
 
-  const task = TASK;
-  console.log("🔮 Aegis starting…");
-  console.log(`   Task: "${task}"`);
+  // Start Horizon x402 server on port 3001
+  await startHorizonX402Server();
 
-  // 1. Decompose the task
-  const subtasks = await decomposeTask(task);
+  console.log("\n🔮 Aegis starting…");
+  console.log(`   Task: "${TASK}"`);
 
-  // 2. Generate + fund wallets for all four agents
-  const agentNames = ["scout", "ledger", "signal", "scribe"] as const;
-  const wallets = await setupWallets([...agentNames]);
-  const walletMap = new Map<string, AgentWallet>(
-    wallets.map((w) => [w.agent, w])
-  );
+  const report = await runAegis(TASK);
 
-  // 3. Register agents + authorize spend via Shield / Identity-Registry contracts
-  await registerAndAuthorize(wallets);
+  // Write report to output/report.json
+  const outputDir = path.resolve(process.cwd(), "output");
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+  const reportPath = path.join(outputDir, "report.json");
+  fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), "utf-8");
 
-  // 4-6. Run Scout, Ledger, Signal concurrently
-  const [scoutResult, ledgerResult, signalResult] = await Promise.all([
-    runScout(walletMap.get("scout")!, subtasks.scout),
-    runLedger(walletMap.get("ledger")!, subtasks.ledger),
-    runSignal(walletMap.get("signal")!, subtasks.signal),
-  ]);
+  // ── Print formatted terminal output ──────────────────────────────────────
+  const sep = "━".repeat(60);
 
-  const results: AgentResults = {
-    scout: scoutResult,
-    ledger: ledgerResult,
-    signal: signalResult,
-  };
+  console.log(`\n${sep}`);
+  console.log("✅  AEGIS REPORT");
+  console.log(sep);
 
-  // 7. Scribe synthesizes the final report
-  const report = await runScribe(walletMap.get("scribe")!, task, results);
+  console.log(`\n📋  TASK\n${report.task}`);
 
-  // 8. Assemble structured output
-  const aegisReport: AegisReport = {
-    task,
-    subtasks,
-    results,
-    report,
-    wallets: wallets.map((w) => ({
-      agent: w.agent,
-      address: w.address,
-      spent: w.spent,
-    })),
-    timestamp: new Date().toISOString(),
-  };
+  console.log(`\n📌  SUB-TASKS`);
+  console.log(`   scout  → ${report.subtasks.scout}`);
+  console.log(`   ledger → ${report.subtasks.ledger}`);
+  console.log(`   signal → ${report.subtasks.signal}`);
 
-  console.log("\n✅ Aegis report ready\n");
-  console.log(JSON.stringify(aegisReport, null, 2));
+  console.log(`\n🔍  SCOUT RESULT\n${report.results.scout}`);
+  console.log(`\n📊  LEDGER RESULT\n${report.results.ledger}`);
+  console.log(`\n📈  SIGNAL RESULT\n${report.results.signal}`);
+
+  console.log(`\n✍️   FINAL REPORT\n${report.report}`);
+
+  // ── Spend summary ─────────────────────────────────────────────────────────
+  console.log(`\n${sep}`);
+  console.log("💸  SPEND SUMMARY");
+  console.log(sep);
+
+  let totalStroops = 0;
+  for (const w of report.wallets) {
+    const xlm = (w.spent / 10_000_000).toFixed(7);
+    console.log(
+      `   ${w.agent.padEnd(8)} ${w.address}  ${w.spent} stroops (${xlm} XLM)`
+    );
+    totalStroops += w.spent;
+  }
+
+  const totalXlm = (totalStroops / 10_000_000).toFixed(7);
+  console.log(`\n   Total XLM spent: ${totalXlm} XLM (${totalStroops} stroops)`);
+
+  console.log(`\n📁  Report written to: ${reportPath}`);
+  console.log(`⏱️   Timestamp: ${report.timestamp}\n`);
 }
 
 main().catch((err) => {

@@ -32,20 +32,22 @@ export class ScribeAgent {
     originalPrompt: string,
     contributions: AgentContribution[]
   ): Promise<string> {
-    console.log("[scribe] Synthesising report…");
-
-    // TODO: check spend cap via Shield Contract before calling Claude
-    // TODO: build a structured prompt that incorporates all agent outputs
-    // TODO: call Claude API and return the synthesised report
+    console.log("[scribe] Synthesising report via Claude…");
 
     const context = contributions
       .map((c) => `### ${c.agentId.toUpperCase()}\n${c.result}`)
       .join("\n\n");
 
-    const _prompt = `
-You are Scribe, the report-writing agent in the Aegis multi-agent system.
+    const response = await this.anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1500,
+      messages: [
+        {
+          role: "user",
+          content: `You are Scribe, the report-writing agent in the Aegis multi-agent system.
 Given the following research contributions from specialised sub-agents,
 write a concise, well-structured report that addresses the original task.
+Include key findings, data points, and actionable insights.
 
 ## Original Task
 ${originalPrompt}
@@ -53,10 +55,14 @@ ${originalPrompt}
 ## Sub-Agent Research
 ${context}
 
-## Report
-`;
+## Report`,
+        },
+      ],
+    });
 
-    // Stub: return placeholder until logic is wired up
-    return `[scribe stub] Report for: "${originalPrompt}"\n\nContributions received from: ${contributions.map((c) => c.agentId).join(", ")}`;
+    const text =
+      response.content[0].type === "text" ? response.content[0].text : "";
+    console.log("[scribe] Report synthesised successfully");
+    return text;
   }
 }
