@@ -1,17 +1,22 @@
-/* Aegis Dashboard — minimal base styles */
+/* Aegis Dashboard — base styles */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #0a0e1a;
-  --surface: #111827;
-  --border: #1f2937;
-  --accent: #6366f1;
-  --accent-dim: #312e81;
-  --text: #f9fafb;
-  --text-muted: #9ca3af;
+  --bg: #0a0f1e;
+  --surface: #0d1628;
+  --surface-2: #111d35;
+  --border: #1a2a45;
+  --accent: #1b6ca8;
+  --accent-bright: #2a85cc;
+  --accent-dim: #0d2d4a;
+  --text: #f0f4f8;
+  --text-muted: #7a93b0;
   --green: #22c55e;
+  --green-dim: #14532d;
   --yellow: #eab308;
   --red: #ef4444;
+  --red-dim: #450a0a;
+  --blue: #3b82f6;
 }
 
 body {
@@ -29,21 +34,43 @@ header nav {
   gap: 1rem;
   padding: 1rem 2rem;
   border-bottom: 1px solid var(--border);
+  background: rgba(10, 15, 30, 0.95);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
-.logo { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+.logo {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #fff;
+}
+
+.logo-shield {
+  color: var(--accent-bright);
+}
+
+.tagline {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+}
 
 .network-badge {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   padding: 0.2rem 0.6rem;
   border-radius: 9999px;
   background: var(--accent-dim);
-  color: #a5b4fc;
+  color: #60a5fa;
+  border: 1px solid #1b3d6a;
+  margin-left: auto;
 }
 
 main { padding: 2rem; max-width: 1400px; margin: 0 auto; }
 
-h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem; }
+h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; }
 h2 { font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; }
 
 .card {
@@ -61,4 +88,108 @@ h2 { font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; }
 }
 @media (max-width: 600px) {
   .grid-4, .grid-2 { grid-template-columns: 1fr; }
+}
+
+/* ── Status indicator animations ──────────────────────────────────────────── */
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(27, 108, 168, 0.7); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(27, 108, 168, 0); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot.idle    { background: #374151; }
+.status-dot.running { background: var(--accent-bright); animation: pulse-glow 1.5s ease-in-out infinite; }
+.status-dot.complete { background: var(--green); }
+.status-dot.failed  { background: var(--red); }
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent-bright);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ── Terminal log ────────────────────────────────────────────────────────── */
+
+.terminal {
+  background: #060c18;
+  border: 1px solid #0d1e35;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  max-height: 320px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #1a2a45 transparent;
+}
+
+.terminal::-webkit-scrollbar { width: 4px; }
+.terminal::-webkit-scrollbar-track { background: transparent; }
+.terminal::-webkit-scrollbar-thumb { background: #1a2a45; border-radius: 2px; }
+
+.log-line {
+  display: flex;
+  gap: 0.5rem;
+  animation: fade-in 0.15s ease-out;
+}
+
+.log-line .ts { color: #2d4a6a; user-select: none; }
+.log-line.info  .msg { color: #4ade80; }
+.log-line.success .msg { color: #86efac; }
+.log-line.error .msg { color: #f87171; }
+
+/* ── Markdown report ─────────────────────────────────────────────────────── */
+
+.report-body { animation: fade-in 0.3s ease-out; }
+.report-body h1 { font-size: 1.375rem; font-weight: 700; margin-bottom: 1rem; color: #f9fafb; }
+.report-body h2 { font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 0.75rem; color: #e5e7eb; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
+.report-body h3 { font-size: 0.9375rem; font-weight: 600; margin: 1.25rem 0 0.5rem; color: #d1d5db; }
+.report-body p  { color: #c9d9ea; margin-bottom: 0.75rem; line-height: 1.65; }
+.report-body ul { margin: 0 0 1rem 1.5rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.report-body li { color: #c9d9ea; }
+.report-body strong { color: #f3f4f6; font-weight: 600; }
+.report-body code  { background: #111d35; padding: 0.15rem 0.35rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.85em; color: #93c5fd; }
+.report-body hr   { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+.report-body em   { color: #94a3b8; font-style: italic; }
+
+.report-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+.report-body th {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #1a3a5c;
+  color: #7a93b0;
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+.report-body td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  color: #c9d9ea;
 }
