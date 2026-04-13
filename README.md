@@ -166,16 +166,59 @@ npm run dev --workspace=apps/dashboard
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and fill in your keys.
+```bash
+cp .env.example .env
+# then fill in the three required keys
+```
 
-Key variables for the Ledger / x402 server:
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ANTHROPIC_API_KEY` | ✅ | Claude API — task decomposition + Scribe synthesis. [Get one](https://console.anthropic.com) |
+| `LINKUP_API_KEY` | ✅ | Linkup search — Scout's web research tool. [Get one](https://app.linkup.so) |
+| `ORCHESTRATOR_SECRET_KEY` | ✅ | Stellar admin secret key — registers agents on-chain |
+| `SHIELD_CONTRACT_ID` | pre-filled | Soroban Shield Contract (testnet) |
+| `REGISTRY_CONTRACT_ID` | pre-filled | Soroban Identity Registry (testnet) |
+| `HORIZON_PAYMENT_RECEIVER` | optional | Stellar address for x402 payments — leave blank for dev mode |
 
-| Variable | Description |
-|----------|-------------|
-| `HORIZON_WALLET_ADDRESS` | Stellar address that receives x402 payments from Ledger |
-| `HORIZON_X402_SERVER_URL` | URL of the local x402 server (default: `http://localhost:3001`) |
-| `X402_FACILITATOR_URL` | x402 facilitator endpoint (default: Coinbase) |
-| `SCOUT_WALLET_ADDRESS` | Auto-set by orchestrator; Ledger inspects this account on-chain |
+All other variables default correctly for Stellar testnet. Agent wallets (`SCOUT_SECRET_KEY`, etc.) are auto-provisioned at runtime.
+
+---
+
+## @calebux/agent-kit
+
+The orchestration layer has been extracted as a standalone npm package so anyone can build governed multi-agent systems on Stellar:
+
+```bash
+npm install @calebux/agent-kit
+```
+
+```ts
+import { defineAgent, createOrchestrator } from '@calebux/agent-kit'
+
+const researcher = defineAgent({
+  id: 'researcher',
+  spendCapXlm: 1,                        // enforced by Soroban Shield Contract
+  run: async (task, { pay }) => {
+    const data = await pay('https://my-x402-api.com/search?q=' + task)
+    return { result: JSON.stringify(data) }
+  }
+})
+
+const { run } = createOrchestrator([researcher], {
+  shieldContractId:   process.env.SHIELD_CONTRACT_ID,
+  registryContractId: process.env.REGISTRY_CONTRACT_ID,
+})
+
+const report = await run('What is happening in Stellar DeFi right now?')
+// report.wallets     → agentId → Stellar public key
+// report.spent       → agentId → stroops spent
+// report.reputation  → agentId → on-chain score
+// report.txHashes    → agentId → Stellar tx hashes
+```
+
+Full docs: [npmjs.com/package/@calebux/agent-kit](https://www.npmjs.com/package/@calebux/agent-kit)
+
+---
 
 ## License
 
