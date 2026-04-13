@@ -1,5 +1,5 @@
 /**
- * Aegis Master Orchestrator — built on @aegis/agent-kit
+ * Aegis Master Orchestrator — built on @calebux/agent-kit
  *
  * Pipeline:
  *  1. Decompose task via Claude (claude-sonnet-4-6)
@@ -24,8 +24,8 @@ import * as fs from "fs";
 import * as path from "path";
 import { EventEmitter } from "events";
 import Anthropic from "@anthropic-ai/sdk";
-import { defineAgent, createOrchestrator, agentToAgentPayment } from "@aegis/agent-kit";
-import type { OrchestratorReport } from "@aegis/agent-kit";
+import { defineAgent, createOrchestrator, agentToAgentPayment } from "@calebux/agent-kit";
+import type { OrchestratorReport } from "@calebux/agent-kit";
 
 import { ScoutAgent } from "./agents/scout.js";
 import { LedgerAgent } from "./agents/ledger.js";

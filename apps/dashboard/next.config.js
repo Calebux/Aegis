@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@aegis/shared", "@aegis/agent-kit", "@aegis/orchestrator"],
+  transpilePackages: ["@aegis/shared", "@calebux/agent-kit", "@aegis/orchestrator"],
   webpack(config) {
     // Allow TypeScript source files in workspace packages that use .js extensions
     // in their imports (TypeScript ESM convention) to be resolved by webpack.

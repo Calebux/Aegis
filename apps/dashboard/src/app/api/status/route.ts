@@ -9,7 +9,7 @@
 
 import { NextResponse } from "next/server";
 import { lastWallets, lastSpent, lastReputation, lastTxHashes } from "@/lib/taskStore";
-import { IdentityRegistry } from "@aegis/agent-kit";
+import { IdentityRegistry } from "@calebux/agent-kit";
 import { SorobanRpc, Keypair } from "@stellar/stellar-sdk";
 
 export const dynamic = "force-dynamic";

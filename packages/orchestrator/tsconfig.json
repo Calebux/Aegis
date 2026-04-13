@@ -14,7 +14,7 @@
     "skipLibCheck": true,
     "paths": {
       "@aegis/shared": ["../shared/src/index.ts"],
-      "@aegis/agent-kit": ["../agent-kit/src/index.ts"]
+      "@calebux/agent-kit": ["../agent-kit/src/index.ts"]
     }
   },
   "include": ["src"],

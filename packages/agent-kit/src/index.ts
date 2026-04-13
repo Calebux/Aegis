@@ -1,5 +1,5 @@
 /**
- * @aegis/agent-kit
+ * @calebux/agent-kit
  *
  * Governed multi-agent orchestration on Stellar.
  * Handles wallet provisioning, Soroban spend-cap enforcement,
@@ -8,7 +8,7 @@
  *
  * @example
  * ```ts
- * import { defineAgent, createOrchestrator } from '@aegis/agent-kit'
+ * import { defineAgent, createOrchestrator } from '@calebux/agent-kit'
  *
  * const researcher = defineAgent({
  *   id: 'researcher',

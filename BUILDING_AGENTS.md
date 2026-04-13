@@ -1,6 +1,6 @@
-# Building Agents with @aegis/agent-kit
+# Building Agents with @calebux/agent-kit
 
-`@aegis/agent-kit` is the governed multi-agent framework extracted from Aegis.
+`@calebux/agent-kit` is the governed multi-agent framework extracted from Aegis.
 It handles the infrastructure so you can focus on agent logic:
 
 - Each agent gets a **fresh Stellar testnet wallet**, auto-funded via Friendbot
@@ -13,17 +13,17 @@ It handles the infrastructure so you can focus on agent logic:
 ## Install
 
 ```bash
-npm install @aegis/agent-kit
+npm install @calebux/agent-kit
 ```
 
-Or inside this monorepo, add `"@aegis/agent-kit": "*"` to your `package.json`.
+Or inside this monorepo, add `"@calebux/agent-kit": "*"` to your `package.json`.
 
 ---
 
 ## Minimal example
 
 ```ts
-import { defineAgent, createOrchestrator } from '@aegis/agent-kit'
+import { defineAgent, createOrchestrator } from '@calebux/agent-kit'
 
 // 1. Define your agents
 const researcher = defineAgent({
@@ -64,7 +64,7 @@ console.log(report.report)
 
 ```ts
 import Anthropic from '@anthropic-ai/sdk'
-import { defineAgent, createOrchestrator } from '@aegis/agent-kit'
+import { defineAgent, createOrchestrator } from '@calebux/agent-kit'
 
 const anthropic = new Anthropic()
 
@@ -154,7 +154,7 @@ import {
   agentToAgentPayment,
   ShieldContract,
   IdentityRegistry,
-} from '@aegis/agent-kit'
+} from '@calebux/agent-kit'
 import { SorobanRpc, Keypair } from '@stellar/stellar-sdk'
 
 // x402 payment
@@ -200,6 +200,6 @@ bash contracts/deploy.sh
 ## Aegis is the reference implementation
 
 The Aegis orchestrator (`packages/orchestrator`) is built entirely on top of
-`@aegis/agent-kit`. If you want to see a full real-world example with four
+`@calebux/agent-kit`. If you want to see a full real-world example with four
 specialized agents (Scout, Ledger, Signal, Scribe), x402 dual-role
 (provider + consumer), and a live Next.js dashboard, read the source there.
