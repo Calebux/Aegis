@@ -1,20 +1,11 @@
 "use client";
 
-/**
- * Aegis Dashboard — main page
- *
- * Sections:
- *  1. Task input
- *  2. Agent status cards (2 × 2 grid)
- *  3. Live execution log (terminal)
- *  4. Final report (markdown)
- *  5. Spend summary footer
- */
-
 import { useState, useRef, useEffect, useCallback } from "react";
 import { AgentCard, type AgentStatus } from "@/components/AgentCard";
+import { WalletCard } from "@/components/WalletCard";
+import { TaskFeed } from "@/components/TaskFeed";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────
 
 type AgentId = "scout" | "ledger" | "signal" | "scribe";
 
@@ -30,20 +21,19 @@ interface CompletePayload {
   spent: Record<AgentId, number>;
   reputation: Record<AgentId, number>;
   timestamp: string;
+  txHashes?: Record<AgentId, string[]>;
 }
 
-// ── Agent metadata ────────────────────────────────────────────────────────────
+// ── Agent definitions ─────────────────────────────────────────────────────
 
-const AGENTS: { id: AgentId; name: string; icon: string; capability: string }[] = [
-  { id: "scout",  name: "Scout",  icon: "🔍", capability: "Web Research" },
-  { id: "ledger", name: "Ledger", icon: "📊", capability: "On-Chain Data" },
-  { id: "signal", name: "Signal", icon: "📈", capability: "Market Intelligence" },
-  { id: "scribe", name: "Scribe", icon: "✍️", capability: "Report Synthesis" },
+const AGENTS: { id: AgentId; name: string; capability: string; color: string }[] = [
+  { id: "scout",  name: "Scout",  capability: "Web Research",        color: "#c8c040" },
+  { id: "ledger", name: "Ledger", capability: "On-Chain Data",       color: "#48b858" },
+  { id: "signal", name: "Signal", capability: "Market Intelligence", color: "#b050c0" },
+  { id: "scribe", name: "Scribe", capability: "Report Synthesis",    color: "#d04828" },
 ];
 
-const EXPLORER_BASE = "https://stellar.expert/explorer/testnet/account";
-
-// ── Markdown renderer ─────────────────────────────────────────────────────────
+// ── Markdown renderer ──────────────────────────────────────────────────────
 
 function renderInline(text: string): string {
   return text
@@ -70,29 +60,19 @@ function SimpleMarkdown({ content }: { content: string }) {
     } else if (line === "---") {
       nodes.push(<hr key={key++} />);
     } else if (line.startsWith("| ")) {
-      // Collect table block
       const tableLines: string[] = [];
-      while (i < lines.length && lines[i].startsWith("|")) {
-        tableLines.push(lines[i]);
-        i++;
-      }
+      while (i < lines.length && lines[i].startsWith("|")) { tableLines.push(lines[i]); i++; }
       const rows = tableLines
-        .map((l) => l.split("|").slice(1, -1).map((c) => c.trim()))
-        .filter((r) => !r.every((c) => /^[-:]+$/.test(c)));
+        .map(l => l.split("|").slice(1, -1).map(c => c.trim()))
+        .filter(r => !r.every(c => /^[-:]+$/.test(c)));
       if (rows.length > 0) {
         const [header, ...body] = rows;
         nodes.push(
           <table key={key++}>
-            <thead>
-              <tr>{header?.map((c, j) => <th key={j}>{c}</th>)}</tr>
-            </thead>
+            <thead><tr>{header?.map((c, j) => <th key={j}>{c}</th>)}</tr></thead>
             <tbody>
               {body.map((row, ri) => (
-                <tr key={ri}>
-                  {row.map((c, ci) => (
-                    <td key={ci} dangerouslySetInnerHTML={{ __html: renderInline(c) }} />
-                  ))}
-                </tr>
+                <tr key={ri}>{row.map((c, ci) => <td key={ci} dangerouslySetInnerHTML={{ __html: renderInline(c) }} />)}</tr>
               ))}
             </tbody>
           </table>
@@ -101,73 +81,42 @@ function SimpleMarkdown({ content }: { content: string }) {
       continue;
     } else if (line.startsWith("- ")) {
       const items: string[] = [];
-      while (i < lines.length && lines[i].startsWith("- ")) {
-        items.push(lines[i].slice(2));
-        i++;
-      }
-      nodes.push(
-        <ul key={key++}>
-          {items.map((item, j) => (
-            <li key={j} dangerouslySetInnerHTML={{ __html: renderInline(item) }} />
-          ))}
-        </ul>
-      );
+      while (i < lines.length && lines[i].startsWith("- ")) { items.push(lines[i].slice(2)); i++; }
+      nodes.push(<ul key={key++}>{items.map((item, j) => <li key={j} dangerouslySetInnerHTML={{ __html: renderInline(item) }} />)}</ul>);
       continue;
-    } else if (line.startsWith("1. ") || /^\d+\. /.test(line)) {
+    } else if (/^\d+\. /.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^\d+\. /.test(lines[i])) {
-        items.push(lines[i].replace(/^\d+\. /, ""));
-        i++;
-      }
-      nodes.push(
-        <ol key={key++} style={{ marginLeft: "1.5rem", marginBottom: "1rem", display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-          {items.map((item, j) => (
-            <li key={j} dangerouslySetInnerHTML={{ __html: renderInline(item) }} />
-          ))}
-        </ol>
-      );
+      while (i < lines.length && /^\d+\. /.test(lines[i])) { items.push(lines[i].replace(/^\d+\. /, "")); i++; }
+      nodes.push(<ol key={key++}>{items.map((item, j) => <li key={j} dangerouslySetInnerHTML={{ __html: renderInline(item) }} />)}</ol>);
       continue;
     } else if (line.trim() !== "") {
-      nodes.push(
-        <p key={key++} dangerouslySetInnerHTML={{ __html: renderInline(line) }} />
-      );
+      nodes.push(<p key={key++} dangerouslySetInnerHTML={{ __html: renderInline(line) }} />);
     }
-
     i++;
   }
 
   return <div className="report-body">{nodes}</div>;
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
 
-function stroopsToXlm(stroops: number): string {
-  return (stroops / 1e7).toFixed(4);
+function stroopsToXlm(s: number): string { return (s / 1e7).toFixed(4); }
+function ts(): string {
+  const n = new Date();
+  return [n.getHours(), n.getMinutes(), n.getSeconds()].map(v => String(v).padStart(2, "0")).join(":");
 }
+function clock(): string { return ts(); }
 
-function bpsToScore(bps: number): string {
-  return (bps / 100).toFixed(2);
-}
-
-function truncateKey(key: string): string {
-  if (!key || key.length < 12) return key || "—";
-  return key.slice(0, 8) + "…" + key.slice(-6);
-}
-
-function formatTs(message: string): string {
-  const now = new Date();
-  const hh = String(now.getHours()).padStart(2, "0");
-  const mm = String(now.getMinutes()).padStart(2, "0");
-  const ss = String(now.getSeconds()).padStart(2, "0");
-  return `${hh}:${mm}:${ss}`;
-}
-
-// ── Page ───────────────────────────────────────────────────────────────────────
+// ── Page ───────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [task, setTask] = useState("");
+  const [task, setTask]     = useState("");
   const [running, setRunning] = useState(false);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logs, setLogs]     = useState<LogEntry[]>([]);
+  const [hasRun, setHasRun] = useState(false);
+  const [report, setReport] = useState<string | null>(null);
+  const [time, setTime]     = useState(clock);
+
   const [agentStatus, setAgentStatus] = useState<Record<AgentId, AgentStatus>>({
     scout: "idle", ledger: "idle", signal: "idle", scribe: "idle",
   });
@@ -180,21 +129,47 @@ export default function DashboardPage() {
   const [reputation, setReputation] = useState<Record<AgentId, number>>({
     scout: 5000, ledger: 5000, signal: 5000, scribe: 5000,
   });
-  const [report, setReport] = useState<string | null>(null);
-  const [hasRun, setHasRun] = useState(false);
+  const [agentTxHashes, setAgentTxHashes] = useState<Record<AgentId, string[]>>({
+    scout: [], ledger: [], signal: [], scribe: [],
+  });
+  const [agentPaymentModes, setAgentPaymentModes] = useState<Record<AgentId, string>>({
+    scout: "", ledger: "", signal: "", scribe: "",
+  });
+  const [reputationOnChain, setReputationOnChain] = useState<Record<AgentId, number | null>>({
+    scout: null, ledger: null, signal: null, scribe: null,
+  });
 
-  const logEndRef = useRef<HTMLDivElement>(null);
-  const logCounterRef = useRef(0);
+  const logEndRef   = useRef<HTMLDivElement>(null);
+  const counterRef  = useRef(0);
+  const sessionRef  = useRef(`SES_${Math.random().toString(36).slice(2, 9).toUpperCase()}`);
 
+  // Live clock
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [logs]);
+    const id = setInterval(() => setTime(clock()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Poll on-chain reputation from Identity Registry every 15s
+  useEffect(() => {
+    async function fetchOnChain() {
+      try {
+        const res = await fetch("/api/status");
+        if (!res.ok) return;
+        const data = await res.json() as Array<{ agentId: AgentId; reputationOnChain: number | null }>;
+        const map: Record<AgentId, number | null> = { scout: null, ledger: null, signal: null, scribe: null };
+        for (const d of data) map[d.agentId] = d.reputationOnChain;
+        setReputationOnChain(map);
+      } catch { /* non-fatal */ }
+    }
+    fetchOnChain();
+    const id = setInterval(fetchOnChain, 15_000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [logs]);
 
   const addLog = useCallback((message: string, level: LogEntry["level"] = "info") => {
-    setLogs((prev) => [
-      ...prev,
-      { id: logCounterRef.current++, message, level },
-    ]);
+    setLogs(prev => [...prev, { id: counterRef.current++, message, level }]);
   }, []);
 
   async function runAegis() {
@@ -204,52 +179,47 @@ export default function DashboardPage() {
     setHasRun(true);
     setLogs([]);
     setReport(null);
-    logCounterRef.current = 0;
+    counterRef.current = 0;
     setAgentStatus({ scout: "idle", ledger: "idle", signal: "idle", scribe: "idle" });
     setAgentSpent({ scout: 0, ledger: 0, signal: 0, scribe: 0 });
     setWallets({ scout: "", ledger: "", signal: "", scribe: "" });
     setReputation({ scout: 5000, ledger: 5000, signal: 5000, scribe: 5000 });
+    setAgentTxHashes({ scout: [], ledger: [], signal: [], scribe: [] });
+    setAgentPaymentModes({ scout: "", ledger: "", signal: "", scribe: "" });
 
     try {
-      const response = await fetch("/api/run", {
+      const res = await fetch("/api/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ task }),
       });
 
-      if (!response.ok || !response.body) {
-        throw new Error(`API error ${response.status}`);
-      }
+      if (!res.ok || !res.body) throw new Error(`API ${res.status}`);
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const chunks = buffer.split("\n\n");
-        buffer = chunks.pop() ?? "";
+        buf += dec.decode(value, { stream: true });
+        const chunks = buf.split("\n\n");
+        buf = chunks.pop() ?? "";
 
         for (const chunk of chunks) {
           if (!chunk.startsWith("data: ")) continue;
           try {
-            const { type, payload } = JSON.parse(chunk.slice(6)) as {
-              type: string;
-              payload: unknown;
-            };
-
+            const { type, payload } = JSON.parse(chunk.slice(6)) as { type: string; payload: unknown };
             if (type === "log") {
               const p = payload as { message: string; level?: LogEntry["level"] };
               addLog(p.message, p.level ?? "info");
             } else if (type === "agent_status") {
-              const p = payload as { agent: AgentId; status: AgentStatus; spent?: number };
-              setAgentStatus((prev) => ({ ...prev, [p.agent]: p.status }));
-              if (p.spent !== undefined) {
-                setAgentSpent((prev) => ({ ...prev, [p.agent]: p.spent! }));
-              }
+              const p = payload as { agent: AgentId; status: AgentStatus; spent?: number; txHashes?: string[]; paymentMode?: string };
+              setAgentStatus(prev => ({ ...prev, [p.agent]: p.status }));
+              if (p.spent !== undefined) setAgentSpent(prev => ({ ...prev, [p.agent]: p.spent! }));
+              if (p.txHashes) setAgentTxHashes(prev => ({ ...prev, [p.agent]: p.txHashes! }));
+              if (p.paymentMode) setAgentPaymentModes(prev => ({ ...prev, [p.agent]: p.paymentMode! }));
             } else if (type === "wallets") {
               setWallets(payload as Record<AgentId, string>);
             } else if (type === "complete") {
@@ -258,13 +228,11 @@ export default function DashboardPage() {
               setAgentSpent(p.spent);
               setReputation(p.reputation);
               setWallets(p.wallets);
+              if (p.txHashes) setAgentTxHashes(p.txHashes as Record<AgentId, string[]>);
             } else if (type === "error") {
-              const p = payload as { message: string };
-              addLog(`Error: ${p.message}`, "error");
+              addLog(`Error: ${(payload as { message: string }).message}`, "error");
             }
-          } catch {
-            // skip malformed SSE frames
-          }
+          } catch { /* skip malformed frame */ }
         }
       }
     } catch (err) {
@@ -275,311 +243,134 @@ export default function DashboardPage() {
   }
 
   const totalSpent = Object.values(agentSpent).reduce((a, b) => a + b, 0);
+  const totalTxCount = Object.values(agentTxHashes).reduce((a, hashes) => a + hashes.length, 0);
+  const mode = running ? "RUNNING" : report ? "COMPLETE" : "IDLE";
+  const taskSnippet = task ? task.slice(0, 44) + (task.length > 44 ? "…" : "") : "—";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-
-      {/* ── Task Input ──────────────────────────────────────────────────── */}
-      <section>
-        <h2 style={{ marginBottom: "0.75rem" }}>Research Task</h2>
-        <div
-          style={{
-            background: "#0d1628",
-            border: "1px solid #1a2a45",
-            borderRadius: "0.75rem",
-            padding: "1.25rem",
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.875rem",
-          }}
-        >
-          <textarea
-            value={task}
-            onChange={(e) => setTask(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runAegis();
-            }}
-            placeholder="Enter a research task for Aegis…  (e.g. "Analyze DeFi adoption in emerging markets and key Stellar opportunities")"
-            disabled={running}
-            rows={3}
-            style={{
-              width: "100%",
-              background: "#060c18",
-              border: "1px solid #1a2a45",
-              borderRadius: "0.5rem",
-              padding: "0.75rem 1rem",
-              color: "#f0f4f8",
-              fontSize: "0.9375rem",
-              fontFamily: "inherit",
-              lineHeight: 1.5,
-              resize: "vertical",
-              outline: "none",
-              transition: "border-color 0.2s",
-            }}
-            onFocus={(e) => (e.target.style.borderColor = "#1b6ca8")}
-            onBlur={(e) => (e.target.style.borderColor = "#1a2a45")}
-          />
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
-            <span style={{ fontSize: "0.75rem", color: "#7a93b0" }}>
-              ⌘↵ to run · Scout → Ledger → Signal run in parallel · Scribe synthesizes
+    <>
+      <div className="dashboard-layout">
+        {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
+        <div className="d-left">
+          {/* CMD module */}
+          <div className="module cmd-module">
+            <span className="cmd-prefix">
+              CMD <span className="cmd-arrow">▸</span>
             </span>
+            <input
+              className="cmd-input"
+              value={task}
+              onChange={e => setTask(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runAegis(); }}
+              placeholder="Enter research task…  (⌘↵ to execute)"
+              disabled={running}
+            />
             <button
+              className={`cmd-exec${running ? " is-running" : ""}`}
               onClick={runAegis}
               disabled={running || !task.trim()}
-              style={{
-                background: running || !task.trim() ? "#0d2d4a" : "#1b6ca8",
-                color: running || !task.trim() ? "#7a93b0" : "#fff",
-                border: "none",
-                borderRadius: "0.5rem",
-                padding: "0.625rem 1.5rem",
-                fontWeight: 600,
-                fontSize: "0.9375rem",
-                cursor: running || !task.trim() ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                transition: "background 0.2s",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-              }}
             >
-              {running ? (
-                <>
-                  <span className="spinner" style={{ borderTopColor: "#7a93b0" }} />
-                  Running…
-                </>
-              ) : (
-                "▶ Run Aegis"
-              )}
+              {running ? <><span className="spinner" /> WAIT</> : "EXEC"}
             </button>
           </div>
-        </div>
-      </section>
 
-      {/* ── Agent Cards (2 × 2) ─────────────────────────────────────────── */}
-      <section>
-        <h2>Agent Status</h2>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(2, 1fr)",
-            gap: "1rem",
-          }}
-        >
-          {AGENTS.map((agent) => (
-            <AgentCard
-              key={agent.id}
-              name={agent.name}
-              icon={agent.icon}
-              capability={agent.capability}
-              status={agentStatus[agent.id]}
-              wallet={wallets[agent.id]}
-              spent={agentSpent[agent.id]}
-              reputation={reputation[agent.id]}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* ── Live Execution Log ───────────────────────────────────────────── */}
-      {hasRun && (
-        <section>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: "0.75rem",
-            }}
-          >
-            <h2 style={{ margin: 0 }}>Execution Log</h2>
-            {running && (
-              <span
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.375rem",
-                  fontSize: "0.75rem",
-                  color: "#60a5fa",
-                }}
-              >
-                <span className="status-dot running" />
-                Live
-              </span>
-            )}
-          </div>
-          <div className="terminal">
-            {logs.length === 0 && (
-              <span style={{ color: "#2d4a6a" }}>Waiting for output…</span>
-            )}
-            {logs.map((entry) => (
-              <div key={entry.id} className={`log-line ${entry.level}`}>
-                <span className="ts">{formatTs(entry.message)}</span>
-                <span className="msg">{entry.message}</span>
-              </div>
-            ))}
-            <div ref={logEndRef} />
-          </div>
-        </section>
-      )}
-
-      {/* ── Final Report ─────────────────────────────────────────────────── */}
-      {report && (
-        <section>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.625rem",
-              marginBottom: "0.875rem",
-            }}
-          >
-            <h2 style={{ margin: 0 }}>Intelligence Report</h2>
-            <span
-              style={{
-                background: "#14532d",
-                color: "#4ade80",
-                fontSize: "0.6875rem",
-                fontWeight: 600,
-                padding: "0.2rem 0.6rem",
-                borderRadius: "9999px",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
-              Complete
-            </span>
-          </div>
-          <div
-            style={{
-              background: "#0d1628",
-              border: "1px solid #1a3a5c",
-              borderRadius: "0.75rem",
-              padding: "1.75rem 2rem",
-            }}
-          >
-            <SimpleMarkdown content={report} />
-          </div>
-        </section>
-      )}
-
-      {/* ── Spend Summary Footer ─────────────────────────────────────────── */}
-      {hasRun && (
-        <section>
-          <h2>Spend Summary</h2>
-          <div
-            style={{
-              background: "#0d1628",
-              border: "1px solid #1a2a45",
-              borderRadius: "0.75rem",
-              overflow: "hidden",
-            }}
-          >
-            {/* Table header */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 2fr 1fr 1fr 1fr",
-                padding: "0.625rem 1.25rem",
-                background: "#060c18",
-                borderBottom: "1px solid #1a2a45",
-                fontSize: "0.75rem",
-                fontWeight: 600,
-                color: "#7a93b0",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              <span>Agent</span>
-              <span>Wallet Address</span>
-              <span style={{ textAlign: "right" }}>XLM Spent</span>
-              <span style={{ textAlign: "right" }}>Reputation</span>
-              <span style={{ textAlign: "right" }}>Explorer</span>
-            </div>
-
-            {/* Rows */}
-            {AGENTS.map((agent, idx) => (
-              <div
+          {/* Agents module */}
+          <div className="module agents-module">
+            {AGENTS.map((agent, i) => (
+              <AgentCard
                 key={agent.id}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 2fr 1fr 1fr 1fr",
-                  padding: "0.875rem 1.25rem",
-                  borderBottom: idx < AGENTS.length - 1 ? "1px solid #0d1e35" : "none",
-                  alignItems: "center",
-                  fontSize: "0.875rem",
-                }}
-              >
-                <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 600 }}>
-                  <span>{agent.icon}</span>
-                  {agent.name}
-                </span>
-                <span style={{ fontFamily: "monospace", color: "#93c5fd", fontSize: "0.8125rem" }}>
-                  {wallets[agent.id] ? truncateKey(wallets[agent.id]) : "—"}
-                </span>
-                <span style={{ textAlign: "right", fontWeight: 600, color: agentSpent[agent.id] > 0 ? "#f0f4f8" : "#374151" }}>
-                  {stroopsToXlm(agentSpent[agent.id])} XLM
-                </span>
-                <span
-                  style={{
-                    textAlign: "right",
-                    fontWeight: 600,
-                    color: reputation[agent.id] >= 7500 ? "#4ade80" : reputation[agent.id] >= 4000 ? "#eab308" : "#f87171",
-                  }}
-                >
-                  {bpsToScore(reputation[agent.id])}/100
-                </span>
-                <span style={{ textAlign: "right" }}>
-                  {wallets[agent.id] ? (
-                    <a
-                      href={`${EXPLORER_BASE}/${wallets[agent.id]}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        color: "#1b6ca8",
-                        fontSize: "0.8125rem",
-                        textDecoration: "none",
-                        padding: "0.2rem 0.5rem",
-                        border: "1px solid #1a3d5c",
-                        borderRadius: "0.25rem",
-                        transition: "color 0.2s",
-                      }}
-                      onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#2a85cc")}
-                      onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#1b6ca8")}
-                    >
-                      View ↗
-                    </a>
-                  ) : (
-                    <span style={{ color: "#374151" }}>—</span>
-                  )}
-                </span>
-              </div>
+                index={i + 1}
+                name={agent.name}
+                capability={agent.capability}
+                color={agent.color}
+                status={agentStatus[agent.id]}
+                wallet={wallets[agent.id]}
+                spent={agentSpent[agent.id]}
+                reputation={reputation[agent.id]}
+                reputationOnChain={reputationOnChain[agent.id]}
+                isLast={i === AGENTS.length - 1}
+                txHashes={agentTxHashes[agent.id]}
+                paymentMode={agentPaymentModes[agent.id]}
+              />
             ))}
+          </div>
 
-            {/* Total row */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 2fr 1fr 1fr 1fr",
-                padding: "0.875rem 1.25rem",
-                background: "#060c18",
-                borderTop: "1px solid #1a2a45",
-                fontSize: "0.875rem",
-              }}
-            >
-              <span style={{ fontWeight: 700, color: "#f0f4f8", gridColumn: "1/3" }}>Total</span>
-              <span style={{ textAlign: "right", fontWeight: 700, color: totalSpent > 0 ? "#2a85cc" : "#374151" }}>
-                {stroopsToXlm(totalSpent)} XLM
-              </span>
-              <span />
-              <span />
+          {/* Wallets module */}
+          <div className="module">
+            <div className="mod-header">WALLETS</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1rem", padding: "1rem" }}>
+              {AGENTS.map((agent) => (
+                <WalletCard key={agent.id} agentId={agent.id} />
+              ))}
             </div>
           </div>
-        </section>
-      )}
 
-      {/* Spacer */}
-      <div style={{ height: "2rem" }} />
-    </div>
+          {/* Task history */}
+          <div className="module">
+            <div className="mod-header">HISTORY</div>
+            <div style={{ padding: "1rem" }}>
+              <TaskFeed />
+            </div>
+          </div>
+        </div>
+
+        {/* ── RIGHT COLUMN ────────────────────────────────────────────── */}
+        <div className="d-right">
+          {/* Output log — always visible */}
+          <div className="module">
+            <div className="mod-header">
+              {running && <span className="live-dot" />}
+              OUTPUT
+              {running && <span style={{ color: "#5890d8" }}>· LIVE</span>}
+            </div>
+            <div className="terminal">
+              {!hasRun ? (
+                <span style={{ color: "#303032" }}>STANDBY — submit a task to begin</span>
+              ) : logs.length === 0 ? (
+                <span style={{ color: "#303032" }}>Waiting for output…</span>
+              ) : (
+                logs.map(entry => (
+                  <div key={entry.id} className={`log-line ${entry.level}`}>
+                    <span className="ts">{ts()}</span>
+                    <span className="msg">{entry.message}</span>
+                  </div>
+                ))
+              )}
+              <div ref={logEndRef} />
+            </div>
+          </div>
+
+          {/* Intelligence report */}
+          {report && (
+            <div className="module">
+              <div className="mod-header">
+                REPORT
+                <span className="done-badge">COMPLETE</span>
+              </div>
+              <SimpleMarkdown content={report} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Fixed footer ────────────────────────────────────────────────── */}
+      <div className="site-footer">
+        <span className="ftr-item">
+          MODE <span className={`ftr-val${running ? " active" : ""}`}>{mode}</span>
+        </span>
+        <span className="ftr-item">
+          TASK <span className="ftr-val">{taskSnippet}</span>
+        </span>
+        <span className="ftr-item">
+          TOTAL SPEND <span className="ftr-val">{stroopsToXlm(totalSpent)} XLM{totalTxCount > 0 ? ` · ${totalTxCount} TXS` : ""}</span>
+        </span>
+        <span className="ftr-item" style={{ marginLeft: "auto" }}>
+          SESSION <span className="ftr-val">{sessionRef.current}</span>
+        </span>
+        <span className="ftr-item">
+          <span className="ftr-val">{time}</span>
+        </span>
+      </div>
+    </>
   );
 }

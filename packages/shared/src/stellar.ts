@@ -62,11 +62,14 @@ export async function getXlmBalance(publicKey: string): Promise<string> {
   }
 }
 
-/** Fund an account on testnet via Friendbot. */
+/** Fund an account via Friendbot (testnet or futurenet). */
 export async function fundTestnetAccount(publicKey: string): Promise<void> {
-  const response = await fetch(
-    `https://friendbot.stellar.org?addr=${encodeURIComponent(publicKey)}`
-  );
+  const network = process.env.STELLAR_NETWORK ?? "testnet";
+  const friendbotUrl =
+    network === "futurenet"
+      ? `https://friendbot-futurenet.stellar.org?addr=${encodeURIComponent(publicKey)}`
+      : `https://friendbot.stellar.org?addr=${encodeURIComponent(publicKey)}`;
+  const response = await fetch(friendbotUrl);
   if (!response.ok) {
     throw new Error(`Friendbot funding failed: ${response.statusText}`);
   }

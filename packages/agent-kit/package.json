@@ -1,0 +1,41 @@
+{
+  "name": "@calebux/agent-kit",
+  "version": "0.1.0",
+  "description": "Governed multi-agent orchestration on Stellar — wallet provisioning, Soroban spend caps, on-chain reputation, and x402 payments in one package",
+  "keywords": [
+    "stellar",
+    "soroban",
+    "agents",
+    "x402",
+    "multi-agent",
+    "orchestration",
+    "blockchain"
+  ],
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@aegis/shared": "*",
+    "@stellar/stellar-sdk": "^12.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

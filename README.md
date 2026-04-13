@@ -6,9 +6,14 @@ Built for the [Stellar Hacks: Agents](https://dorahacks.io) hackathon on DoraHac
 
 ## Overview
 
-Aegis is a multi-agent orchestration framework where a master orchestrator decomposes high-level tasks and spawns specialized sub-agents. Each sub-agent has its own Stellar testnet wallet and spend caps enforced by a **Shield Contract** on Soroban. Sub-agents pay for external tools via the x402 payment protocol on Stellar testnet.
+Aegis is a multi-agent orchestration framework where a master orchestrator decomposes high-level tasks into specialized sub-agents — each with its own Stellar testnet wallet, spend cap enforced on-chain by a **Soroban Shield Contract**, and reputation tracked by an **Identity Registry**. Agents pay for external services using the x402 payment protocol over Stellar testnet, and settle agent-to-agent micropayments after every task.
 
-**Aegis is both a consumer AND provider of x402 services on Stellar** — the Ledger agent pays a locally-run Horizon x402 server that Aegis itself operates. This makes Aegis one of the first full-stack x402 participants on Stellar testnet.
+**What makes Aegis different from every other agent hack:**
+
+1. **Full-stack x402 on Stellar** — Aegis is simultaneously an x402 *provider* (running its own paywall server) and an x402 *consumer* (paying for queries from within the agent pipeline). Most entries pick one side.
+2. **On-chain spend governance** — the Shield Contract blocks any agent from overspending before the transaction ever hits the network. Guardrails are not a config file; they are a deployed Soroban contract.
+3. **Agent-to-agent payments** — Scribe pays Scout 0.001 XLM after every synthesis, logged on-chain with a memo (`aegis:scribe->scout`). Agents have financial relationships with each other, not just with external APIs.
+4. **Live reputation** — the Identity Registry increments each agent's reputation score on-chain after every successful task, making trustworthiness a first-class, verifiable property.
 
 ## Architecture
 
@@ -77,10 +82,14 @@ The Ledger agent also demonstrates **cross-agent awareness**: it fetches the Sco
 
 ## Soroban Contracts
 
-| Contract | Purpose |
-|----------|---------|
-| **Shield Contract** | Enforces per-agent spend caps — `authorize_spend` is called before every external request |
-| **Identity Registry** | Tracks agent reputation — `record_success` / `record_failure` updates scores after each task |
+Deployed on **Stellar testnet** (not futurenet).
+
+| Contract | ID | Purpose |
+|----------|----|---------|
+| **Shield Contract** | `CDD4J3B3Y44SDUKZQYEU2XPS4KBGAMLUQEWVSR2I25GXFGAQ6KD453N5` | Enforces per-agent spend caps — `authorize_spend` is called before every external request |
+| **Identity Registry** | `CD5SGG7E6GIZPCGSOAKLCKRF5RRNZ3462MX4RQDT3NE6BD74GVAOMHET` | Tracks agent reputation — `record_success` / `record_failure` updates scores after each task |
+
+Admin: `GDSUBJ4J6V4DR7B3UZ7IETLM7TPF23BXEZ7U4KTHQPSHXM3HACV2HWIC`
 
 ## Monorepo Structure
 
