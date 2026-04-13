@@ -22,8 +22,8 @@ export interface AgentRunResult {
   spentStroops?: bigint;
   /** Any additional tx hashes not captured via ctx.pay */
   txHashes?: string[];
-  /** "x402" when real payments were made, "dev" when bypassed */
-  paymentMode?: "x402" | "dev";
+  /** Payment mode used during this run */
+  paymentMode?: string;
 }
 
 export interface AgentDefinition {
@@ -56,6 +56,12 @@ export interface OrchestratorOptions {
    * If omitted, results are concatenated with Markdown headers.
    */
   synthesize?: (task: string, results: AgentResult[]) => Promise<string>;
+  /**
+   * Called after all agent wallets are provisioned, before agents run.
+   * Receives a map of agentId → Stellar public key.
+   * Useful for cross-agent awareness (e.g. passing Scout's address to Ledger).
+   */
+  onWalletsProvisioned?: (wallets: Record<string, string>) => void;
 }
 
 export interface AgentResult {

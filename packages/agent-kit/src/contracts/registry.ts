@@ -6,6 +6,7 @@ import {
   BASE_FEE,
   Contract,
   nativeToScVal,
+  scValToNative,
   xdr,
 } from "@stellar/stellar-sdk";
 import { getHorizonServer } from "@aegis/shared";
@@ -86,6 +87,34 @@ export class IdentityRegistry {
       prepared.sign(agentKeypair);
       const sent = await this.rpc.sendTransaction(prepared);
       return sent.status !== "ERROR" ? sent.hash : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Read the on-chain reputation score for an agent via Soroban simulation.
+   * Returns null if the agent isn't registered or the call fails.
+   */
+  async getReputation(agentId: string): Promise<number | null> {
+    try {
+      const horizon = getHorizonServer();
+      const acct = await horizon.loadAccount(this.adminKeypair.publicKey());
+      const contract = new Contract(this.contractId);
+      const tx = new TransactionBuilder(acct, {
+        fee: BASE_FEE,
+        networkPassphrase: networkPassphrase(),
+      })
+        .addOperation(
+          contract.call("get_reputation", nativeToScVal(agentId, { type: "symbol" }))
+        )
+        .setTimeout(30)
+        .build();
+      const sim = await this.rpc.simulateTransaction(tx);
+      if (SorobanRpc.Api.isSimulationSuccess(sim) && sim.result) {
+        return scValToNative(sim.result.retval) as number;
+      }
+      return null;
     } catch {
       return null;
     }

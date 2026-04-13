@@ -10,6 +10,11 @@
   --text:      #d8d8d8;
   --text-mid:  #888889;
   --text-dim:  #484848;
+  --text-muted:#888889;
+  --accent:    #6090c8;
+  --green:     #50b060;
+  --red:       #c05050;
+  --yellow:    #c8a020;
   --font:      "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
   --radius:    10px;
 }
@@ -84,11 +89,33 @@ body {
 /* ── Main layout ─────────────────────────────────────────────────────────── */
 main {
   padding: 1.25rem 1.5rem;
-  max-width: 1100px;
-  margin: 0 auto;
+}
+
+/* ── Two-column dashboard split ──────────────────────────────────────────── */
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 670px) 1fr;
+  gap: 0.875rem;
+  align-items: start;
+}
+
+.d-left, .d-right {
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
+}
+
+/* Right-panel terminal gets more room */
+.d-right .terminal {
+  max-height: 500px;
+}
+
+/* ── Card sub-panel ───────────────────────────────────────────────────────── */
+.card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
 }
 
 /* ── Module panels ────────────────────────────────────────────────────────── */

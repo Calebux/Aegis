@@ -74,8 +74,11 @@ export interface AgentCardProps {
   wallet: string;
   spent: number;       // stroops
   reputation: number;  // basis points 0–10 000
+  reputationOnChain?: number | null;  // raw on-chain score from Identity Registry
   color: string;       // accent color
   isLast?: boolean;
+  txHashes?: string[];   // real payment tx hashes
+  paymentMode?: string;  // "x402" | "session" | "dev"
 }
 
 const STATUS_STATES: AgentStatus[] = ["idle", "running", "complete", "failed"];
@@ -94,18 +97,24 @@ const BTN_COLOR: Record<AgentStatus, string> = {
 };
 
 const EXPLORER = "https://stellar.expert/explorer/testnet/account";
+const TX_EXPLORER = "https://stellar.expert/explorer/testnet/tx";
 
 function truncate(key: string): string {
   return key.length >= 10 ? `${key.slice(0, 6)}·${key.slice(-4)}` : key;
 }
 
 export function AgentCard({
-  index, name, capability, status, wallet, spent, reputation, color, isLast,
+  index, name, capability, status, wallet, spent, reputation, reputationOnChain, color, isLast,
+  txHashes, paymentMode,
 }: AgentCardProps) {
   const repPct   = Math.min(1, Math.max(0, reputation / 10000));
   const spentPct = Math.min(1, spent / 1e7 / 0.1);   // 0.1 XLM = full scale
   const actPct   = { idle: 0, running: 0.5, complete: 1, failed: 0.15 }[status];
   const repScore = String(Math.round(reputation / 100)).padStart(3, "0");
+  // On-chain score from Identity Registry (null = not yet fetched / not registered)
+  const onChainLabel = reputationOnChain !== null && reputationOnChain !== undefined
+    ? `⛓ ${reputationOnChain}`
+    : null;
 
   const sep = (
     <div style={{
@@ -148,6 +157,19 @@ export function AgentCard({
           <span style={{ fontSize: "0.5rem", color: "#303032", fontFamily: "var(--font)", marginTop: 1 }}>
             {capability}
           </span>
+        )}
+        {txHashes && txHashes.length > 0 && (
+          <a
+            href={`${TX_EXPLORER}/${txHashes[0]}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: "0.46rem", letterSpacing: "0.04em", color: "#585858", textDecoration: "none", fontFamily: "var(--font)", marginTop: 1, transition: "color 0.15s" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#888"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#585858"; }}
+          >
+            {paymentMode === "session" ? "[SESSION] " : paymentMode === "x402" ? "[x402] " : ""}
+            {`💸 ${txHashes.length} tx${txHashes.length > 1 ? "s" : ""}`}
+          </a>
         )}
       </div>
 
@@ -221,6 +243,15 @@ export function AgentCard({
         }}>
           {repScore}
         </span>
+        {onChainLabel && (
+          <span style={{
+            fontSize: "0.62rem", fontWeight: 600, letterSpacing: "0.02em",
+            color: "#4ade80", opacity: 0.8, marginLeft: 4, flexShrink: 0,
+            fontFamily: "var(--font)",
+          }}>
+            {onChainLabel}
+          </span>
+        )}
       </div>
     </div>
   );

@@ -38,9 +38,16 @@ export class ScribeAgent {
       .map((c) => `### ${c.agentId.toUpperCase()}\n${c.result}`)
       .join("\n\n");
 
+    const totalXlm = contributions
+      .reduce((sum, c) => sum + Number(c.spentStroops), 0) / 1e7;
+
+    const spendSummary = contributions
+      .map((c) => `- ${c.agentId}: ${(Number(c.spentStroops) / 1e7).toFixed(4)} XLM`)
+      .join("\n");
+
     const response = await this.anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1500,
+      max_tokens: 1800,
       messages: [
         {
           role: "user",
@@ -49,11 +56,19 @@ Given the following research contributions from specialised sub-agents,
 write a concise, well-structured report that addresses the original task.
 Include key findings, data points, and actionable insights.
 
+At the end of your report, include a brief "## Cost Breakdown" section listing
+what each agent spent on data access in XLM, and note that all payments are
+verifiable on Stellar testnet.
+
 ## Original Task
 ${originalPrompt}
 
 ## Sub-Agent Research
 ${context}
+
+## Payment Summary
+${spendSummary}
+Total: ${totalXlm.toFixed(4)} XLM paid for data access
 
 ## Report`,
         },

@@ -33,6 +33,34 @@ export class ShieldContract {
   ) {}
 
   /**
+   * Authorize a spend of `amountStroops` for `agentId`.
+   * The contract increments the agent's `total_spent` and rejects if the cap
+   * would be exceeded. Call this before every real Stellar payment.
+   *
+   * @returns true on success; throws if cap exceeded, agent inactive, or not found.
+   */
+  async authorizeSpend(agentId: string, amountStroops: bigint): Promise<boolean> {
+    const horizon = getHorizonServer();
+    const acct = await horizon.loadAccount(this.adminKeypair.publicKey());
+    const contract = new Contract(this.contractId);
+    const tx = new TransactionBuilder(acct, {
+      fee: BASE_FEE,
+      networkPassphrase: networkPassphrase(),
+    })
+      .addOperation(
+        contract.call(
+          "authorize_spend",
+          nativeToScVal(agentId, { type: "string" }),
+          nativeToScVal(amountStroops, { type: "i128" })
+        )
+      )
+      .setTimeout(30)
+      .build();
+    await sorobanInvoke(this.rpc, tx, this.adminKeypair);
+    return true;
+  }
+
+  /**
    * Register an agent with a spend cap.
    * @param agentId    Unique string identifier for the agent
    * @param agentKeypair  The agent's Stellar keypair

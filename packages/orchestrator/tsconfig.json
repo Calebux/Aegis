@@ -13,9 +13,13 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "paths": {
-      "@aegis/shared": ["../shared/src/index.ts"]
+      "@aegis/shared": ["../shared/src/index.ts"],
+      "@aegis/agent-kit": ["../agent-kit/src/index.ts"]
     }
   },
   "include": ["src"],
-  "references": [{ "path": "../shared" }]
+  "references": [
+    { "path": "../shared" },
+    { "path": "../agent-kit" }
+  ]
 }

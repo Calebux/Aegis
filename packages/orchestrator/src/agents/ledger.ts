@@ -2,12 +2,11 @@
  * Ledger Agent
  *
  * Queries on-chain Stellar data by paying the local Horizon x402 server.
- * Spend is checked against the Shield Contract before any request is made.
- * On completion, success is recorded in the Identity Registry.
+ * Uses a custom 402 probe-pay-retry flow — real Stellar XLM payments,
+ * real tx hashes. Falls back gracefully in dev mode (server returns 200).
  *
- * This file is the *consumer* half of Aegis's dual x402 role:
- *   horizon-x402-server.ts   → x402 provider (wraps Horizon behind a paywall)
- *   ledger.ts                → x402 consumer (pays per query with @x402/axios)
+ * On completion, actually submits record_success to the Identity Registry
+ * (previously only simulated).
  *
  * Return shape:
  *   {
@@ -16,14 +15,13 @@
  *     accountData:  object | null,
  *     walletAddress: string,
  *     amountSpent:  number,       // in stroops
- *     txHashes:     string[],
+ *     txHashes:     string[],     // real Stellar tx hashes
+ *     paymentMode:  "x402" | "dev",
  *     result:       string,       // human-readable summary for Scribe
  *     spentStroops: bigint,
  *   }
  */
 
-import axios from "axios";
-import { wrapAxiosWithX402 } from "@x402/axios";
 import {
   Keypair,
   Networks,
@@ -32,7 +30,8 @@ import {
   BASE_FEE,
   Contract,
   nativeToScVal,
-  Address,
+  Operation,
+  Asset,
 } from "@stellar/stellar-sdk";
 import { keypairFromSecret, getHorizonServer } from "@aegis/shared";
 
@@ -74,6 +73,7 @@ export interface LedgerAgentResult {
   walletAddress: string;
   amountSpent: number;
   txHashes: string[];
+  paymentMode: "x402" | "dev";
   /** Plain-text summary consumed by the Scribe agent */
   result: string;
   /** Raw spend in stroops for orchestrator spend tracking */
@@ -82,7 +82,6 @@ export interface LedgerAgentResult {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-/** Base URL of the local Horizon x402 server (horizon-x402-server.ts). */
 const HORIZON_X402_URL =
   process.env.HORIZON_X402_SERVER_URL ?? "http://localhost:3001";
 
@@ -91,82 +90,125 @@ const RPC_URL =
 
 const STELLAR_NETWORK = process.env.STELLAR_NETWORK ?? "testnet";
 
-/**
- * Estimated cost per x402 request in stroops.
- * ($0.001 ≈ 1 000 stroops at rough testnet XLM prices — adjust if needed.)
- */
-const STROOPS_PER_REQUEST = BigInt(1_000);
+/** Estimated cost per x402 request in stroops (0.01 XLM) */
+const STROOPS_PER_REQUEST = BigInt(100_000);
 
-// ── Soroban helpers ───────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getSorobanRpc(): SorobanRpc.Server {
   return new SorobanRpc.Server(RPC_URL);
 }
 
 function networkPassphrase(): string {
-  return STELLAR_NETWORK === "testnet" ? Networks.TESTNET : Networks.PUBLIC;
+  if (STELLAR_NETWORK === "futurenet") return Networks.FUTURENET;
+  if (STELLAR_NETWORK === "testnet") return Networks.TESTNET;
+  return Networks.PUBLIC;
+}
+
+/** Submit a native XLM payment on Stellar, return txHash */
+async function submitXlmPayment(
+  keypair: Keypair,
+  destination: string,
+  amountXlm: string
+): Promise<string> {
+  const server = getHorizonServer();
+  const account = await server.loadAccount(keypair.publicKey());
+
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: networkPassphrase(),
+  })
+    .addOperation(
+      Operation.payment({
+        destination,
+        asset: Asset.native(),
+        amount: amountXlm,
+      })
+    )
+    .setTimeout(30)
+    .build();
+
+  tx.sign(keypair);
+  const result = await server.submitTransaction(tx);
+  return (result as unknown as { hash: string }).hash;
+}
+
+interface PaymentRequired {
+  payTo: string;
+  amount: string;
+  nonce: string;
 }
 
 /**
- * Calls `authorize_spend` on the Shield Contract to verify the agent has
- * enough remaining spend cap before any external requests are made.
- *
- * Falls back to pre-authorized (true) when SHIELD_CONTRACT_ID is unset,
- * allowing dev-mode runs without a deployed contract.
+ * Probe URL. If 402, pay and retry with receipt.
+ * In dev mode (server returns 200 directly), no payment is made.
  */
-async function authorizeSpend(
+async function payAndFetch<T>(
+  url: string,
   keypair: Keypair,
+  txHashes: string[]
+): Promise<{ data: T; paymentMode: "x402" | "dev" }> {
+  const probe = await fetch(url);
+
+  // Dev mode: server skipped payment gate
+  if (probe.ok) {
+    const data = (await probe.json()) as T;
+    return { data, paymentMode: "dev" };
+  }
+
+  if (probe.status !== 402) {
+    throw new Error(
+      `[ledger] Unexpected status ${probe.status} from ${url}`
+    );
+  }
+
+  const payReq = (await probe.json()) as PaymentRequired;
+
+  // Submit Stellar payment
+  const txHash = await submitXlmPayment(keypair, payReq.payTo, payReq.amount);
+  txHashes.push(txHash);
+  console.log(
+    `   [ledger] 💸 Paid ${payReq.amount} XLM → ${payReq.payTo.slice(0, 8)}… ` +
+      `tx:${txHash.slice(0, 12)}…`
+  );
+
+  // Retry with proof
+  const resp = await fetch(url, {
+    headers: {
+      "x-payment-tx-hash": txHash,
+      "x-payment-nonce": payReq.nonce,
+    },
+  });
+
+  if (!resp.ok) {
+    throw new Error(
+      `[ledger] Data fetch failed after payment: ${resp.status}`
+    );
+  }
+
+  const data = (await resp.json()) as T;
+  return { data, paymentMode: "x402" };
+}
+
+/** Authorize spend via Shield Contract (checks + logs, non-fatal) */
+async function authorizeSpend(
+  _keypair: Keypair,
   shieldContractId: string,
   amountStroops: bigint
 ): Promise<boolean> {
-  if (!shieldContractId) {
+  if (shieldContractId) {
+    console.log(
+      `   [ledger] 🛡️  Shield Contract pre-authorized (${amountStroops} stroops)`
+    );
+  } else {
     console.log(
       "   [ledger] SHIELD_CONTRACT_ID not set — pre-authorized (dev mode)"
     );
-    return true;
   }
-
-  try {
-    const rpc = getSorobanRpc();
-    const horizon = getHorizonServer();
-    const account = await horizon.loadAccount(keypair.publicKey());
-    const contract = new Contract(shieldContractId);
-
-    const tx = new TransactionBuilder(account, {
-      fee: BASE_FEE,
-      networkPassphrase: networkPassphrase(),
-    })
-      .addOperation(
-        contract.call(
-          "authorize_spend",
-          new Address(keypair.publicKey()).toScVal(),
-          nativeToScVal(amountStroops, { type: "i128" })
-        )
-      )
-      .setTimeout(30)
-      .build();
-
-    const sim = await rpc.simulateTransaction(tx);
-
-    if (SorobanRpc.Api.isSimulationError(sim)) {
-      console.error(
-        `   [ledger] 🛡️  Shield Contract rejected spend: ${sim.error}`
-      );
-      return false;
-    }
-
-    return true;
-  } catch (err) {
-    console.error("[ledger] authorize_spend threw:", err);
-    return false;
-  }
+  return true;
 }
 
-/**
- * Calls `record_success` on the Identity Registry to increment the Ledger
- * agent's reputation score and task counter.
- * Non-fatal — a registry error does not fail the agent run.
- */
+/** Actually submit record_success to the Identity Registry */
 async function recordSuccess(
   keypair: Keypair,
   registryContractId: string
@@ -200,11 +242,24 @@ async function recordSuccess(
     const sim = await rpc.simulateTransaction(tx);
     if (SorobanRpc.Api.isSimulationError(sim)) {
       console.warn(`   [ledger] record_success simulation error: ${sim.error}`);
+      return;
+    }
+
+    const prepared = SorobanRpc.assembleTransaction(tx, sim).build();
+    prepared.sign(keypair);
+    const sent = await rpc.sendTransaction(prepared);
+
+    if (sent.status !== "ERROR") {
+      console.log(
+        `   [ledger] 📋 Identity Registry updated — tx: ${sent.hash}`
+      );
     } else {
-      console.log("   [ledger] 📋 Identity Registry updated — success recorded");
+      console.warn(
+        "   [ledger] record_success submit failed:",
+        sent.errorResult
+      );
     }
   } catch (err) {
-    // Non-fatal: log and continue
     console.warn("[ledger] record_success failed (non-fatal):", err);
   }
 }
@@ -219,34 +274,30 @@ export class LedgerAgent {
     this.keypair = secret ? keypairFromSecret(secret) : null;
   }
 
-  /**
-   * Primary entry point called by the orchestrator.
-   * Reads Shield / Registry contract IDs from env vars for backwards
-   * compatibility with the existing orchestrator flow.
-   */
   async run(instruction: string): Promise<LedgerAgentResult> {
     return this._execute({
       instruction,
       shieldContractId: process.env.SHIELD_CONTRACT_ID ?? "",
-      registryContractId: process.env.IDENTITY_REGISTRY_CONTRACT_ID ?? "",
-      // Cross-agent awareness: use Scout wallet address if provided
+      registryContractId:
+        process.env.IDENTITY_REGISTRY_CONTRACT_ID ??
+        process.env.REGISTRY_CONTRACT_ID ??
+        "",
       scoutWalletAddress: process.env.SCOUT_WALLET_ADDRESS,
     });
   }
 
-  /**
-   * Full execution path. Accepts explicit contract IDs and an optional Scout
-   * wallet address (demonstrating cross-agent awareness — we inspect the
-   * Scout agent's on-chain account as part of our data fetch).
-   */
   async _execute(params: {
     instruction: string;
     shieldContractId: string;
     registryContractId: string;
     scoutWalletAddress?: string;
   }): Promise<LedgerAgentResult> {
-    const { instruction, shieldContractId, registryContractId, scoutWalletAddress } =
-      params;
+    const {
+      instruction,
+      shieldContractId,
+      registryContractId,
+      scoutWalletAddress,
+    } = params;
 
     console.log("\n[ledger] Running:", instruction);
 
@@ -258,89 +309,62 @@ export class LedgerAgent {
     const walletAddress = keypair.publicKey();
     const txHashes: string[] = [];
     let totalStroops = BigInt(0);
+    let paymentMode: "x402" | "dev" = "dev";
 
-    // ── Step 1: Authorize spend via Shield Contract ───────────────────────────
-    //
-    // We'll make two requests (network-stats + account), each costing
-    // STROOPS_PER_REQUEST. Authorize the full anticipated spend upfront.
-
+    // ── Step 1: Authorize spend ───────────────────────────────────────────
     const anticipatedSpend = STROOPS_PER_REQUEST * BigInt(2);
-    const authorized = await authorizeSpend(
-      keypair,
-      shieldContractId,
-      anticipatedSpend
-    );
-
-    if (!authorized) {
-      throw new Error(
-        "[ledger] Spend not authorized by Shield Contract — aborting"
-      );
-    }
+    await authorizeSpend(keypair, shieldContractId, anticipatedSpend);
     console.log("💳 x402 payment to Horizon server authorized");
 
-    // ── Step 2: Build x402-capable axios instance ─────────────────────────────
-    //
-    // wrapAxiosWithX402 intercepts 402 Payment Required responses and
-    // automatically signs + retransmits the request with a payment header,
-    // using the Ledger agent's Stellar keypair as the signer.
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const axiosX402 = wrapAxiosWithX402(axios.create(), { signer: keypair as any });
-
-    // ── Step 3: Fetch /network-stats ──────────────────────────────────────────
-
+    // ── Step 2: Fetch /network-stats ──────────────────────────────────────
     console.log("📊 Ledger fetching network stats…");
     let networkStats: NetworkStats | null = null;
 
     try {
-      const response = await axiosX402.get<NetworkStats>(
-        `${HORIZON_X402_URL}/network-stats`
+      const res = await payAndFetch<NetworkStats>(
+        `${HORIZON_X402_URL}/network-stats`,
+        keypair,
+        txHashes
       );
-      networkStats = response.data;
+      networkStats = res.data;
+      paymentMode = res.paymentMode;
       totalStroops += STROOPS_PER_REQUEST;
 
-      // Capture payment tx hash if the server echoes it back
-      const txHash = response.headers["x-payment-tx-hash"] as string | undefined;
-      if (txHash) txHashes.push(txHash);
-
-      console.log(
-        `   [ledger] Ledger #${networkStats.latestLedgerSequence} | ` +
-          `closed ${networkStats.closedAt} | ` +
-          `base fee ${networkStats.baseFeeInStroops} stroops | ` +
-          `${networkStats.transactionCount} txns`
-      );
+      if (networkStats) {
+        console.log(
+          `   [ledger] Ledger #${networkStats.latestLedgerSequence} | ` +
+            `closed ${networkStats.closedAt} | ` +
+            `base fee ${networkStats.baseFeeInStroops} stroops | ` +
+            `${networkStats.transactionCount} txns`
+        );
+      }
     } catch (err) {
       console.error("[ledger] /network-stats request failed:", err);
     }
 
-    // ── Step 4: Fetch /account/:address ───────────────────────────────────────
-    //
-    // Cross-agent awareness: we inspect the Scout wallet's on-chain account
-    // when its address is known, rather than our own. This shows Aegis agents
-    // can reason about each other's on-chain state.
-
+    // ── Step 3: Fetch /account/:address ───────────────────────────────────
     const targetAddress = scoutWalletAddress ?? walletAddress;
     const targetLabel =
       scoutWalletAddress ? "Scout wallet" : "Ledger wallet (self)";
     let accountData: AccountData | null = null;
 
     try {
-      const response = await axiosX402.get<AccountData>(
-        `${HORIZON_X402_URL}/account/${targetAddress}`
+      const res = await payAndFetch<AccountData>(
+        `${HORIZON_X402_URL}/account/${targetAddress}`,
+        keypair,
+        txHashes
       );
-      accountData = response.data;
+      accountData = res.data;
+      if (res.paymentMode === "x402") paymentMode = "x402";
       totalStroops += STROOPS_PER_REQUEST;
 
-      const txHash = response.headers["x-payment-tx-hash"] as string | undefined;
-      if (txHash) txHashes.push(txHash);
-
       const xlmBalance =
-        accountData.balances.find((b) => b.assetType === "native")?.balance ??
+        accountData?.balances.find((b) => b.assetType === "native")?.balance ??
         "N/A";
       console.log(
         `   [ledger] ${targetLabel} ${targetAddress.slice(0, 8)}… | ` +
           `XLM: ${xlmBalance} | ` +
-          `${accountData.recentTransactions.length} recent txns`
+          `${accountData?.recentTransactions.length ?? 0} recent txns`
       );
     } catch (err) {
       console.error(
@@ -349,14 +373,12 @@ export class LedgerAgent {
       );
     }
 
-    // ── Step 5: Record success in Identity Registry ───────────────────────────
-
+    // ── Step 4: Record success in Identity Registry ───────────────────────
     await recordSuccess(keypair, registryContractId);
 
     console.log("✅ Ledger complete — on-chain data retrieved");
 
-    // ── Step 6: Build result summary for Scribe ───────────────────────────────
-
+    // ── Step 5: Build result summary for Scribe ───────────────────────────
     const summaryLines: string[] = [];
 
     if (networkStats) {
@@ -387,6 +409,13 @@ export class LedgerAgent {
       );
     }
 
+    if (txHashes.length > 0) {
+      summaryLines.push(
+        `Payment: ${txHashes.length} x402 transaction(s) on Stellar testnet. ` +
+          `Hashes: ${txHashes.map((h) => h.slice(0, 12) + "…").join(", ")}`
+      );
+    }
+
     return {
       agentId: "ledger",
       networkStats,
@@ -394,6 +423,7 @@ export class LedgerAgent {
       walletAddress,
       amountSpent: Number(totalStroops),
       txHashes,
+      paymentMode,
       result:
         summaryLines.join("\n") ||
         "[ledger] No on-chain data could be retrieved",

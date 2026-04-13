@@ -1,30 +1,32 @@
 /**
- * GET /api/tasks   — list recent tasks
- * POST /api/tasks  — submit a new task to the orchestrator
- *
- * TODO: connect to the orchestrator process / database.
+ * GET /api/tasks   — list all tasks from the in-memory store
+ * POST /api/tasks  — (not used; task submission goes via POST /api/run)
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { tasks } from "@/lib/taskStore";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  // TODO: return real task history from orchestrator state store
-  return NextResponse.json({ tasks: [] });
+/** Replacer to handle BigInt and Date serialisation */
+function replacer(_key: string, value: unknown): unknown {
+  if (typeof value === "bigint") return value.toString();
+  if (value instanceof Date) return value.toISOString();
+  return value;
 }
 
-export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const prompt: string | undefined = body?.prompt;
+export async function GET() {
+  const list = Array.from(tasks.values())
+    // Most recent first
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 
-  if (!prompt || typeof prompt !== "string" || prompt.trim() === "") {
-    return NextResponse.json({ error: "prompt is required" }, { status: 400 });
-  }
+  // Use JSON.stringify with replacer to handle BigInt / Date, then re-parse
+  const serialised = JSON.parse(JSON.stringify({ tasks: list }, replacer)) as {
+    tasks: unknown[];
+  };
 
-  // TODO: forward to orchestrator and return the created task
-  return NextResponse.json(
-    { message: "Task submission not yet wired to orchestrator", prompt },
-    { status: 501 }
-  );
+  return NextResponse.json(serialised);
 }

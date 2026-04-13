@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { AgentCard, type AgentStatus } from "@/components/AgentCard";
+import { WalletCard } from "@/components/WalletCard";
+import { TaskFeed } from "@/components/TaskFeed";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -19,6 +21,7 @@ interface CompletePayload {
   spent: Record<AgentId, number>;
   reputation: Record<AgentId, number>;
   timestamp: string;
+  txHashes?: Record<AgentId, string[]>;
 }
 
 // ── Agent definitions ─────────────────────────────────────────────────────
@@ -126,6 +129,15 @@ export default function DashboardPage() {
   const [reputation, setReputation] = useState<Record<AgentId, number>>({
     scout: 5000, ledger: 5000, signal: 5000, scribe: 5000,
   });
+  const [agentTxHashes, setAgentTxHashes] = useState<Record<AgentId, string[]>>({
+    scout: [], ledger: [], signal: [], scribe: [],
+  });
+  const [agentPaymentModes, setAgentPaymentModes] = useState<Record<AgentId, string>>({
+    scout: "", ledger: "", signal: "", scribe: "",
+  });
+  const [reputationOnChain, setReputationOnChain] = useState<Record<AgentId, number | null>>({
+    scout: null, ledger: null, signal: null, scribe: null,
+  });
 
   const logEndRef   = useRef<HTMLDivElement>(null);
   const counterRef  = useRef(0);
@@ -134,6 +146,23 @@ export default function DashboardPage() {
   // Live clock
   useEffect(() => {
     const id = setInterval(() => setTime(clock()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Poll on-chain reputation from Identity Registry every 15s
+  useEffect(() => {
+    async function fetchOnChain() {
+      try {
+        const res = await fetch("/api/status");
+        if (!res.ok) return;
+        const data = await res.json() as Array<{ agentId: AgentId; reputationOnChain: number | null }>;
+        const map: Record<AgentId, number | null> = { scout: null, ledger: null, signal: null, scribe: null };
+        for (const d of data) map[d.agentId] = d.reputationOnChain;
+        setReputationOnChain(map);
+      } catch { /* non-fatal */ }
+    }
+    fetchOnChain();
+    const id = setInterval(fetchOnChain, 15_000);
     return () => clearInterval(id);
   }, []);
 
@@ -155,6 +184,8 @@ export default function DashboardPage() {
     setAgentSpent({ scout: 0, ledger: 0, signal: 0, scribe: 0 });
     setWallets({ scout: "", ledger: "", signal: "", scribe: "" });
     setReputation({ scout: 5000, ledger: 5000, signal: 5000, scribe: 5000 });
+    setAgentTxHashes({ scout: [], ledger: [], signal: [], scribe: [] });
+    setAgentPaymentModes({ scout: "", ledger: "", signal: "", scribe: "" });
 
     try {
       const res = await fetch("/api/run", {
@@ -184,9 +215,11 @@ export default function DashboardPage() {
               const p = payload as { message: string; level?: LogEntry["level"] };
               addLog(p.message, p.level ?? "info");
             } else if (type === "agent_status") {
-              const p = payload as { agent: AgentId; status: AgentStatus; spent?: number };
+              const p = payload as { agent: AgentId; status: AgentStatus; spent?: number; txHashes?: string[]; paymentMode?: string };
               setAgentStatus(prev => ({ ...prev, [p.agent]: p.status }));
               if (p.spent !== undefined) setAgentSpent(prev => ({ ...prev, [p.agent]: p.spent! }));
+              if (p.txHashes) setAgentTxHashes(prev => ({ ...prev, [p.agent]: p.txHashes! }));
+              if (p.paymentMode) setAgentPaymentModes(prev => ({ ...prev, [p.agent]: p.paymentMode! }));
             } else if (type === "wallets") {
               setWallets(payload as Record<AgentId, string>);
             } else if (type === "complete") {
@@ -195,6 +228,7 @@ export default function DashboardPage() {
               setAgentSpent(p.spent);
               setReputation(p.reputation);
               setWallets(p.wallets);
+              if (p.txHashes) setAgentTxHashes(p.txHashes as Record<AgentId, string[]>);
             } else if (type === "error") {
               addLog(`Error: ${(payload as { message: string }).message}`, "error");
             }
@@ -209,84 +243,115 @@ export default function DashboardPage() {
   }
 
   const totalSpent = Object.values(agentSpent).reduce((a, b) => a + b, 0);
+  const totalTxCount = Object.values(agentTxHashes).reduce((a, hashes) => a + hashes.length, 0);
   const mode = running ? "RUNNING" : report ? "COMPLETE" : "IDLE";
   const taskSnippet = task ? task.slice(0, 44) + (task.length > 44 ? "…" : "") : "—";
 
   return (
     <>
-      {/* ── CMD module ──────────────────────────────────────────────────── */}
-      <div className="module cmd-module">
-        <span className="cmd-prefix">
-          CMD <span className="cmd-arrow">▸</span>
-        </span>
-        <input
-          className="cmd-input"
-          value={task}
-          onChange={e => setTask(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runAegis(); }}
-          placeholder="Enter research task…  (⌘↵ to execute)"
-          disabled={running}
-        />
-        <button
-          className={`cmd-exec${running ? " is-running" : ""}`}
-          onClick={runAegis}
-          disabled={running || !task.trim()}
-        >
-          {running ? <><span className="spinner" /> WAIT</> : "EXEC"}
-        </button>
-      </div>
-
-      {/* ── Agents module ───────────────────────────────────────────────── */}
-      <div className="module agents-module">
-        {AGENTS.map((agent, i) => (
-          <AgentCard
-            key={agent.id}
-            index={i + 1}
-            name={agent.name}
-            capability={agent.capability}
-            color={agent.color}
-            status={agentStatus[agent.id]}
-            wallet={wallets[agent.id]}
-            spent={agentSpent[agent.id]}
-            reputation={reputation[agent.id]}
-            isLast={i === AGENTS.length - 1}
-          />
-        ))}
-      </div>
-
-      {/* ── Output log ──────────────────────────────────────────────────── */}
-      {hasRun && (
-        <div className="module">
-          <div className="mod-header">
-            {running && <span className="live-dot" />}
-            OUTPUT
-            {running && <span style={{ color: "#5890d8" }}>· LIVE</span>}
+      <div className="dashboard-layout">
+        {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
+        <div className="d-left">
+          {/* CMD module */}
+          <div className="module cmd-module">
+            <span className="cmd-prefix">
+              CMD <span className="cmd-arrow">▸</span>
+            </span>
+            <input
+              className="cmd-input"
+              value={task}
+              onChange={e => setTask(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runAegis(); }}
+              placeholder="Enter research task…  (⌘↵ to execute)"
+              disabled={running}
+            />
+            <button
+              className={`cmd-exec${running ? " is-running" : ""}`}
+              onClick={runAegis}
+              disabled={running || !task.trim()}
+            >
+              {running ? <><span className="spinner" /> WAIT</> : "EXEC"}
+            </button>
           </div>
-          <div className="terminal">
-            {logs.length === 0 && (
-              <span style={{ color: "#303032" }}>Waiting for output…</span>
-            )}
-            {logs.map(entry => (
-              <div key={entry.id} className={`log-line ${entry.level}`}>
-                <span className="ts">{ts()}</span>
-                <span className="msg">{entry.message}</span>
-              </div>
+
+          {/* Agents module */}
+          <div className="module agents-module">
+            {AGENTS.map((agent, i) => (
+              <AgentCard
+                key={agent.id}
+                index={i + 1}
+                name={agent.name}
+                capability={agent.capability}
+                color={agent.color}
+                status={agentStatus[agent.id]}
+                wallet={wallets[agent.id]}
+                spent={agentSpent[agent.id]}
+                reputation={reputation[agent.id]}
+                reputationOnChain={reputationOnChain[agent.id]}
+                isLast={i === AGENTS.length - 1}
+                txHashes={agentTxHashes[agent.id]}
+                paymentMode={agentPaymentModes[agent.id]}
+              />
             ))}
-            <div ref={logEndRef} />
           </div>
-        </div>
-      )}
 
-      {/* ── Intelligence report ─────────────────────────────────────────── */}
-      {report && (
-        <div className="module">
-          <div className="mod-header">
-            REPORT
-            <span className="done-badge">COMPLETE</span>
+          {/* Wallets module */}
+          <div className="module">
+            <div className="mod-header">WALLETS</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1rem", padding: "1rem" }}>
+              {AGENTS.map((agent) => (
+                <WalletCard key={agent.id} agentId={agent.id} />
+              ))}
+            </div>
           </div>
-          <SimpleMarkdown content={report} />
+
+          {/* Task history */}
+          <div className="module">
+            <div className="mod-header">HISTORY</div>
+            <div style={{ padding: "1rem" }}>
+              <TaskFeed />
+            </div>
+          </div>
         </div>
-      )}
+
+        {/* ── RIGHT COLUMN ────────────────────────────────────────────── */}
+        <div className="d-right">
+          {/* Output log — always visible */}
+          <div className="module">
+            <div className="mod-header">
+              {running && <span className="live-dot" />}
+              OUTPUT
+              {running && <span style={{ color: "#5890d8" }}>· LIVE</span>}
+            </div>
+            <div className="terminal">
+              {!hasRun ? (
+                <span style={{ color: "#303032" }}>STANDBY — submit a task to begin</span>
+              ) : logs.length === 0 ? (
+                <span style={{ color: "#303032" }}>Waiting for output…</span>
+              ) : (
+                logs.map(entry => (
+                  <div key={entry.id} className={`log-line ${entry.level}`}>
+                    <span className="ts">{ts()}</span>
+                    <span className="msg">{entry.message}</span>
+                  </div>
+                ))
+              )}
+              <div ref={logEndRef} />
+            </div>
+          </div>
+
+          {/* Intelligence report */}
+          {report && (
+            <div className="module">
+              <div className="mod-header">
+                REPORT
+                <span className="done-badge">COMPLETE</span>
+              </div>
+              <SimpleMarkdown content={report} />
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* ── Fixed footer ────────────────────────────────────────────────── */}
       <div className="site-footer">
@@ -297,7 +362,7 @@ export default function DashboardPage() {
           TASK <span className="ftr-val">{taskSnippet}</span>
         </span>
         <span className="ftr-item">
-          TOTAL SPEND <span className="ftr-val">{stroopsToXlm(totalSpent)} XLM</span>
+          TOTAL SPEND <span className="ftr-val">{stroopsToXlm(totalSpent)} XLM{totalTxCount > 0 ? ` · ${totalTxCount} TXS` : ""}</span>
         </span>
         <span className="ftr-item" style={{ marginLeft: "auto" }}>
           SESSION <span className="ftr-val">{sessionRef.current}</span>

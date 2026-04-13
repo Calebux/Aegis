@@ -9,7 +9,7 @@ import type {
   OrchestratorReport,
   Orchestrator,
 } from "./types.js";
-import { payAndFetch } from "./payments.js";
+import { payAndFetch, submitXlmPayment } from "./payments.js";
 import { ShieldContract } from "./contracts/shield.js";
 import { IdentityRegistry } from "./contracts/registry.js";
 
@@ -45,6 +45,7 @@ export function createOrchestrator(
     registryContractId = process.env.REGISTRY_CONTRACT_ID ?? "",
     decompose,
     synthesize,
+    onWalletsProvisioned,
   } = options;
 
   // Per-orchestrator reputation cache (persists across runs in the same process)
@@ -107,7 +108,15 @@ export function createOrchestrator(
       emit("agent_status", { agent: agent.id, status: "idle" });
     }
 
+    // Notify caller of provisioned wallets (for cross-agent awareness)
+    onWalletsProvisioned?.(walletKeys);
+
     // ── 3. Register agents on-chain ──────────────────────────────────────
+    const rpcUrl =
+      process.env.STELLAR_RPC_URL ?? "https://soroban-testnet.stellar.org";
+    let shield: ShieldContract | null = null;
+    let registry: IdentityRegistry | null = null;
+
     if (shieldContractId || registryContractId) {
       const adminSecret = process.env.ORCHESTRATOR_SECRET_KEY;
       if (adminSecret) {
@@ -116,14 +125,12 @@ export function createOrchestrator(
           level: "info",
         });
         const adminKeypair = Keypair.fromSecret(adminSecret);
-        const rpcUrl =
-          process.env.STELLAR_RPC_URL ?? "https://soroban-testnet.stellar.org";
         const rpc = new SorobanRpc.Server(rpcUrl);
 
-        const shield = shieldContractId
+        shield = shieldContractId
           ? new ShieldContract(shieldContractId, rpc, adminKeypair)
           : null;
-        const registry = registryContractId
+        registry = registryContractId
           ? new IdentityRegistry(registryContractId, rpc, adminKeypair)
           : null;
 
@@ -170,9 +177,6 @@ export function createOrchestrator(
       emit("log", { message: `▶ ${agent.id} starting…`, level: "info" });
     }
 
-    const rpcUrl =
-      process.env.STELLAR_RPC_URL ?? "https://soroban-testnet.stellar.org";
-
     const agentResults: AgentResult[] = await Promise.all(
       agents.map(async (agent): Promise<AgentResult> => {
         const keypair = wallets.get(agent.id)!;
@@ -182,8 +186,30 @@ export function createOrchestrator(
         const ctx: AgentContext = {
           wallet: keypair,
           txHashes,
-          pay: <T = unknown>(url: string) =>
-            payAndFetch<T>(url, keypair, txHashes).then((r) => r.data),
+          pay: async <T = unknown>(url: string): Promise<T> => {
+            const probe = await fetch(url);
+            if (probe.ok) return probe.json() as Promise<T>;
+            if (probe.status !== 402) {
+              throw new Error(`Unexpected status ${probe.status} from ${url}`);
+            }
+            const { payTo, amount, nonce } = await probe.json() as {
+              payTo: string; amount: string; nonce: string;
+            };
+            // Authorize spend on Shield Contract before submitting payment
+            if (shield) {
+              const amountStroops = BigInt(Math.round(parseFloat(amount) * 10_000_000));
+              await shield.authorizeSpend(agent.id, amountStroops).catch((err) => {
+                throw new Error(`Shield blocked spend for ${agent.id}: ${String(err)}`);
+              });
+            }
+            const txHash = await submitXlmPayment(keypair, payTo, amount);
+            txHashes.push(txHash);
+            const resp = await fetch(url, {
+              headers: { "x-payment-tx-hash": txHash, "x-payment-nonce": nonce },
+            });
+            if (!resp.ok) throw new Error(`Data fetch failed after payment: ${resp.status}`);
+            return resp.json() as Promise<T>;
+          },
         };
 
         try {
@@ -194,14 +220,8 @@ export function createOrchestrator(
           );
 
           // Record success on Identity Registry (non-blocking)
-          if (registryContractId && process.env.ORCHESTRATOR_SECRET_KEY) {
-            const rpc = new SorobanRpc.Server(rpcUrl);
-            const reg = new IdentityRegistry(
-              registryContractId,
-              rpc,
-              Keypair.fromSecret(process.env.ORCHESTRATOR_SECRET_KEY)
-            );
-            reg.recordSuccess(agent.id, keypair).catch(() => {});
+          if (registry) {
+            registry.recordSuccess(agent.id, keypair).catch(() => {});
           }
 
           const allHashes = [...txHashes, ...(res.txHashes ?? [])];
@@ -234,14 +254,8 @@ export function createOrchestrator(
           );
 
           // Record failure on Identity Registry (non-blocking)
-          if (registryContractId && process.env.ORCHESTRATOR_SECRET_KEY) {
-            const rpc = new SorobanRpc.Server(rpcUrl);
-            const reg = new IdentityRegistry(
-              registryContractId,
-              rpc,
-              Keypair.fromSecret(process.env.ORCHESTRATOR_SECRET_KEY)
-            );
-            reg.recordFailure(agent.id, keypair).catch(() => {});
+          if (registry) {
+            registry.recordFailure(agent.id, keypair).catch(() => {});
           }
 
           emit("agent_status", { agent: agent.id, status: "failed" });

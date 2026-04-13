@@ -17,6 +17,7 @@
     "clean": "npm run clean --workspaces --if-present && rm -rf node_modules"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.2",
     "@types/node": "^22.0.0",
     "typescript": "^5.5.0"
   },

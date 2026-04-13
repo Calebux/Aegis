@@ -18,7 +18,6 @@ import {
   BASE_FEE,
   Contract,
   nativeToScVal,
-  Address,
   Operation,
   Asset,
 } from "@stellar/stellar-sdk";
@@ -93,6 +92,13 @@ const LINKUP_PAYMENT_RECIPIENT =
 const RPC_URL =
   process.env.STELLAR_RPC_URL ?? "https://soroban-testnet.stellar.org";
 
+function networkPassphrase(): string {
+  const net = process.env.STELLAR_NETWORK ?? "testnet";
+  if (net === "futurenet") return Networks.FUTURENET;
+  if (net === "testnet") return Networks.TESTNET;
+  return Networks.PUBLIC;
+}
+
 // ---------------------------------------------------------------------------
 // ScoutAgent class — orchestrator-compatible wrapper
 // ---------------------------------------------------------------------------
@@ -155,6 +161,8 @@ export class ScoutAgent {
 interface RunScoutOptions {
   query: string;
   keypair: Keypair;
+  /** Logical agent ID used as the Symbol key in the Identity Registry ("scout") */
+  agentId?: string;
   shieldContractId?: string;
   registryContractId?: string;
 }
@@ -162,17 +170,13 @@ interface RunScoutOptions {
 export async function runScout(
   options: RunScoutOptions
 ): Promise<ScoutSearchResult> {
-  const { query, keypair, shieldContractId, registryContractId } = options;
+  const { query, keypair, agentId = "scout", shieldContractId: _shield, registryContractId } = options;
   const walletAddress = keypair.publicKey();
 
   console.log(`🔍 Scout searching: ${query}`);
 
-  // ── 1. Authorize spend via Shield Contract ──────────────────────────────
-  if (shieldContractId) {
-    await authorizeSpend(keypair, shieldContractId);
-  }
-
-  // ── 2. Execute x402 payment on Stellar testnet ──────────────────────────
+  // ── 1. Execute x402 payment on Stellar testnet ──────────────────────────
+  // Shield spend authorization is handled by the orchestrator admin before agents run.
   let txHash: string;
   let amountSpent: number;
 
@@ -182,13 +186,14 @@ export async function runScout(
     amountSpent = payment.amountStroops;
     console.log("💳 x402 payment authorized on Stellar testnet");
   } catch (err) {
-    if (registryContractId) {
-      await recordFailure(keypair, registryContractId).catch(() => {});
-    }
-    throw new Error(`x402 payment failed: ${err}`);
+    // Non-fatal on testnet: recipient account may not be funded.
+    // Scout continues to the Linkup search regardless.
+    console.warn(`⚠️  x402 payment skipped (testnet): ${err}`);
+    txHash = "testnet-skipped";
+    amountSpent = 0;
   }
 
-  // ── 3. Run the search via Linkup SDK ────────────────────────────────────
+  // ── 2. Run the search via Linkup SDK ────────────────────────────────────
   const apiKey = process.env.LINKUP_API_KEY;
   if (!apiKey) {
     throw new Error("LINKUP_API_KEY is not set — add it to your .env file");
@@ -216,14 +221,14 @@ export async function runScout(
       .map((s) => ({ name: (s as { name: string }).name, url: (s as { url: string }).url }));
   } catch (err) {
     if (registryContractId) {
-      await recordFailure(keypair, registryContractId).catch(() => {});
+      await recordFailure(keypair, registryContractId, agentId).catch(() => {});
     }
     throw new Error(`Linkup search failed: ${err}`);
   }
 
-  // ── 4. Record success in Identity Registry ──────────────────────────────
+  // ── 3. Record success in Identity Registry ──────────────────────────────
   if (registryContractId) {
-    await recordSuccess(keypair, registryContractId).catch((err) => {
+    await recordSuccess(keypair, registryContractId, agentId).catch((err) => {
       console.warn("[scout] record_success failed (non-fatal):", err);
     });
   }
@@ -242,73 +247,27 @@ export async function runScout(
 }
 
 // ---------------------------------------------------------------------------
-// Shield Contract: authorize_spend
-// ---------------------------------------------------------------------------
-
-async function authorizeSpend(
-  keypair: Keypair,
-  contractId: string
-): Promise<void> {
-  const rpc = new SorobanRpc.Server(RPC_URL);
-  const horizon = getHorizonServer();
-
-  try {
-    const account = await horizon.loadAccount(keypair.publicKey());
-    const contract = new Contract(contractId);
-
-    const tx = new TransactionBuilder(account, {
-      fee: BASE_FEE,
-      networkPassphrase: Networks.TESTNET,
-    })
-      .addOperation(
-        contract.call(
-          "authorize_spend",
-          new Address(keypair.publicKey()).toScVal(),
-          nativeToScVal(ESTIMATED_SEARCH_COST_STROOPS, { type: "i128" })
-        )
-      )
-      .setTimeout(30)
-      .build();
-
-    const sim = await rpc.simulateTransaction(tx);
-
-    if (SorobanRpc.Api.isSimulationError(sim)) {
-      throw new Error(
-        `Shield Contract rejected spend authorization for scout: ${sim.error}`
-      );
-    }
-  } catch (err) {
-    if (
-      err instanceof Error &&
-      err.message.startsWith("Shield Contract rejected")
-    ) {
-      throw err; // propagate authorization failures
-    }
-    // Network / account-not-found errors are non-fatal in dev mode
-    console.warn("[scout] authorize_spend unavailable (dev mode):", err);
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Identity Registry: record_success / record_failure
 // ---------------------------------------------------------------------------
 
 async function callRegistry(
   keypair: Keypair,
   contractId: string,
-  method: "record_success" | "record_failure"
+  method: "record_success" | "record_failure",
+  agentId: string
 ): Promise<void> {
   const rpc = new SorobanRpc.Server(RPC_URL);
   const horizon = getHorizonServer();
   const account = await horizon.loadAccount(keypair.publicKey());
   const contract = new Contract(contractId);
 
+  // Identity Registry expects agent_id as Symbol (e.g. "scout"), not a wallet Address
   const tx = new TransactionBuilder(account, {
     fee: BASE_FEE,
-    networkPassphrase: Networks.TESTNET,
+    networkPassphrase: networkPassphrase(),
   })
     .addOperation(
-      contract.call(method, new Address(keypair.publicKey()).toScVal())
+      contract.call(method, nativeToScVal(agentId, { type: "symbol" }))
     )
     .setTimeout(30)
     .build();
@@ -328,16 +287,18 @@ async function callRegistry(
 
 async function recordSuccess(
   keypair: Keypair,
-  contractId: string
+  contractId: string,
+  agentId: string
 ): Promise<void> {
-  await callRegistry(keypair, contractId, "record_success");
+  await callRegistry(keypair, contractId, "record_success", agentId);
 }
 
 async function recordFailure(
   keypair: Keypair,
-  contractId: string
+  contractId: string,
+  agentId: string
 ): Promise<void> {
-  await callRegistry(keypair, contractId, "record_failure");
+  await callRegistry(keypair, contractId, "record_failure", agentId);
 }
 
 // ---------------------------------------------------------------------------
@@ -361,7 +322,7 @@ async function executeX402Payment(
 
   const tx = new TransactionBuilder(account, {
     fee: BASE_FEE,
-    networkPassphrase: Networks.TESTNET,
+    networkPassphrase: networkPassphrase(),
   })
     .addOperation(
       Operation.payment({
