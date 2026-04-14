@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { AgentCard, type AgentStatus } from "@/components/AgentCard";
 import { WalletCard } from "@/components/WalletCard";
 import { TaskFeed } from "@/components/TaskFeed";
+import { TaskGraphView, type TaskGraph, type AgentType as GraphAgentType, type NodeStatus } from "./TaskGraph";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -138,6 +139,9 @@ export default function DashboardPage() {
   const [reputationOnChain, setReputationOnChain] = useState<Record<AgentId, number | null>>({
     scout: null, ledger: null, signal: null, scribe: null,
   });
+  const [taskGraph, setTaskGraph] = useState<TaskGraph | null>(null);
+  const [graphStatusMap, setGraphStatusMap] = useState<Partial<Record<GraphAgentType, NodeStatus>>>({});
+  const [graphConfidenceMap, setGraphConfidenceMap] = useState<Partial<Record<GraphAgentType, number>>>({});
 
   const logEndRef   = useRef<HTMLDivElement>(null);
   const counterRef  = useRef(0);
@@ -186,6 +190,9 @@ export default function DashboardPage() {
     setReputation({ scout: 5000, ledger: 5000, signal: 5000, scribe: 5000 });
     setAgentTxHashes({ scout: [], ledger: [], signal: [], scribe: [] });
     setAgentPaymentModes({ scout: "", ledger: "", signal: "", scribe: "" });
+    setTaskGraph(null);
+    setGraphStatusMap({});
+    setGraphConfidenceMap({});
 
     try {
       const res = await fetch("/api/run", {
@@ -214,12 +221,30 @@ export default function DashboardPage() {
             if (type === "log") {
               const p = payload as { message: string; level?: LogEntry["level"] };
               addLog(p.message, p.level ?? "info");
+            } else if (type === "task:graph") {
+              setTaskGraph(payload as TaskGraph);
+              // Mark all graph nodes as pending
+              const g = payload as TaskGraph;
+              const initStatus: Partial<Record<GraphAgentType, NodeStatus>> = {};
+              for (const n of g.nodes) initStatus[n.agentType as GraphAgentType] = "pending";
+              setGraphStatusMap(initStatus);
             } else if (type === "agent_status") {
-              const p = payload as { agent: AgentId; status: AgentStatus; spent?: number; txHashes?: string[]; paymentMode?: string };
-              setAgentStatus(prev => ({ ...prev, [p.agent]: p.status }));
-              if (p.spent !== undefined) setAgentSpent(prev => ({ ...prev, [p.agent]: p.spent! }));
-              if (p.txHashes) setAgentTxHashes(prev => ({ ...prev, [p.agent]: p.txHashes! }));
-              if (p.paymentMode) setAgentPaymentModes(prev => ({ ...prev, [p.agent]: p.paymentMode! }));
+              const p = payload as { agent: AgentId | "validator"; status: AgentStatus; spent?: number; txHashes?: string[]; paymentMode?: string; confidence?: number };
+              if (p.agent !== "validator") {
+                setAgentStatus(prev => ({ ...prev, [p.agent]: p.status }));
+              }
+              if (p.spent !== undefined && p.agent !== "validator") setAgentSpent(prev => ({ ...prev, [p.agent]: p.spent! }));
+              if (p.txHashes && p.agent !== "validator") setAgentTxHashes(prev => ({ ...prev, [p.agent]: p.txHashes! }));
+              if (p.paymentMode && p.agent !== "validator") setAgentPaymentModes(prev => ({ ...prev, [p.agent]: p.paymentMode! }));
+              // Update graph status
+              const graphStatus: NodeStatus =
+                p.status === "complete" ? "complete" :
+                p.status === "failed"   ? "error" :
+                p.status === "running"  ? "running" : "pending";
+              setGraphStatusMap(prev => ({ ...prev, [p.agent as GraphAgentType]: graphStatus }));
+              if (p.confidence !== undefined) {
+                setGraphConfidenceMap(prev => ({ ...prev, [p.agent as GraphAgentType]: p.confidence! }));
+              }
             } else if (type === "wallets") {
               setWallets(payload as Record<AgentId, string>);
             } else if (type === "complete") {
@@ -316,6 +341,25 @@ export default function DashboardPage() {
 
         {/* ── RIGHT COLUMN ────────────────────────────────────────────── */}
         <div className="d-right">
+          {/* Task graph — shown once received */}
+          {taskGraph && (
+            <div className="module">
+              <div className="mod-header">
+                TASK GRAPH
+                <span style={{ color: "#505052", fontSize: "0.65rem", fontFamily: "monospace", marginLeft: "auto" }}>
+                  {taskGraph.nodes.length} NODES
+                </span>
+              </div>
+              <div style={{ padding: "0.5rem 1rem" }}>
+                <TaskGraphView
+                  graph={taskGraph}
+                  statusMap={graphStatusMap}
+                  confidenceMap={graphConfidenceMap}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Output log — always visible */}
           <div className="module">
             <div className="mod-header">

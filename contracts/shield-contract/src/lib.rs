@@ -45,6 +45,26 @@ pub enum DataKey {
     Admin,
     /// Full agent record, keyed by `agent_id`.
     Agent(String),
+    /// Agent output signature record, keyed by (agent_id, run_id).
+    Signature(String, String),
+}
+
+// ---------------------------------------------------------------------------
+// Signature record (Upgrade 7 — Verifiable Agent Signatures)
+// ---------------------------------------------------------------------------
+
+/// On-chain record of a signed agent output.
+/// Stores the hex signature + SHA-256 payload hash so any verifier can
+/// confirm that a specific agent produced a specific output for a given run.
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct SignatureRecord {
+    /// Hex-encoded Stellar keypair signature over the canonical message.
+    pub signature: String,
+    /// SHA-256 hex hash of the serialised payload (canonical key order).
+    pub payload_hash: String,
+    /// Ledger timestamp at time of storage.
+    pub timestamp: u64,
 }
 
 // ---------------------------------------------------------------------------
@@ -235,6 +255,52 @@ impl ShieldContract {
     /// Return the full `AgentRecord` for the given agent. Open to all callers.
     pub fn get_agent(env: Env, agent_id: String) -> Result<AgentRecord, ShieldError> {
         Self::load_agent(&env, &agent_id)
+    }
+
+    // -----------------------------------------------------------------------
+    // Verifiable signatures (Upgrade 7)
+    // -----------------------------------------------------------------------
+
+    /// Store a cryptographic signature for a specific agent output.
+    ///
+    /// Called by the agent (or the orchestrator on its behalf) immediately
+    /// after the agent publishes to the event bus. Admin-gated.
+    ///
+    /// * `agent_id`    — e.g. "scout", "signal"
+    /// * `run_id`      — UUID of the pipeline run
+    /// * `signature`   — hex-encoded Stellar keypair signature
+    /// * `payload_hash`— SHA-256 hex hash of the canonical payload JSON
+    pub fn store_signature(
+        env: Env,
+        agent_id: String,
+        run_id: String,
+        signature: String,
+        payload_hash: String,
+    ) {
+        Self::require_admin(&env);
+        let key = DataKey::Signature(agent_id.clone(), run_id.clone());
+        let record = SignatureRecord {
+            signature,
+            payload_hash,
+            timestamp: env.ledger().timestamp(),
+        };
+        env.storage().instance().set(&key, &record);
+
+        env.events().publish(
+            (Symbol::new(&env, "sig_stored"), agent_id),
+            (run_id,),
+        );
+    }
+
+    /// Retrieve a stored signature record. Returns None if not found.
+    /// Open to all callers — enables off-chain verification.
+    pub fn verify_signature(
+        env: Env,
+        agent_id: String,
+        run_id: String,
+    ) -> Option<SignatureRecord> {
+        let key = DataKey::Signature(agent_id, run_id);
+        env.storage().instance().get(&key)
     }
 }
 

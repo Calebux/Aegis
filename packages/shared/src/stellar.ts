@@ -17,20 +17,39 @@ import {
 
 export const TESTNET_CONFIG = {
   networkPassphrase: Networks.TESTNET,
-  horizonUrl: process.env.STELLAR_HORIZON_URL ?? "https://horizon-testnet.stellar.org",
-  rpcUrl: process.env.STELLAR_RPC_URL ?? "https://soroban-testnet.stellar.org",
+  horizonUrl: "https://horizon-testnet.stellar.org",
+  rpcUrl: "https://soroban-testnet.stellar.org",
 } as const;
+
+// ---------------------------------------------------------------------------
+// Dynamic network helpers (read env at call time, not module load time)
+// ---------------------------------------------------------------------------
+
+export function getNetworkPassphrase(): string {
+  const net = process.env.STELLAR_NETWORK ?? "testnet";
+  if (net === "futurenet") return Networks.FUTURENET;
+  if (net === "mainnet" || net === "public") return Networks.PUBLIC;
+  return Networks.TESTNET;
+}
+
+export function getHorizonUrl(): string {
+  return process.env.STELLAR_HORIZON_URL ?? "https://horizon-testnet.stellar.org";
+}
+
+export function getRpcUrl(): string {
+  return process.env.STELLAR_RPC_URL ?? "https://soroban-testnet.stellar.org";
+}
 
 // ---------------------------------------------------------------------------
 // Client factories
 // ---------------------------------------------------------------------------
 
 export function getHorizonServer(): Horizon.Server {
-  return new Horizon.Server(TESTNET_CONFIG.horizonUrl);
+  return new Horizon.Server(getHorizonUrl());
 }
 
 export function getSorobanRpc(): SorobanRpc.Server {
-  return new SorobanRpc.Server(TESTNET_CONFIG.rpcUrl);
+  return new SorobanRpc.Server(getRpcUrl());
 }
 
 // ---------------------------------------------------------------------------
@@ -83,6 +102,6 @@ export async function buildTransactionBuilder(
   const account = await server.loadAccount(sourcePublicKey);
   return new TransactionBuilder(account, {
     fee: BASE_FEE,
-    networkPassphrase: TESTNET_CONFIG.networkPassphrase,
+    networkPassphrase: getNetworkPassphrase(),
   });
 }

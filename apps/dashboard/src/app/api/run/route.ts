@@ -173,6 +173,7 @@ export async function POST(req: NextRequest) {
       emitter.on("log", (p) => emit("log", p));
       emitter.on("agent_status", (p) => emit("agent_status", p));
       emitter.on("wallets", (p) => emit("wallets", p));
+      emitter.on("task:graph", (p) => emit("task:graph", p));
 
       emitter.once("complete", (p) => {
         emit("complete", p);

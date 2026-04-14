@@ -27,6 +27,8 @@ import {
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
 import { keypairFromSecret, getHorizonServer } from "@aegis/shared";
+import { bus, type AgentMessage } from "../lib/bus.js";
+import { publishSigned } from "../lib/signer.js";
 
 // ── Network helper ────────────────────────────────────────────────────────────
 
@@ -82,7 +84,7 @@ export interface SignalResult {
 // ── Signal Agent ──────────────────────────────────────────────────────────────
 
 export class SignalAgent {
-  private readonly keypair: ReturnType<typeof keypairFromSecret> | null;
+  private keypair: ReturnType<typeof keypairFromSecret> | null;
 
   constructor() {
     const secret = process.env.SIGNAL_SECRET_KEY;
@@ -515,5 +517,215 @@ export class SignalAgent {
       return;
     }
     console.log(`[signal] authorize_spend → Shield Contract ${shieldId}`);
+  }
+
+  // ── Bus-based execution (Upgrade 1 + 2 + 4) ─────────────────────────────────
+
+  /**
+   * Wire Signal to the bus for a specific run.
+   * Uses an accumulator pattern: waits for BOTH scout:complete AND ledger:complete
+   * before running analysis, then publishes signal:complete.
+   */
+  wire(runId: string, keypair?: Keypair): void {
+    const received = new Map<string, AgentMessage>();
+    const required: Array<"scout:complete" | "ledger:complete"> = [
+      "scout:complete",
+      "ledger:complete",
+    ];
+
+    // Inject keypair for this run if provided — also update this.keypair
+    // so run() (which reads this.keypair) uses the injected key
+    if (keypair) {
+      process.env.SIGNAL_SECRET_KEY = keypair.secret();
+      this.keypair = keypair;
+    }
+
+    const tryRun = async () => {
+      if (!required.every((t) => received.has(t))) return;
+      const scoutMsg = received.get("scout:complete")!;
+      const ledgerMsg = received.get("ledger:complete")!;
+      await this.runBus({ runId, scoutPayload: scoutMsg.payload, ledgerPayload: ledgerMsg.payload });
+    };
+
+    for (const topic of required) {
+      bus.subscribe(
+        topic,
+        (msg) => {
+          if (msg.runId !== runId) return;
+          received.set(topic, msg);
+          void tryRun();
+        },
+        runId
+      );
+    }
+  }
+
+  /**
+   * Run Signal analysis then publish signal:complete to the bus.
+   * Includes conflict detection between Signal's conclusion and Ledger's raw data.
+   */
+  private async runBus(params: {
+    runId: string;
+    scoutPayload: unknown;
+    ledgerPayload: unknown;
+  }): Promise<void> {
+    const { runId, scoutPayload, ledgerPayload } = params;
+
+    console.log("[signal] Both scout:complete and ledger:complete received — running analysis…");
+
+    let signalResult: SignalResult;
+    try {
+      // Use the existing run() logic to get market data
+      const instruction = "Fetch current XLM/USDC market data for analysis";
+      signalResult = await this.run(instruction);
+    } catch (err) {
+      bus.publish({
+        topic: "task:error",
+        agentId: "signal",
+        runId,
+        payload: { agentId: "signal", error: String(err), fatal: false },
+        confidence: 0,
+        timestamp: Date.now(),
+      });
+      // Publish a stub so the pipeline can continue
+      bus.publish({
+        topic: "signal:complete",
+        agentId: "signal",
+        runId,
+        payload: {
+          analysis: `Market data unavailable: ${String(err)}`,
+          confidence: 0.3,
+          conflictDetected: false,
+          scoutData: scoutPayload,
+          ledgerData: ledgerPayload,
+        },
+        confidence: 0.3,
+        timestamp: Date.now(),
+      });
+      return;
+    }
+
+    // Build combined analysis from all three data sources
+    const scoutSummary = this.extractTextFromPayload(scoutPayload);
+    const ledgerSummary = this.extractTextFromPayload(ledgerPayload);
+
+    const combinedAnalysis = [
+      `## Market Data (Signal)\n${signalResult.result}`,
+      `\n## Web Research (Scout)\n${scoutSummary}`,
+      `\n## On-Chain Data (Ledger)\n${ledgerSummary}`,
+    ].join("\n");
+
+    // Conflict detection: compare Signal's XLM price direction with Ledger's data
+    const { conflictDetected, conflictDetails } = this.detectConflict(
+      signalResult,
+      ledgerPayload
+    );
+
+    if (conflictDetected) {
+      console.log(`[signal] ⚠️  Conflict detected: ${conflictDetails}`);
+    }
+
+    const confidence = this.computeConfidence(signalResult, conflictDetected);
+
+    const signalKeypair = this.keypair;
+    const signalPayload = {
+      analysis: combinedAnalysis,
+      confidence,
+      conflictDetected,
+      conflictDetails,
+      scoutData: scoutPayload,
+      ledgerData: ledgerPayload,
+      xlmPrice: signalResult.xlmUsdcPrice,
+      paymentMode: signalResult.paymentMode,
+      txHashes: signalResult.txHashes,
+    };
+
+    if (signalKeypair) {
+      await publishSigned(
+        {
+          topic: "signal:complete",
+          agentId: "signal",
+          runId,
+          payload: signalPayload,
+          confidence,
+          timestamp: Date.now(),
+        },
+        signalKeypair,
+        process.env.SHIELD_CONTRACT_ID
+      );
+    } else {
+      bus.publish({
+        topic: "signal:complete",
+        agentId: "signal",
+        runId,
+        payload: signalPayload,
+        confidence,
+        timestamp: Date.now(),
+      });
+    }
+  }
+
+  private extractTextFromPayload(payload: unknown): string {
+    if (!payload || typeof payload !== "object") return String(payload ?? "");
+    const p = payload as Record<string, unknown>;
+    if (typeof p["summary"] === "string") return p["summary"];
+    if (typeof p["result"] === "string") return p["result"];
+    if (Array.isArray(p["results"])) {
+      return (p["results"] as Array<{ answer?: string }>)
+        .map((r) => r.answer ?? "")
+        .join("\n");
+    }
+    return JSON.stringify(payload).slice(0, 500);
+  }
+
+  private detectConflict(
+    signal: SignalResult,
+    ledgerPayload: unknown
+  ): { conflictDetected: boolean; conflictDetails?: string } {
+    // Only flag a conflict if we have actual price data from both sides
+    if (signal.xlmUsdcPrice <= 0) return { conflictDetected: false };
+
+    try {
+      const lp = ledgerPayload as Record<string, unknown>;
+      const data = lp?.["data"] as Record<string, unknown> | undefined;
+      const stats = data?.["networkStats"] as Record<string, unknown> | undefined;
+
+      // If ledger has no fee data at all, can't conflict
+      if (!stats?.["baseFeeInStroops"]) return { conflictDetected: false };
+
+      // Check if market conditions seem inconsistent with network activity
+      // (simple heuristic: extremely high fee + very low price may indicate stress)
+      const baseFee = Number(stats["baseFeeInStroops"] ?? 100);
+      const txCount = Number(stats["transactionCount"] ?? 0);
+
+      // Very high network fees with very low XLM price → potential conflict signal
+      if (baseFee > 10_000 && signal.xlmUsdcPrice < 0.05) {
+        return {
+          conflictDetected: true,
+          conflictDetails: `Network base fee unusually high (${baseFee} stroops) while XLM price is very low ($${signal.xlmUsdcPrice.toFixed(6)}). This may indicate network stress or data inconsistency.`,
+        };
+      }
+
+      // If transaction count is extremely low but price is high, flag it
+      if (txCount === 0 && signal.xlmUsdcPrice > 1) {
+        return {
+          conflictDetected: true,
+          conflictDetails: `No transactions on ledger but XLM price is $${signal.xlmUsdcPrice.toFixed(6)}. Ledger data may be stale.`,
+        };
+      }
+    } catch {
+      // Non-fatal conflict check
+    }
+
+    return { conflictDetected: false };
+  }
+
+  private computeConfidence(signal: SignalResult, conflictDetected: boolean): number {
+    let conf = 0.8;
+    if (signal.paymentMode === "session") conf += 0.1; // session = more reliable (3 snapshots)
+    if (signal.vouchers >= 3) conf = Math.min(conf + 0.05, 1.0);
+    if (conflictDetected) conf -= 0.25;
+    if (signal.xlmUsdcPrice <= 0) conf -= 0.3;
+    return Math.max(0.1, Math.min(1.0, conf));
   }
 }

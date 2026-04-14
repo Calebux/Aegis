@@ -61,6 +61,37 @@ export class ShieldContract {
   }
 
   /**
+   * Store an agent output signature on-chain (Upgrade 7).
+   * Enables off-chain verifiers to confirm agent output provenance.
+   */
+  async storeSignature(params: {
+    agentId: string;
+    runId: string;
+    signature: string;
+    payloadHash: string;
+  }): Promise<void> {
+    const horizon = getHorizonServer();
+    const acct = await horizon.loadAccount(this.adminKeypair.publicKey());
+    const contract = new Contract(this.contractId);
+    const tx = new TransactionBuilder(acct, {
+      fee: BASE_FEE,
+      networkPassphrase: networkPassphrase(),
+    })
+      .addOperation(
+        contract.call(
+          "store_signature",
+          nativeToScVal(params.agentId, { type: "string" }),
+          nativeToScVal(params.runId, { type: "string" }),
+          nativeToScVal(params.signature, { type: "string" }),
+          nativeToScVal(params.payloadHash, { type: "string" })
+        )
+      )
+      .setTimeout(30)
+      .build();
+    await sorobanInvoke(this.rpc, tx, this.adminKeypair);
+  }
+
+  /**
    * Register an agent with a spend cap.
    * @param agentId    Unique string identifier for the agent
    * @param agentKeypair  The agent's Stellar keypair
