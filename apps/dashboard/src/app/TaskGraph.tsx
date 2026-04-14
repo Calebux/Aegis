@@ -16,7 +16,7 @@ import React from "react";
 
 // ── Types (must match planner.ts, duplicated here to avoid server imports) ────
 
-export type AgentType = "scout" | "ledger" | "signal" | "scribe" | "validator";
+export type AgentType = "scout" | "ledger" | "signal" | "scribe" | "validator" | "executor";
 export type NodeStatus = "pending" | "running" | "complete" | "error";
 
 export interface TaskNode {
@@ -41,6 +41,7 @@ const AGENT_COLORS: Record<AgentType, string> = {
   signal:    "#b050c0",
   scribe:    "#d04828",
   validator: "#5890d8",
+  executor:  "#e07840",
 };
 
 const AGENT_ICONS: Record<AgentType, string> = {
@@ -49,6 +50,7 @@ const AGENT_ICONS: Record<AgentType, string> = {
   signal:    "📈",
   scribe:    "✍️",
   validator: "🔬",
+  executor:  "⚡",
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────

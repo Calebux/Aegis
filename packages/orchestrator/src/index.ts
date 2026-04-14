@@ -34,6 +34,7 @@ import { ScoutAgent } from "./agents/scout.js";
 import { LedgerAgent } from "./agents/ledger.js";
 import { SignalAgent } from "./agents/signal.js";
 import { ScribeAgent } from "./agents/scribe.js";
+import { ExecutorAgent } from "./agents/executor.js";
 import { startHorizonX402Server } from "./services/horizon-x402-server.js";
 
 export type { OrchestratorReport as AegisReport };
@@ -122,6 +123,34 @@ function bridgeBusToEmitter(msg: AgentMessage, emit: EmitFn): void {
     emit("agent_status", { agent: "validator", status: "complete", confidence: msg.confidence });
   }
 
+  if (msg.topic === "executor:complete") {
+    const p = msg.payload as Record<string, unknown>;
+    const notaryTxHash = (p["notaryTxHash"] as string) ?? "";
+    const dexTxHash    = (p["dexTxHash"]    as string) ?? "";
+    emit("agent_status", {
+      agent:       "executor",
+      status:      "complete",
+      spent:       p["amountSpent"] ?? 0,
+      txHashes:    p["txHashes"] ?? [],
+      paymentMode: "notary",
+      confidence:  msg.confidence,
+      sigTxHash:   notaryTxHash || undefined,
+      dexTxHash:   dexTxHash    || undefined,
+    });
+    emit("log", {
+      message: [
+        notaryTxHash ? `🔏 Soroban: ${notaryTxHash.slice(0, 12)}…` : `🔏 Soroban: skipped`,
+        dexTxHash    ? `💱 DEX: ${dexTxHash.slice(0, 12)}…`        : `💱 DEX: failed`,
+      ].join("  ·  "),
+      level: "success",
+    });
+  }
+
+  if (msg.topic === "sig:stored") {
+    const p = msg.payload as { agentId: string; sigTxHash: string };
+    emit("agent_status", { agent: p.agentId, sigTxHash: p.sigTxHash });
+  }
+
   if (msg.topic === "task:error") {
     const p = msg.payload as { error?: string; type?: string };
     if (p.type !== "reputation:updated") {
@@ -138,7 +167,8 @@ export async function runTask(
   prompt: string,
   emitter?: EventEmitter
 ): Promise<OrchestratorReport> {
-  if (!horizonServerStarted) {
+  // Skip port-binding on Vercel serverless (VERCEL env is set automatically)
+  if (!horizonServerStarted && !process.env.VERCEL) {
     try {
       await startHorizonX402Server();
       horizonServerStarted = true;
@@ -185,25 +215,36 @@ export async function runTask(
     ledgerRouting.requiresValidation;
 
   // ── 3. Provision wallets ───────────────────────────────────────────────────
-  emit("log", { message: "🔑 Provisioning agent wallets…", level: "info" });
+  // Use persistent keypairs from env when available so reputation + wallet
+  // history accumulates across runs. Falls back to random (dev / first run).
+  emit("log", { message: "🔑 Loading agent wallets…", level: "info" });
 
-  const scoutKp  = Keypair.random();
-  const ledgerKp = Keypair.random();
-  const signalKp = Keypair.random();
-  const scribeKp = Keypair.random();
+  function loadKeypair(envKey: string): Keypair {
+    const secret = process.env[envKey];
+    return secret ? Keypair.fromSecret(secret) : Keypair.random();
+  }
 
+  const scoutKp    = loadKeypair("SCOUT_SECRET_KEY");
+  const ledgerKp   = loadKeypair("LEDGER_SECRET_KEY");
+  const signalKp   = loadKeypair("SIGNAL_SECRET_KEY");
+  const scribeKp   = loadKeypair("SCRIBE_SECRET_KEY");
+  const executorKp = loadKeypair("EXECUTOR_SECRET_KEY");
+
+  // Fund only wallets that don't yet exist on-chain (friendbot ignores already-funded)
   await Promise.all([
     fundTestnetAccount(scoutKp.publicKey()).catch(() => {}),
     fundTestnetAccount(ledgerKp.publicKey()).catch(() => {}),
     fundTestnetAccount(signalKp.publicKey()).catch(() => {}),
     fundTestnetAccount(scribeKp.publicKey()).catch(() => {}),
+    fundTestnetAccount(executorKp.publicKey()).catch(() => {}),
   ]);
 
   const walletKeys: Record<string, string> = {
-    scout:  scoutKp.publicKey(),
-    ledger: ledgerKp.publicKey(),
-    signal: signalKp.publicKey(),
-    scribe: scribeKp.publicKey(),
+    scout:    scoutKp.publicKey(),
+    ledger:   ledgerKp.publicKey(),
+    signal:   signalKp.publicKey(),
+    scribe:   scribeKp.publicKey(),
+    executor: executorKp.publicKey(),
   };
 
   emit("wallets", walletKeys);
@@ -223,19 +264,23 @@ export async function runTask(
   const registryId = process.env.REGISTRY_CONTRACT_ID ?? process.env.IDENTITY_REGISTRY_CONTRACT_ID;
   const adminSecret = process.env.ORCHESTRATOR_SECRET_KEY;
 
+  // Hoist registry + shield so they're accessible later (reputation reads, consensus wiring)
+  let registry: InstanceType<typeof IdentityRegistry> | null = null;
+
   if ((shieldId || registryId) && adminSecret) {
     emit("log", { message: "🛡️  Registering agents on Soroban contracts…", level: "info" });
     try {
       const adminKp = Keypair.fromSecret(adminSecret);
       const rpc = new SorobanRpc.Server(rpcUrl);
-      const shield   = shieldId   ? new ShieldContract(shieldId, rpc, adminKp)     : null;
-      const registry = registryId ? new IdentityRegistry(registryId, rpc, adminKp) : null;
+      const shield = shieldId ? new ShieldContract(shieldId, rpc, adminKp) : null;
+      registry     = registryId ? new IdentityRegistry(registryId, rpc, adminKp) : null;
 
       const agentDefs = [
-        { id: "scout",  kp: scoutKp  },
-        { id: "ledger", kp: ledgerKp },
-        { id: "signal", kp: signalKp },
-        { id: "scribe", kp: scribeKp },
+        { id: "scout",    kp: scoutKp    },
+        { id: "ledger",   kp: ledgerKp   },
+        { id: "signal",   kp: signalKp   },
+        { id: "scribe",   kp: scribeKp   },
+        { id: "executor", kp: executorKp },
       ];
 
       for (const { id, kp } of agentDefs) {
@@ -261,8 +306,8 @@ export async function runTask(
   bus.onEvent = (msg) => bridgeBusToEmitter(msg, emit);
 
   // Accumulate per-agent metrics from bus messages
-  const spentMap: Record<string, number> = { scout: 0, ledger: 0, signal: 0, scribe: 0 };
-  const txHashMap: Record<string, string[]> = { scout: [], ledger: [], signal: [], scribe: [] };
+  const spentMap: Record<string, number> = { scout: 0, ledger: 0, signal: 0, scribe: 0, executor: 0 };
+  const txHashMap: Record<string, string[]> = { scout: [], ledger: [], signal: [], scribe: [], executor: [] };
 
   bus.subscribe("scout:complete", (msg) => {
     if (msg.runId !== runId) return;
@@ -284,17 +329,38 @@ export async function runTask(
     txHashMap["signal"] = (p["txHashes"] as string[]) ?? [];
   }, runId);
 
+  bus.subscribe("executor:complete", (msg) => {
+    if (msg.runId !== runId) return;
+    const p = msg.payload as Record<string, unknown>;
+    spentMap["executor"]  = Number(p["amountSpent"] ?? 0);
+    txHashMap["executor"] = (p["txHashes"] as string[]) ?? [];
+  }, runId);
+
   // ── 6. Wire receiving agents ───────────────────────────────────────────────
   const signalAgent = new SignalAgent();
-  signalAgent.wire(runId, signalKp);
+  signalAgent.wire(runId, signalKp, prompt);
   emit("log", { message: "   Signal wired (waiting for Scout + Ledger)", level: "info" });
 
   const consensusManager = new ConsensusManager();
-  consensusManager.wire(runId);
+  const consensusKeypairs = new Map<string, Keypair>([
+    ["signal",    signalKp],
+    ["validator", Keypair.random()],   // placeholder — validator uses its own ephemeral kp
+  ]);
+  consensusManager.wire(
+    runId,
+    registry ?? undefined,
+    consensusKeypairs,
+    needsValidator   // reputation-gated: probation tier forces Validator regardless of confidence
+  );
 
   const scribeAgent = new ScribeAgent();
   scribeAgent.wire(runId, scribeKp, scoutKp.publicKey());
   emit("log", { message: "   Scribe wired (waiting for consensus)", level: "info" });
+
+  const executorAgent = new ExecutorAgent();
+  executorAgent.wire(runId, executorKp);
+  emit("agent_status", { agent: "executor", status: "running" });
+  emit("log", { message: "   Executor wired (waiting for consensus — will execute treasury action)", level: "info" });
 
   if (needsValidator) {
     emit("log", { message: "   🔍 Validator will be spawned if conflict detected", level: "info" });
@@ -329,9 +395,18 @@ export async function runTask(
     level: "success",
   });
 
-  const reputationMap: Record<string, number> = {
-    scout: 5250, ledger: 5250, signal: 5250, scribe: 5250,
-  };
+  // Read live on-chain reputation scores; fall back to 5000 if contracts not configured
+  const reputationMap: Record<string, number> = {};
+  const reputationAgents = ["scout", "ledger", "signal", "scribe", "executor"];
+  if (registry) {
+    await Promise.all(
+      reputationAgents.map(async (id) => {
+        reputationMap[id] = (await registry.getReputation(id)) ?? 5000;
+      })
+    );
+  } else {
+    for (const id of reputationAgents) reputationMap[id] = 5000;
+  }
 
   const finalReportObj: OrchestratorReport = {
     task: prompt,

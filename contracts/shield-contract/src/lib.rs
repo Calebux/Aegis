@@ -45,8 +45,8 @@ pub enum DataKey {
     Admin,
     /// Full agent record, keyed by `agent_id`.
     Agent(String),
-    /// Agent output signature record, keyed by (agent_id, run_id).
-    Signature(String, String),
+    /// Agent output signature record, keyed by "{agent_id}:{run_id}".
+    Signature(String),
 }
 
 // ---------------------------------------------------------------------------
@@ -270,37 +270,38 @@ impl ShieldContract {
     /// * `run_id`      — UUID of the pipeline run
     /// * `signature`   — hex-encoded Stellar keypair signature
     /// * `payload_hash`— SHA-256 hex hash of the canonical payload JSON
+    /// Store a signature. `sig_key` must be "{agent_id}:{run_id}" — callers
+    /// are responsible for building this key. Using a single String avoids
+    /// tuple-variant XDR encoding issues. Admin-gated.
     pub fn store_signature(
         env: Env,
-        agent_id: String,
-        run_id: String,
+        sig_key: String,
         signature: String,
         payload_hash: String,
     ) {
         Self::require_admin(&env);
-        let key = DataKey::Signature(agent_id.clone(), run_id.clone());
+        let key = DataKey::Signature(sig_key.clone());
         let record = SignatureRecord {
             signature,
             payload_hash,
             timestamp: env.ledger().timestamp(),
         };
-        env.storage().instance().set(&key, &record);
+        env.storage().persistent().set(&key, &record);
 
         env.events().publish(
-            (Symbol::new(&env, "sig_stored"), agent_id),
-            (run_id,),
+            (Symbol::new(&env, "sig_stored"),),
+            (sig_key,),
         );
     }
 
-    /// Retrieve a stored signature record. Returns None if not found.
+    /// Retrieve a stored signature. `sig_key` must be "{agent_id}:{run_id}".
     /// Open to all callers — enables off-chain verification.
     pub fn verify_signature(
         env: Env,
-        agent_id: String,
-        run_id: String,
+        sig_key: String,
     ) -> Option<SignatureRecord> {
-        let key = DataKey::Signature(agent_id, run_id);
-        env.storage().instance().get(&key)
+        let key = DataKey::Signature(sig_key);
+        env.storage().persistent().get(&key)
     }
 }
 

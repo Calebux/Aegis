@@ -19,10 +19,11 @@ interface SerializedWalletBalance {
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const COLORS: Record<AgentId, string> = {
-  scout: "#6366f1",
-  ledger: "#22c55e",
-  signal: "#eab308",
-  scribe: "#ec4899",
+  scout:    "#6366f1",
+  ledger:   "#22c55e",
+  signal:   "#eab308",
+  scribe:   "#ec4899",
+  executor: "#e07840",
 };
 
 export function SpendChart() {

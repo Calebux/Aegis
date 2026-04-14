@@ -11,7 +11,7 @@ import Anthropic from "@anthropic-ai/sdk";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type AgentType = "scout" | "ledger" | "signal" | "scribe" | "validator";
+export type AgentType = "scout" | "ledger" | "signal" | "scribe" | "validator" | "executor";
 export type TaskMode = "fast" | "standard" | "deep-research";
 
 export interface TaskNode {
@@ -42,16 +42,19 @@ Available agent types:
 - signal: Market analysis and synthesis. Depends on scout and/or ledger outputs. Required before scribe.
 - scribe: Final report writer. Always the last node. Depends on signal or consensus.
 - validator: Fact checker. Add when the task involves financial data that could conflict with web data.
+- executor: Treasury execution agent. Add when the task involves trading decisions or portfolio actions. Depends on signal.
 
 Rules:
 1. scout and ledger can run in parallel (neither depends on the other).
 2. signal must depend on at least one of scout or ledger.
 3. scribe must always be the last node and must depend on signal.
 4. validator is optional — only add it if financial accuracy is critical.
-5. For simple factual questions, use only ledger + scribe (2 nodes).
-6. For research questions, use scout + signal + scribe (3 nodes).
-7. For analysis questions with on-chain data, use scout + ledger + signal + scribe (4 nodes).
-8. For high-stakes financial decisions, add validator between signal and scribe (5 nodes).
+5. executor is optional — add when the user asks to take action, rebalance, buy, sell, or execute.
+6. For simple factual questions, use only ledger + scribe (2 nodes).
+7. For research questions, use scout + signal + scribe (3 nodes).
+8. For analysis questions with on-chain data, use scout + ledger + signal + scribe (4 nodes).
+9. For high-stakes financial decisions, add validator between signal and scribe (5 nodes).
+10. For actionable trading tasks, add executor after signal (runs in parallel with scribe).
 
 Respond with ONLY valid JSON matching this schema. No explanation. No markdown code fences.
 {

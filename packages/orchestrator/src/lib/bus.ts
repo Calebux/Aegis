@@ -17,6 +17,8 @@ export type AgentTopic =
   | "validator:complete"
   | "consensus:reached"
   | "consensus:failed"
+  | "executor:complete"
+  | "sig:stored"
   | "task:error";
 
 // ── Message envelope ──────────────────────────────────────────────────────────
@@ -45,6 +47,8 @@ export interface AgentMessage {
  * validator:complete → { originalAgentId: string; validationPassed: boolean; revisedAnalysis?: string }
  * consensus:reached  → { agreedOutput: string; participatingAgents: string[]; voteTally: Record<string,number>; validationWasRequired?: boolean }
  * consensus:failed   → { reason: string; conflictingAgents: string[]; escalateTo: 'orchestrator' }
+ * executor:complete  → { notaryTxHash: string; dexTxHash: string; payloadHash: string; amountSpent: number; txHashes: string[]; paymentMode: string }
+ * sig:stored         → { agentId: string; runId: string; sigTxHash: string }
  * task:error         → { agentId: string; error: string; fatal: boolean } | { type: 'reputation:updated'; agentId: string; newScore: number; delta: number }
  */
 

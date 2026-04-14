@@ -110,12 +110,14 @@ export async function publishSigned(
   // Publish immediately — never wait for on-chain storage
   bus.publish({ ...msg, signature });
 
-  // Fire-and-forget on-chain signature storage
-  if (shieldContractId) {
+  // Fire-and-forget on-chain signature storage (uses admin keypair — store_signature is admin-gated)
+  const adminSecret = process.env.ORCHESTRATOR_SECRET_KEY;
+  if (shieldContractId && adminSecret) {
     const rpcUrl =
       process.env.STELLAR_RPC_URL ?? "https://soroban-testnet.stellar.org";
     const rpc = new SorobanRpc.Server(rpcUrl);
-    const shield = new ShieldContract(shieldContractId, rpc, keypair);
+    const adminKp = Keypair.fromSecret(adminSecret);
+    const shield = new ShieldContract(shieldContractId, rpc, adminKp);
     shield
       .storeSignature({
         agentId: msg.agentId,
@@ -123,10 +125,19 @@ export async function publishSigned(
         signature,
         payloadHash,
       })
-      .then(() => {
+      .then((sigTxHash: string) => {
         console.log(
-          `   [${msg.agentId}] ✍️  Signature stored on-chain (Shield Contract)`
+          `   [${msg.agentId}] ✍️  Signature stored on-chain (Shield Contract) tx: ${sigTxHash}`
         );
+        // Notify the bus so the dashboard can display the sig tx explorer link
+        bus.publish({
+          topic: "sig:stored",
+          agentId: msg.agentId,
+          runId: msg.runId,
+          payload: { agentId: msg.agentId, runId: msg.runId, sigTxHash },
+          confidence: 1,
+          timestamp: Date.now(),
+        });
       })
       .catch((err: unknown) => {
         console.warn(

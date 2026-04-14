@@ -270,7 +270,7 @@ async function recordSuccess(
 // ── LedgerAgent ───────────────────────────────────────────────────────────────
 
 export class LedgerAgent {
-  private readonly keypair: Keypair | null;
+  private keypair: Keypair | null;
 
   constructor() {
     const secret = process.env.LEDGER_SECRET_KEY;
@@ -446,9 +446,10 @@ export class LedgerAgent {
   }): Promise<void> {
     const { task, runId } = params;
 
-    // Inject keypair via env var (existing pattern)
+    // Inject keypair for this run
     if (params.keypair) {
       process.env.LEDGER_SECRET_KEY = params.keypair.secret();
+      this.keypair = params.keypair;
     }
 
     let result: LedgerAgentResult;

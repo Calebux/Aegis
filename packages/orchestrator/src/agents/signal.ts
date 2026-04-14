@@ -526,7 +526,7 @@ export class SignalAgent {
    * Uses an accumulator pattern: waits for BOTH scout:complete AND ledger:complete
    * before running analysis, then publishes signal:complete.
    */
-  wire(runId: string, keypair?: Keypair): void {
+  wire(runId: string, keypair?: Keypair, taskPrompt?: string): void {
     const received = new Map<string, AgentMessage>();
     const required: Array<"scout:complete" | "ledger:complete"> = [
       "scout:complete",
@@ -544,7 +544,7 @@ export class SignalAgent {
       if (!required.every((t) => received.has(t))) return;
       const scoutMsg = received.get("scout:complete")!;
       const ledgerMsg = received.get("ledger:complete")!;
-      await this.runBus({ runId, scoutPayload: scoutMsg.payload, ledgerPayload: ledgerMsg.payload });
+      await this.runBus({ runId, scoutPayload: scoutMsg.payload, ledgerPayload: ledgerMsg.payload, taskPrompt });
     };
 
     for (const topic of required) {
@@ -568,15 +568,18 @@ export class SignalAgent {
     runId: string;
     scoutPayload: unknown;
     ledgerPayload: unknown;
+    taskPrompt?: string;
   }): Promise<void> {
-    const { runId, scoutPayload, ledgerPayload } = params;
+    const { runId, scoutPayload, ledgerPayload, taskPrompt } = params;
 
     console.log("[signal] Both scout:complete and ledger:complete received — running analysis…");
 
     let signalResult: SignalResult;
     try {
-      // Use the existing run() logic to get market data
-      const instruction = "Fetch current XLM/USDC market data for analysis";
+      // Use the task prompt to fetch relevant market data rather than a hardcoded instruction
+      const instruction = taskPrompt
+        ? `Fetch market data relevant to the following task: ${taskPrompt}`
+        : "Fetch current XLM/USDC market data for analysis";
       signalResult = await this.run(instruction);
     } catch (err) {
       bus.publish({
