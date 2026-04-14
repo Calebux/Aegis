@@ -34,6 +34,9 @@ import {
   Asset,
 } from "@stellar/stellar-sdk";
 import { keypairFromSecret, getHorizonServer } from "@aegis/shared";
+import { bus } from "../lib/bus.js";
+import { cacheLedgerPayload } from "./consensus.js";
+import { publishSigned } from "../lib/signer.js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -429,5 +432,87 @@ export class LedgerAgent {
         "[ledger] No on-chain data could be retrieved",
       spentStroops: totalStroops,
     };
+  }
+
+  // ── Bus-based execution (Upgrade 1 + 2) ─────────────────────────────────────
+
+  /**
+   * New pipeline entry point — runs the existing logic then publishes to bus.
+   */
+  async runBus(params: {
+    task: string;
+    runId: string;
+    keypair?: Keypair;
+  }): Promise<void> {
+    const { task, runId } = params;
+
+    // Inject keypair via env var (existing pattern)
+    if (params.keypair) {
+      process.env.LEDGER_SECRET_KEY = params.keypair.secret();
+    }
+
+    let result: LedgerAgentResult;
+    try {
+      result = await this.run(task);
+    } catch (err) {
+      bus.publish({
+        topic: "task:error",
+        agentId: "ledger",
+        runId,
+        payload: { agentId: "ledger", error: String(err), fatal: false },
+        confidence: 0,
+        timestamp: Date.now(),
+      });
+      // Publish empty ledger:complete so Signal can still proceed
+      result = {
+        agentId: "ledger",
+        networkStats: null,
+        accountData: null,
+        walletAddress: params.keypair?.publicKey() ?? "",
+        amountSpent: 0,
+        txHashes: [],
+        paymentMode: "dev",
+        result: "[ledger] Failed to retrieve on-chain data",
+        spentStroops: 0n,
+      };
+    }
+
+    const payload = {
+      endpoint: "horizon-x402",
+      data: { networkStats: result.networkStats, accountData: result.accountData },
+      paidViaX402: result.paymentMode === "x402",
+      txHashes: result.txHashes,
+      walletAddress: result.walletAddress,
+      amountSpent: result.amountSpent,
+      summary: result.result,
+    };
+
+    // Cache for ConsensusManager / Validator (Upgrade 4)
+    cacheLedgerPayload(runId, payload);
+
+    const ledgerKeypair = params.keypair ?? this.keypair;
+    if (ledgerKeypair) {
+      await publishSigned(
+        {
+          topic: "ledger:complete",
+          agentId: "ledger",
+          runId,
+          payload,
+          confidence: result.networkStats ? 0.9 : 0.4,
+          timestamp: Date.now(),
+        },
+        ledgerKeypair,
+        process.env.SHIELD_CONTRACT_ID
+      );
+    } else {
+      bus.publish({
+        topic: "ledger:complete",
+        agentId: "ledger",
+        runId,
+        payload,
+        confidence: result.networkStats ? 0.9 : 0.4,
+        timestamp: Date.now(),
+      });
+    }
   }
 }

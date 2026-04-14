@@ -8,6 +8,10 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { keypairFromSecret } from "@aegis/shared";
+import { Keypair } from "@stellar/stellar-sdk";
+import { bus } from "../lib/bus.js";
+import { agentToAgentPayment } from "@calebux/agent-kit";
+import { publishSigned } from "../lib/signer.js";
 
 interface AgentContribution {
   agentId: string;
@@ -79,5 +83,91 @@ Total: ${totalXlm.toFixed(4)} XLM paid for data access
       response.content[0].type === "text" ? response.content[0].text : "";
     console.log("[scribe] Report synthesised successfully");
     return text;
+  }
+
+  // ── Bus-based execution (Upgrade 1) ──────────────────────────────────────────
+
+  /**
+   * Wire Scribe to the bus for a specific run.
+   * Listens for consensus:reached (from ConsensusManager, not self),
+   * synthesises a final report, pays Scout, then publishes final consensus:reached.
+   */
+  wire(
+    runId: string,
+    keypair?: Keypair,
+    scoutPublicKey?: string,
+    onComplete?: (report: string) => void
+  ): void {
+    if (keypair) {
+      process.env.SCRIBE_SECRET_KEY = keypair.secret();
+    }
+
+    bus.subscribe(
+      "consensus:reached",
+      async (msg) => {
+        if (msg.runId !== runId) return;
+        // Don't respond to own messages (Scribe also publishes consensus:reached)
+        if (msg.agentId === "scribe") return;
+
+        const { agreedOutput } = msg.payload as { agreedOutput: string };
+
+        console.log("[scribe] Received consensus — synthesising final report…");
+
+        let report: string;
+        try {
+          report = await this.synthesise(
+            agreedOutput.slice(0, 200),
+            [{ agentId: "pipeline", result: agreedOutput, spentStroops: 0n }]
+          );
+        } catch (err) {
+          console.error("[scribe] Synthesis failed:", err);
+          report = agreedOutput;
+        }
+
+        // Agent-to-agent payment: Scribe pays Scout for research (Upgrade 1)
+        if (keypair && scoutPublicKey) {
+          await agentToAgentPayment(
+            keypair,
+            scoutPublicKey,
+            "0.0010000",
+            "aegis:scribe->scout"
+          ).catch(() => {});
+        }
+
+        onComplete?.(report);
+
+        // Publish final consensus:reached as the terminal bus event (signed)
+        const scribePayload = {
+          agreedOutput: report,
+          participatingAgents: ["scribe"],
+          voteTally: { scribe: 1.0 },
+        };
+
+        if (keypair) {
+          await publishSigned(
+            {
+              topic: "consensus:reached",
+              agentId: "scribe",
+              runId,
+              payload: scribePayload,
+              confidence: 1.0,
+              timestamp: Date.now(),
+            },
+            keypair,
+            process.env.SHIELD_CONTRACT_ID
+          );
+        } else {
+          bus.publish({
+            topic: "consensus:reached",
+            agentId: "scribe",
+            runId,
+            payload: scribePayload,
+            confidence: 1.0,
+            timestamp: Date.now(),
+          });
+        }
+      },
+      runId
+    );
   }
 }

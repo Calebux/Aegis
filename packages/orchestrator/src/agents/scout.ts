@@ -23,6 +23,9 @@ import {
 } from "@stellar/stellar-sdk";
 import { LinkupClient } from "linkup-sdk";
 import { getHorizonServer } from "@aegis/shared";
+import Anthropic from "@anthropic-ai/sdk";
+import { bus } from "../lib/bus.js";
+import { publishSigned } from "../lib/signer.js";
 
 // ---------------------------------------------------------------------------
 // x402 signer
@@ -72,6 +75,24 @@ export interface ScoutResult {
   spentStroops: bigint;
   searchResult?: ScoutSearchResult;
 }
+
+/** Shape returned by ScoutLite sub-agents to their parent Scout */
+export interface SearchResult {
+  items: Array<{ query: string; answer: string }>;
+  sources: string[];
+  confidence: number;
+}
+
+// ── Decompose prompt ──────────────────────────────────────────────────────────
+
+const DECOMPOSE_SYSTEM_PROMPT = `
+You are a task decomposition specialist. Given a research task, split it into
+2–4 independent sub-tasks that can be researched in parallel.
+Each sub-task must be self-contained — it should not depend on the results of another sub-task.
+Respond with a JSON array of strings. Nothing else. No explanation. Only JSON.
+Example output: ["research Stellar TVL growth", "find top Stellar DeFi protocols", "identify Stellar ecosystem risks"]
+If the task is simple and does not need splitting, respond with a JSON array containing just the original task.
+`.trim();
 
 // ---------------------------------------------------------------------------
 // Config
@@ -151,6 +172,176 @@ export class ScoutAgent {
     const result = `${searchResult.answer}\n\nSources:\n${sourceLines}`;
 
     return { result, spentStroops, searchResult };
+  }
+
+  // ── Bus-based execution (Upgrade 1 + 5) ─────────────────────────────────────
+
+  /**
+   * New pipeline entry point — publishes to the event bus instead of returning.
+   * Supports hierarchical decomposition: complex prompts spawn ScoutLite sub-agents.
+   */
+  async runBus(params: {
+    task: string;
+    runId: string;
+    keypair?: Keypair;
+  }): Promise<void> {
+    const { task, runId } = params;
+    const keypair = params.keypair ?? this.keypair;
+
+    if (!keypair) {
+      bus.publish({
+        topic: "task:error",
+        agentId: "scout",
+        runId,
+        payload: { agentId: "scout", error: "No keypair available", fatal: false },
+        confidence: 0,
+        timestamp: Date.now(),
+      });
+      return;
+    }
+
+    // Step 1: Check if decomposition is needed (Upgrade 5)
+    const subtasks = await this.decompose(task);
+
+    let merged: SearchResult;
+
+    if (subtasks.length <= 1) {
+      // Simple task — run directly
+      merged = await this.searchToResult(task, keypair);
+    } else {
+      // Complex task — spawn ScoutLite sub-agents in parallel (Upgrade 5)
+      console.log(
+        `[scout] Decomposed into ${subtasks.length} sub-tasks: ${subtasks.map((s) => `"${s.slice(0, 30)}"`).join(", ")}`
+      );
+      const lites = subtasks.map(
+        (_, i) => new ScoutLiteAgent(`scout-lite-${i}`)
+      );
+
+      const subResults = await Promise.all(
+        lites.map((lite, i) => lite.search(subtasks[i]!))
+      );
+
+      merged = this.mergeResults(subResults, task);
+      console.log(
+        `[scout] Merged ${lites.length} sub-agent results (${merged.sources.length} unique sources)`
+      );
+    }
+
+    await publishSigned(
+      {
+        topic: "scout:complete",
+        agentId: "scout",
+        runId,
+        payload: {
+          query: task,
+          results: merged.items,
+          sources: merged.sources,
+          subAgentCount: subtasks.length > 1 ? subtasks.length : 1,
+        },
+        confidence: merged.confidence,
+        timestamp: Date.now(),
+      },
+      keypair,
+      process.env.SHIELD_CONTRACT_ID
+    );
+  }
+
+  private async decompose(task: string): Promise<string[]> {
+    try {
+      const anthropic = new Anthropic();
+      const response = await anthropic.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 512,
+        system: DECOMPOSE_SYSTEM_PROMPT,
+        messages: [{ role: "user", content: task }],
+      });
+      const text =
+        response.content[0].type === "text" ? response.content[0].text : "[]";
+      const subtasks = JSON.parse(text) as unknown;
+      if (!Array.isArray(subtasks)) return [task];
+      return (subtasks as string[]).slice(0, 4);
+    } catch {
+      return [task];
+    }
+  }
+
+  private async searchToResult(
+    query: string,
+    keypair: Keypair
+  ): Promise<SearchResult> {
+    try {
+      const sr = await runScout({
+        query,
+        keypair,
+        shieldContractId: this.shieldContractId,
+        registryContractId: this.registryContractId,
+      });
+      return {
+        items: [{ query: sr.query, answer: sr.answer }],
+        sources: sr.sources.map((s) => s.url),
+        confidence: 0.8,
+      };
+    } catch (err) {
+      return { items: [{ query, answer: `Search failed: ${String(err)}` }], sources: [], confidence: 0.2 };
+    }
+  }
+
+  private mergeResults(results: SearchResult[], _task: string): SearchResult {
+    const allItems = results.flatMap((r) => r.items);
+    const allSources = [...new Set(results.flatMap((r) => r.sources))];
+    const avgConf =
+      results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
+    return { items: allItems, sources: allSources, confidence: avgConf };
+  }
+}
+
+// ── ScoutLite — minimal search-only sub-agent ─────────────────────────────────
+
+/**
+ * Lightweight sub-agent spawned by ScoutAgent for hierarchical decomposition.
+ * Only performs a single search; does not register on Soroban or publish to bus.
+ * Its results are merged by the parent Scout before publishing.
+ */
+export class ScoutLiteAgent {
+  readonly id: string;
+
+  constructor(id: string) {
+    this.id = id;
+  }
+
+  async search(query: string): Promise<SearchResult> {
+    const apiKey = process.env.LINKUP_API_KEY;
+    if (!apiKey) {
+      return {
+        items: [{ query, answer: `[${this.id}] LINKUP_API_KEY not set` }],
+        sources: [],
+        confidence: 0,
+      };
+    }
+
+    try {
+      const client = new LinkupClient({ apiKey });
+      const response = await client.search({
+        query,
+        depth: "standard",
+        outputType: "sourcedAnswer",
+      });
+
+      return {
+        items: [{ query, answer: response.answer }],
+        sources: response.sources
+          .filter((s) => "url" in s)
+          .map((s) => (s as { url: string }).url),
+        confidence: 0.75,
+      };
+    } catch (err) {
+      console.warn(`[${this.id}] Search failed:`, err);
+      return {
+        items: [{ query, answer: `[${this.id}] Search failed: ${String(err)}` }],
+        sources: [],
+        confidence: 0.1,
+      };
+    }
   }
 }
 
