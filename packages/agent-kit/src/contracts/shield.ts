@@ -63,16 +63,19 @@ export class ShieldContract {
   /**
    * Store an agent output signature on-chain (Upgrade 7).
    * Enables off-chain verifiers to confirm agent output provenance.
+   * Uses a single "{agentId}:{runId}" key to avoid tuple XDR issues.
+   * Must be called with the admin keypair (admin-gated on-chain).
    */
   async storeSignature(params: {
     agentId: string;
     runId: string;
     signature: string;
     payloadHash: string;
-  }): Promise<void> {
+  }): Promise<string> {
     const horizon = getHorizonServer();
     const acct = await horizon.loadAccount(this.adminKeypair.publicKey());
     const contract = new Contract(this.contractId);
+    const sigKey = `${params.agentId}:${params.runId}`;
     const tx = new TransactionBuilder(acct, {
       fee: BASE_FEE,
       networkPassphrase: networkPassphrase(),
@@ -80,15 +83,14 @@ export class ShieldContract {
       .addOperation(
         contract.call(
           "store_signature",
-          nativeToScVal(params.agentId, { type: "string" }),
-          nativeToScVal(params.runId, { type: "string" }),
+          nativeToScVal(sigKey, { type: "string" }),
           nativeToScVal(params.signature, { type: "string" }),
           nativeToScVal(params.payloadHash, { type: "string" })
         )
       )
       .setTimeout(30)
       .build();
-    await sorobanInvoke(this.rpc, tx, this.adminKeypair);
+    return sorobanInvoke(this.rpc, tx, this.adminKeypair);
   }
 
   /**

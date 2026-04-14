@@ -27,6 +27,7 @@ import {
 import type { Task } from "@aegis/shared";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300; // Vercel Pro: allow up to 5-min pipeline runs
 
 export async function POST(req: NextRequest) {
   let body: { task?: string };

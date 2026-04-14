@@ -5,10 +5,11 @@ import { AgentCard, type AgentStatus } from "@/components/AgentCard";
 import { WalletCard } from "@/components/WalletCard";
 import { TaskFeed } from "@/components/TaskFeed";
 import { TaskGraphView, type TaskGraph, type AgentType as GraphAgentType, type NodeStatus } from "./TaskGraph";
+import { OnChainProofPanel } from "@/components/OnChainProofPanel";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type AgentId = "scout" | "ledger" | "signal" | "scribe";
+type AgentId = "scout" | "ledger" | "signal" | "scribe" | "executor";
 
 interface LogEntry {
   id: number;
@@ -28,10 +29,11 @@ interface CompletePayload {
 // ── Agent definitions ─────────────────────────────────────────────────────
 
 const AGENTS: { id: AgentId; name: string; capability: string; color: string }[] = [
-  { id: "scout",  name: "Scout",  capability: "Web Research",        color: "#c8c040" },
-  { id: "ledger", name: "Ledger", capability: "On-Chain Data",       color: "#48b858" },
-  { id: "signal", name: "Signal", capability: "Market Intelligence", color: "#b050c0" },
-  { id: "scribe", name: "Scribe", capability: "Report Synthesis",    color: "#d04828" },
+  { id: "scout",    name: "Scout",    capability: "Web Research",        color: "#c8c040" },
+  { id: "ledger",   name: "Ledger",   capability: "On-Chain Data",       color: "#48b858" },
+  { id: "signal",   name: "Signal",   capability: "Market Intelligence", color: "#b050c0" },
+  { id: "scribe",   name: "Scribe",   capability: "Report Synthesis",    color: "#d04828" },
+  { id: "executor", name: "Notary",   capability: "Consensus Proof",     color: "#e07840" },
 ];
 
 // ── Markdown renderer ──────────────────────────────────────────────────────
@@ -119,26 +121,30 @@ export default function DashboardPage() {
   const [time, setTime]     = useState(clock);
 
   const [agentStatus, setAgentStatus] = useState<Record<AgentId, AgentStatus>>({
-    scout: "idle", ledger: "idle", signal: "idle", scribe: "idle",
+    scout: "idle", ledger: "idle", signal: "idle", scribe: "idle", executor: "idle",
   });
   const [agentSpent, setAgentSpent] = useState<Record<AgentId, number>>({
-    scout: 0, ledger: 0, signal: 0, scribe: 0,
+    scout: 0, ledger: 0, signal: 0, scribe: 0, executor: 0,
   });
   const [wallets, setWallets] = useState<Record<AgentId, string>>({
-    scout: "", ledger: "", signal: "", scribe: "",
+    scout: "", ledger: "", signal: "", scribe: "", executor: "",
   });
   const [reputation, setReputation] = useState<Record<AgentId, number>>({
-    scout: 5000, ledger: 5000, signal: 5000, scribe: 5000,
+    scout: 5000, ledger: 5000, signal: 5000, scribe: 5000, executor: 5000,
   });
   const [agentTxHashes, setAgentTxHashes] = useState<Record<AgentId, string[]>>({
-    scout: [], ledger: [], signal: [], scribe: [],
+    scout: [], ledger: [], signal: [], scribe: [], executor: [],
   });
   const [agentPaymentModes, setAgentPaymentModes] = useState<Record<AgentId, string>>({
-    scout: "", ledger: "", signal: "", scribe: "",
+    scout: "", ledger: "", signal: "", scribe: "", executor: "",
+  });
+  const [agentSigTxHashes, setAgentSigTxHashes] = useState<Record<AgentId, string>>({
+    scout: "", ledger: "", signal: "", scribe: "", executor: "",
   });
   const [reputationOnChain, setReputationOnChain] = useState<Record<AgentId, number | null>>({
-    scout: null, ledger: null, signal: null, scribe: null,
+    scout: null, ledger: null, signal: null, scribe: null, executor: null,
   });
+  const [dexSettleTxHash, setDexSettleTxHash] = useState("");
   const [taskGraph, setTaskGraph] = useState<TaskGraph | null>(null);
   const [graphStatusMap, setGraphStatusMap] = useState<Partial<Record<GraphAgentType, NodeStatus>>>({});
   const [graphConfidenceMap, setGraphConfidenceMap] = useState<Partial<Record<GraphAgentType, number>>>({});
@@ -160,7 +166,7 @@ export default function DashboardPage() {
         const res = await fetch("/api/status");
         if (!res.ok) return;
         const data = await res.json() as Array<{ agentId: AgentId; reputationOnChain: number | null }>;
-        const map: Record<AgentId, number | null> = { scout: null, ledger: null, signal: null, scribe: null };
+        const map: Record<AgentId, number | null> = { scout: null, ledger: null, signal: null, scribe: null, executor: null };
         for (const d of data) map[d.agentId] = d.reputationOnChain;
         setReputationOnChain(map);
       } catch { /* non-fatal */ }
@@ -184,12 +190,14 @@ export default function DashboardPage() {
     setLogs([]);
     setReport(null);
     counterRef.current = 0;
-    setAgentStatus({ scout: "idle", ledger: "idle", signal: "idle", scribe: "idle" });
-    setAgentSpent({ scout: 0, ledger: 0, signal: 0, scribe: 0 });
-    setWallets({ scout: "", ledger: "", signal: "", scribe: "" });
-    setReputation({ scout: 5000, ledger: 5000, signal: 5000, scribe: 5000 });
-    setAgentTxHashes({ scout: [], ledger: [], signal: [], scribe: [] });
-    setAgentPaymentModes({ scout: "", ledger: "", signal: "", scribe: "" });
+    setAgentStatus({ scout: "idle", ledger: "idle", signal: "idle", scribe: "idle", executor: "idle" });
+    setAgentSpent({ scout: 0, ledger: 0, signal: 0, scribe: 0, executor: 0 });
+    setWallets({ scout: "", ledger: "", signal: "", scribe: "", executor: "" });
+    setReputation({ scout: 5000, ledger: 5000, signal: 5000, scribe: 5000, executor: 5000 });
+    setAgentTxHashes({ scout: [], ledger: [], signal: [], scribe: [], executor: [] });
+    setAgentPaymentModes({ scout: "", ledger: "", signal: "", scribe: "", executor: "" });
+    setAgentSigTxHashes({ scout: "", ledger: "", signal: "", scribe: "", executor: "" });
+    setDexSettleTxHash("");
     setTaskGraph(null);
     setGraphStatusMap({});
     setGraphConfidenceMap({});
@@ -229,13 +237,15 @@ export default function DashboardPage() {
               for (const n of g.nodes) initStatus[n.agentType as GraphAgentType] = "pending";
               setGraphStatusMap(initStatus);
             } else if (type === "agent_status") {
-              const p = payload as { agent: AgentId | "validator"; status: AgentStatus; spent?: number; txHashes?: string[]; paymentMode?: string; confidence?: number };
-              if (p.agent !== "validator") {
-                setAgentStatus(prev => ({ ...prev, [p.agent]: p.status }));
+              const p = payload as { agent: AgentId | "validator"; status?: AgentStatus; spent?: number; txHashes?: string[]; paymentMode?: string; confidence?: number; sigTxHash?: string };
+              if (p.agent !== "validator" && p.status) {
+                setAgentStatus(prev => ({ ...prev, [p.agent]: p.status! }));
               }
               if (p.spent !== undefined && p.agent !== "validator") setAgentSpent(prev => ({ ...prev, [p.agent]: p.spent! }));
               if (p.txHashes && p.agent !== "validator") setAgentTxHashes(prev => ({ ...prev, [p.agent]: p.txHashes! }));
               if (p.paymentMode && p.agent !== "validator") setAgentPaymentModes(prev => ({ ...prev, [p.agent]: p.paymentMode! }));
+              if (p.sigTxHash && p.agent !== "validator") setAgentSigTxHashes(prev => ({ ...prev, [p.agent]: p.sigTxHash! }));
+              if (p.agent === "executor" && (p as Record<string, unknown>).dexTxHash) setDexSettleTxHash((p as Record<string, unknown>).dexTxHash as string);
               // Update graph status
               const graphStatus: NodeStatus =
                 p.status === "complete" ? "complete" :
@@ -316,6 +326,7 @@ export default function DashboardPage() {
                 isLast={i === AGENTS.length - 1}
                 txHashes={agentTxHashes[agent.id]}
                 paymentMode={agentPaymentModes[agent.id]}
+                sigTxHash={agentSigTxHashes[agent.id]}
               />
             ))}
           </div>
@@ -359,6 +370,22 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+
+          {/* On-Chain Proof panel — always visible */}
+          <div className="module">
+            <div className="mod-header">
+              ON-CHAIN PROOF
+              <span style={{ color: "#2a5a2a", fontSize: "0.6rem", marginLeft: "auto" }}>
+                SOROBAN · STELLAR TESTNET
+              </span>
+            </div>
+            <OnChainProofPanel
+              agentSigTxHashes={agentSigTxHashes}
+              dexSettleTxHash={dexSettleTxHash}
+              shieldContractId={process.env.NEXT_PUBLIC_SHIELD_CONTRACT_ID ?? "CDGVUNE47FXSG6KJATMZB3MFTE7UJFBMUKNFK7FWZRAHPG5BUGBFV2RS"}
+              registryContractId={process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ID ?? "CBQV3JXYZS7ABOTLCYZM6U4LUEF7PTIUXV76QAPHYAACERXHROVTT2YM"}
+            />
+          </div>
 
           {/* Output log — always visible */}
           <div className="module">

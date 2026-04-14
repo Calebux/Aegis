@@ -6,7 +6,7 @@
 // Agent identifiers
 // ---------------------------------------------------------------------------
 
-export type AgentId = "scout" | "ledger" | "signal" | "scribe";
+export type AgentId = "scout" | "ledger" | "signal" | "scribe" | "executor";
 
 export interface AgentIdentity {
   id: AgentId;
