@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { AgentCard, type AgentStatus } from "@/components/AgentCard";
-import { WalletCard } from "@/components/WalletCard";
 import { TaskFeed } from "@/components/TaskFeed";
 import { TaskGraphView, type TaskGraph, type AgentType as GraphAgentType, type NodeStatus } from "./TaskGraph";
 import { OnChainProofPanel } from "@/components/OnChainProofPanel";
@@ -145,6 +144,7 @@ export default function DashboardPage() {
     scout: null, ledger: null, signal: null, scribe: null, executor: null,
   });
   const [dexSettleTxHash, setDexSettleTxHash] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [taskGraph, setTaskGraph] = useState<TaskGraph | null>(null);
   const [graphStatusMap, setGraphStatusMap] = useState<Partial<Record<GraphAgentType, NodeStatus>>>({});
   const [graphConfidenceMap, setGraphConfidenceMap] = useState<Partial<Record<GraphAgentType, number>>>({});
@@ -331,23 +331,6 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Wallets module */}
-          <div className="module">
-            <div className="mod-header">WALLETS</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1rem", padding: "1rem" }}>
-              {AGENTS.map((agent) => (
-                <WalletCard key={agent.id} agentId={agent.id} />
-              ))}
-            </div>
-          </div>
-
-          {/* Task history */}
-          <div className="module">
-            <div className="mod-header">HISTORY</div>
-            <div style={{ padding: "1rem" }}>
-              <TaskFeed />
-            </div>
-          </div>
         </div>
 
         {/* ── RIGHT COLUMN ────────────────────────────────────────────── */}
@@ -424,6 +407,18 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* ── History drawer ──────────────────────────────────────────────── */}
+      <div className={`history-drawer${historyOpen ? " open" : ""}`}>
+        <div className="history-drawer-header">
+          HISTORY
+          <button className="drawer-close" onClick={() => setHistoryOpen(false)}>✕</button>
+        </div>
+        <div className="history-drawer-body">
+          <TaskFeed />
+        </div>
+      </div>
+      {historyOpen && <div className="drawer-overlay" onClick={() => setHistoryOpen(false)} />}
+
       {/* ── Fixed footer ────────────────────────────────────────────────── */}
       <div className="site-footer">
         <span className="ftr-item">
@@ -438,6 +433,9 @@ export default function DashboardPage() {
         <span className="ftr-item" style={{ marginLeft: "auto" }}>
           SESSION <span className="ftr-val">{sessionRef.current}</span>
         </span>
+        <button className="ftr-btn" onClick={() => setHistoryOpen(v => !v)}>
+          HISTORY
+        </button>
         <span className="ftr-item">
           <span className="ftr-val">{time}</span>
         </span>

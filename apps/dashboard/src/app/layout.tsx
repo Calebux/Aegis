@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import { WalletStrip } from "@/components/WalletStrip";
 
 export const metadata: Metadata = {
   title: "AEGIS / FIELD",
@@ -17,6 +18,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           </span>
           <span className="hdr-sub">Agent Control Module</span>
           <div className="hdr-right">
+            <WalletStrip />
+            <span className="hdr-divider" />
             <span className="sys-ok">
               <span className="sys-dot" />
               SYS.OK
