@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { WalletStrip } from "@/components/WalletStrip";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const metadata: Metadata = {
   title: "AEGIS / FIELD",
@@ -25,6 +26,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               SYS.OK
             </span>
             <span>Stellar · Testnet</span>
+            <span className="hdr-divider" />
+            <ThemeToggle />
           </div>
         </header>
         <main>{children}</main>
