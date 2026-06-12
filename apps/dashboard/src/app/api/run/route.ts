@@ -62,36 +62,65 @@ export async function POST(req: NextRequest) {
   const emitter = new EventEmitter();
   emitter.setMaxListeners(20);
 
+  const isCeloChain = chain === "celo";
   const task: Task = {
     id: taskId,
     prompt,
     status: "running",
-    subTasks: [
-      {
-        id: crypto.randomUUID(),
-        assignedAgent: "scout",
-        instruction: `Search the web for: ${prompt}`,
-        status: "pending",
-      },
-      {
-        id: crypto.randomUUID(),
-        assignedAgent: "ledger",
-        instruction: `Fetch relevant Stellar on-chain metrics for: ${prompt}`,
-        status: "pending",
-      },
-      {
-        id: crypto.randomUUID(),
-        assignedAgent: "signal",
-        instruction: `Identify market signals for: ${prompt}`,
-        status: "pending",
-      },
-      {
-        id: crypto.randomUUID(),
-        assignedAgent: "scribe",
-        instruction: `Synthesize all findings into a report for: ${prompt}`,
-        status: "pending",
-      },
-    ],
+    chain: isCeloChain ? "celo" : "stellar",
+    subTasks: isCeloChain
+      ? [
+          {
+            id: crypto.randomUUID(),
+            assignedAgent: "celo-scout",
+            instruction: `Search the web for: ${prompt}`,
+            status: "pending",
+          },
+          {
+            id: crypto.randomUUID(),
+            assignedAgent: "celo-ledger",
+            instruction: `Fetch relevant Celo on-chain metrics for: ${prompt}`,
+            status: "pending",
+          },
+          {
+            id: crypto.randomUUID(),
+            assignedAgent: "celo-signal",
+            instruction: `Identify Celo market signals for: ${prompt}`,
+            status: "pending",
+          },
+          {
+            id: crypto.randomUUID(),
+            assignedAgent: "celo-scribe",
+            instruction: `Synthesize all Celo findings into a report for: ${prompt}`,
+            status: "pending",
+          },
+        ]
+      : [
+          {
+            id: crypto.randomUUID(),
+            assignedAgent: "scout",
+            instruction: `Search the web for: ${prompt}`,
+            status: "pending",
+          },
+          {
+            id: crypto.randomUUID(),
+            assignedAgent: "ledger",
+            instruction: `Fetch relevant Stellar on-chain metrics for: ${prompt}`,
+            status: "pending",
+          },
+          {
+            id: crypto.randomUUID(),
+            assignedAgent: "signal",
+            instruction: `Identify market signals for: ${prompt}`,
+            status: "pending",
+          },
+          {
+            id: crypto.randomUUID(),
+            assignedAgent: "scribe",
+            instruction: `Synthesize all findings into a report for: ${prompt}`,
+            status: "pending",
+          },
+        ],
     createdAt: new Date(),
   };
 
@@ -181,18 +210,18 @@ export async function POST(req: NextRequest) {
         timestamp: payload.timestamp ?? new Date().toISOString(),
       };
 
-      const isCelo = chain === "celo";
       let receipt: RunReceipt = createRunReceipt({
         report: reportForReceipt,
         runId: taskId,
         taskId,
         createdAt: task.createdAt.toISOString(),
         completedAt: payload.timestamp ?? new Date().toISOString(),
-        shieldContractId: isCelo ? process.env.CELO_POLICY_ADDRESS : process.env.SHIELD_CONTRACT_ID,
-        registryContractId: isCelo ? process.env.CELO_REGISTRY_ADDRESS : process.env.REGISTRY_CONTRACT_ID,
-        network: isCelo
+        shieldContractId: isCeloChain ? process.env.CELO_POLICY_ADDRESS : process.env.SHIELD_CONTRACT_ID,
+        registryContractId: isCeloChain ? process.env.CELO_REGISTRY_ADDRESS : process.env.REGISTRY_CONTRACT_ID,
+        network: isCeloChain
           ? `eip155:${process.env.AEGIS_CELO_NETWORK === "mainnet" ? "42220" : "44787"}`
           : `stellar:${process.env.STELLAR_NETWORK ?? "testnet"}`,
+
       });
 
       const signerSecret = process.env.ORCHESTRATOR_SECRET_KEY;

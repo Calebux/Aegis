@@ -33,8 +33,7 @@ export function TaskFeed() {
   if (tasks.length === 0) {
     return (
       <div className="card" style={{ color: "var(--text-muted)" }}>
-        No tasks yet. Submit a prompt to get started.
-        {/* TODO: add prompt submission form */}
+        No tasks yet. Submit a prompt on the main dashboard to get started.
       </div>
     );
   }
@@ -44,8 +43,27 @@ export function TaskFeed() {
       {tasks.map((task) => (
         <div key={task.id} className="card">
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-            <strong>{task.prompt}</strong>
-            <span style={{ color: STATUS_COLORS[task.status] ?? "inherit" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
+              {task.chain && (
+                <span style={{
+                  fontSize: "0.625rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  padding: "0.1rem 0.4rem",
+                  borderRadius: "3px",
+                  background: task.chain === "celo" ? "rgba(252,204,7,0.15)" : "rgba(0,180,120,0.12)",
+                  color: task.chain === "celo" ? "#d4a800" : "var(--green)",
+                  border: `1px solid ${task.chain === "celo" ? "rgba(252,204,7,0.3)" : "rgba(0,180,120,0.25)"}`,
+                  flexShrink: 0,
+                }}>
+                  {task.chain.toUpperCase()}
+                </span>
+              )}
+              <strong style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {task.prompt}
+              </strong>
+            </div>
+            <span style={{ color: STATUS_COLORS[task.status] ?? "inherit", flexShrink: 0, marginLeft: "0.5rem" }}>
               {task.status}
             </span>
           </div>
