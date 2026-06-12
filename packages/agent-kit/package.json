@@ -1,7 +1,7 @@
 {
   "name": "@calebux/agent-kit",
-  "version": "0.2.0",
-  "description": "Governed multi-agent orchestration on Stellar — wallet provisioning, Soroban spend caps, on-chain reputation, and x402 payments in one package",
+  "version": "0.2.1",
+  "description": "Governed multi-agent orchestration on Stellar and Celo — wallet provisioning, on-chain spend caps, verifiable reputation, x402 payments, and run receipts in one package",
   "keywords": [
     "stellar",
     "soroban",
