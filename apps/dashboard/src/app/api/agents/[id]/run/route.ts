@@ -318,7 +318,7 @@ async function celoDefiOutput(task: string): Promise<string> {
   const MENTO_ORACLE = "0xefB84935239dAcdecF7c5bA76d8dE40b077B7b33"; // Celo mainnet SortedOracles
 
   async function getOracleRate(currencyId: string): Promise<number | null> {
-    // SortedOracles.medianRate(address) selector: 0x7ee26ac6
+    // SortedOracles.medianRate(address) selector: 0xef90e1b0
     // We use a known proxy approach via direct RPC
     try {
       const res = await fetch(CELO_RPC_URL, {
@@ -331,8 +331,8 @@ async function celoDefiOutput(task: string): Promise<string> {
           params: [
             {
               to: MENTO_ORACLE,
-              // medianRate(address) = 0x7ee26ac6
-              data: `0x7ee26ac6${currencyId.slice(2).padStart(64, "0")}`,
+              // medianRate(address) = 0xef90e1b0
+              data: `0xef90e1b0${currencyId.slice(2).padStart(64, "0")}`,
             },
             "latest",
           ],
