@@ -21,21 +21,34 @@ import { bus } from "../lib/bus.js";
 export class CeloExecutorAgent {
   readonly id = "executor";
   private account: Account | null = null;
+  private registryAddress?: string;
+  private deployerPrivateKey?: string;
+  private rpcUrl?: string;
+  private network?: string;
 
   private buildRegistry(): CeloIdentityRegistry | null {
-    const addr = process.env.CELO_REGISTRY_ADDRESS;
-    const key = process.env.CELO_DEPLOYER_PRIVATE_KEY;
+    const addr = this.registryAddress ?? process.env.CELO_REGISTRY_ADDRESS;
+    const key = this.deployerPrivateKey ?? process.env.CELO_DEPLOYER_PRIVATE_KEY;
     if (!addr || !key) return null;
     return new CeloIdentityRegistry(
       addr,
       key,
-      process.env.CELO_RPC_URL,
-      process.env.AEGIS_CELO_NETWORK
+      this.rpcUrl ?? process.env.CELO_RPC_URL,
+      this.network ?? process.env.AEGIS_CELO_NETWORK
     );
   }
 
-  wire(runId: string, account?: Account): void {
+  wire(runId: string, account?: Account, opts?: {
+    registryAddress?: string;
+    deployerPrivateKey?: string;
+    rpcUrl?: string;
+    network?: string;
+  }): void {
     if (account) this.account = account;
+    if (opts?.registryAddress) this.registryAddress = opts.registryAddress;
+    if (opts?.deployerPrivateKey) this.deployerPrivateKey = opts.deployerPrivateKey;
+    if (opts?.rpcUrl) this.rpcUrl = opts.rpcUrl;
+    if (opts?.network) this.network = opts.network;
 
     bus.subscribe(
       "consensus:reached",
@@ -55,6 +68,8 @@ export class CeloExecutorAgent {
 
         if (registry) {
           try {
+            // Ensure agent is registered before writing hash
+            await registry.registerAgent("celo-pipeline-notary", "Celo Pipeline Notary", "attestation").catch(() => {});
             // Store payload hash in AegisCeloRegistry
             notaryTxHash = await registry.setManifestHash(
               "celo-pipeline-notary",

@@ -202,11 +202,10 @@ export async function runCeloTask(
         { id: "celo-pipeline-notary", name: "Celo Pipeline Notary", capability: "attestation" },
       ];
 
-      await Promise.all(
-        agentDefs.map(({ id, name, capability }) =>
-          registry!.registerAgent(id, name, capability).catch(() => {})
-        )
-      );
+      // Sequential registration to avoid nonce conflicts
+      for (const { id, name, capability } of agentDefs) {
+        await registry!.registerAgent(id, name, capability).catch(() => {});
+      }
       emit("log", { message: "   All Celo agents authorized ✓", level: "success" });
     } catch (err) {
       emit("log", { message: `⚠️  Celo on-chain registration failed: ${String(err)}`, level: "error" });
@@ -270,7 +269,12 @@ export async function runCeloTask(
   emit("log", { message: "   Celo Scribe wired (waiting for consensus)", level: "info" });
 
   const executorAgent = new CeloExecutorAgent();
-  executorAgent.wire(runId, executorAccount);
+  executorAgent.wire(runId, executorAccount, {
+    registryAddress: process.env.CELO_REGISTRY_ADDRESS,
+    deployerPrivateKey: process.env.CELO_DEPLOYER_PRIVATE_KEY,
+    rpcUrl: process.env.CELO_RPC_URL,
+    network: process.env.AEGIS_CELO_NETWORK,
+  });
   emit("agent_status", { agent: "celo-executor", status: "running" });
   emit("log", { message: "   Celo Notary wired (waiting for consensus)", level: "info" });
 
