@@ -24,6 +24,11 @@ const COLORS: Record<AgentId, string> = {
   signal:   "#eab308",
   scribe:   "#ec4899",
   executor: "#e07840",
+  "celo-scout": "#2dd4bf",
+  "celo-ledger": "#84cc16",
+  "celo-signal": "#facc15",
+  "celo-scribe": "#fb7185",
+  "celo-executor": "#38bdf8",
 };
 
 export function SpendChart() {

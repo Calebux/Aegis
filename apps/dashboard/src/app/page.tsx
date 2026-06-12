@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useId } from "react";
 import { AgentCard, type AgentStatus } from "@/components/AgentCard";
 import { TaskFeed } from "@/components/TaskFeed";
 import { TaskGraphView, type TaskGraph, type AgentType as GraphAgentType, type NodeStatus } from "./TaskGraph";
@@ -156,7 +156,7 @@ export default function DashboardPage() {
 
   const logEndRef   = useRef<HTMLDivElement>(null);
   const counterRef  = useRef(0);
-  const sessionRef  = useRef(`SES_${Math.random().toString(36).slice(2, 9).toUpperCase()}`);
+  const sessionId   = `SES_${useId().replace(/[^a-z0-9]/gi, "").toUpperCase()}`;
 
   // Live clock
   useEffect(() => {
@@ -476,7 +476,7 @@ export default function DashboardPage() {
           TOTAL SPEND <span className="ftr-val">{stroopsToXlm(totalSpent)} XLM{totalTxCount > 0 ? ` · ${totalTxCount} TXS` : ""}</span>
         </span>
         <span className="ftr-item" style={{ marginLeft: "auto" }}>
-          SESSION <span className="ftr-val">{sessionRef.current}</span>
+          SESSION <span className="ftr-val">{sessionId}</span>
         </span>
         <button className="ftr-btn" onClick={() => setHistoryOpen(v => !v)}>
           HISTORY

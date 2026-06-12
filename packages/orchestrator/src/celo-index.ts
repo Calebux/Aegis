@@ -79,9 +79,9 @@ function waitForFinalOutput(runId: string): Promise<string> {
 /** Bridge bus events → SSE emitter (same format as Stellar pipeline) */
 function bridgeBusToEmitter(msg: AgentMessage, emit: EmitFn): void {
   const agentTopicMap: Partial<Record<AgentTopic, string>> = {
-    "scout:complete": "scout",
-    "ledger:complete": "ledger",
-    "signal:complete": "signal",
+    "scout:complete": "celo-scout",
+    "ledger:complete": "celo-ledger",
+    "signal:complete": "celo-signal",
     "validator:complete": "validator",
   };
 
@@ -109,14 +109,14 @@ function bridgeBusToEmitter(msg: AgentMessage, emit: EmitFn): void {
   }
 
   if (msg.topic === "consensus:reached" && msg.agentId === "scribe") {
-    emit("agent_status", { agent: "scribe", status: "complete", confidence: msg.confidence });
+    emit("agent_status", { agent: "celo-scribe", status: "complete", confidence: msg.confidence });
   }
 
   if (msg.topic === "executor:complete") {
     const p = msg.payload as Record<string, unknown>;
     const notaryTxHash = (p["notaryTxHash"] as string) ?? "";
     emit("agent_status", {
-      agent: "executor",
+      agent: "celo-executor",
       status: "complete",
       spent: p["amountSpent"] ?? 0,
       txHashes: p["txHashes"] ?? [],
@@ -164,11 +164,11 @@ export async function runCeloTask(
   const executorAccount = loadCeloKey("CELO_EXECUTOR_PRIVATE_KEY");
 
   const walletKeys: Record<string, string> = {
-    scout:    scoutAccount.address,
-    ledger:   ledgerAccount.address,
-    signal:   signalAccount.address,
-    scribe:   scribeAccount.address,
-    executor: executorAccount.address,
+    "celo-scout":    scoutAccount.address,
+    "celo-ledger":   ledgerAccount.address,
+    "celo-signal":   signalAccount.address,
+    "celo-scribe":   scribeAccount.address,
+    "celo-executor": executorAccount.address,
   };
 
   emit("wallets", walletKeys);
@@ -218,31 +218,43 @@ export async function runCeloTask(
   // ── 3. Bridge bus events → SSE ─────────────────────────────────────────────
   bus.onEvent = (msg) => bridgeBusToEmitter(msg, emit);
 
-  const spentMap: Record<string, number>   = { scout: 0, ledger: 0, signal: 0, scribe: 0, executor: 0 };
-  const txHashMap: Record<string, string[]> = { scout: [], ledger: [], signal: [], scribe: [], executor: [] };
+  const spentMap: Record<string, number> = {
+    "celo-scout": 0,
+    "celo-ledger": 0,
+    "celo-signal": 0,
+    "celo-scribe": 0,
+    "celo-executor": 0,
+  };
+  const txHashMap: Record<string, string[]> = {
+    "celo-scout": [],
+    "celo-ledger": [],
+    "celo-signal": [],
+    "celo-scribe": [],
+    "celo-executor": [],
+  };
 
   bus.subscribe("scout:complete",  (msg) => {
     if (msg.runId !== runId) return;
     const p = msg.payload as Record<string, unknown>;
-    txHashMap["scout"] = (p["txHashes"] as string[]) ?? [];
+    txHashMap["celo-scout"] = (p["txHashes"] as string[]) ?? [];
   }, runId);
 
   bus.subscribe("ledger:complete", (msg) => {
     if (msg.runId !== runId) return;
     const p = msg.payload as Record<string, unknown>;
-    txHashMap["ledger"] = (p["txHashes"] as string[]) ?? [];
+    txHashMap["celo-ledger"] = (p["txHashes"] as string[]) ?? [];
   }, runId);
 
   bus.subscribe("signal:complete", (msg) => {
     if (msg.runId !== runId) return;
     const p = msg.payload as Record<string, unknown>;
-    txHashMap["signal"] = (p["txHashes"] as string[]) ?? [];
+    txHashMap["celo-signal"] = (p["txHashes"] as string[]) ?? [];
   }, runId);
 
   bus.subscribe("executor:complete", (msg) => {
     if (msg.runId !== runId) return;
     const p = msg.payload as Record<string, unknown>;
-    txHashMap["executor"] = (p["txHashes"] as string[]) ?? [];
+    txHashMap["celo-executor"] = (p["txHashes"] as string[]) ?? [];
   }, runId);
 
   // ── 4. Wire receiving agents ───────────────────────────────────────────────
@@ -259,15 +271,15 @@ export async function runCeloTask(
 
   const executorAgent = new CeloExecutorAgent();
   executorAgent.wire(runId, executorAccount);
-  emit("agent_status", { agent: "executor", status: "running" });
+  emit("agent_status", { agent: "celo-executor", status: "running" });
   emit("log", { message: "   Celo Notary wired (waiting for consensus)", level: "info" });
 
   // ── 5. Fire Scout + Ledger in parallel ────────────────────────────────────
   emit("log", { message: "▶ Launching Celo Scout and Ledger in parallel…", level: "info" });
-  emit("agent_status", { agent: "scout",  status: "running" });
-  emit("agent_status", { agent: "ledger", status: "running" });
-  emit("agent_status", { agent: "signal", status: "running" });
-  emit("agent_status", { agent: "scribe", status: "running" });
+  emit("agent_status", { agent: "celo-scout",  status: "running" });
+  emit("agent_status", { agent: "celo-ledger", status: "running" });
+  emit("agent_status", { agent: "celo-signal", status: "running" });
+  emit("agent_status", { agent: "celo-scribe", status: "running" });
 
   const scoutAgent  = new CeloScoutAgent();
   const ledgerAgent = new CeloLedgerAgent();
@@ -293,11 +305,11 @@ export async function runCeloTask(
 
   // Read live on-chain reputation
   const reputationMap: Record<string, number> = {};
-  const reputationAgents = ["scout", "ledger", "signal", "scribe", "executor"];
+  const reputationAgents = ["celo-scout", "celo-ledger", "celo-signal", "celo-scribe", "celo-executor"];
   if (registry) {
     await Promise.all(
       reputationAgents.map(async (id) => {
-        const rep = await registry!.getReputation(`celo-${id}`).catch(() => null);
+        const rep = await registry!.getReputation(id).catch(() => null);
         reputationMap[id] = rep ?? 0;
       })
     );
@@ -307,8 +319,8 @@ export async function runCeloTask(
 
   const finalReportObj: OrchestratorReport = {
     task: prompt,
-    subtasks: { scout: prompt, ledger: prompt, signal: prompt },
-    results:  { scout: "", ledger: "", signal: "" },
+    subtasks: { "celo-scout": prompt, "celo-ledger": prompt, "celo-signal": prompt },
+    results:  { "celo-scout": "", "celo-ledger": "", "celo-signal": "" },
     report:   finalReport,
     wallets:  walletKeys,
     spent:    spentMap,

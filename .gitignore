@@ -7,3 +7,7 @@ target/
 *.wasm
 **/.turbo/
 .DS_Store
+*.tsbuildinfo
+.aegis-tasks.json
+.aegis-receipts.json
+packages/orchestrator/output/

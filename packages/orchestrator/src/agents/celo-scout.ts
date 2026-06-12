@@ -45,7 +45,10 @@ export class CeloScoutAgent {
         url: String(r.url ?? ""),
       }));
       const answer = (result.results ?? [])
-        .map((r) => r.content ?? r.snippet ?? "")
+        .map((r) => {
+          const item = r as { content?: unknown; snippet?: unknown };
+          return String(item.content ?? item.snippet ?? "");
+        })
         .filter(Boolean)
         .join("\n")
         .slice(0, 2000);

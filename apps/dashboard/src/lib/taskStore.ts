@@ -9,6 +9,7 @@ import { EventEmitter } from "events";
 import * as fs from "fs";
 import * as path from "path";
 import type { Task } from "@aegis/shared";
+import type { RunReceipt } from "@calebux/agent-kit";
 
 /** Active tasks keyed by taskId */
 export const tasks = new Map<string, Task>();
@@ -28,11 +29,38 @@ export const lastReputation = new Map<string, number>();
 /** Tx hashes from the most recent completed run: agent → txHashes */
 export const lastTxHashes = new Map<string, string[]>();
 
+/** Verifiable run receipts keyed by taskId/runId */
+export const receipts = new Map<string, RunReceipt>();
+
+/** Exact output text keyed by taskId/runId for outputHash verification */
+export const receiptOutputs = new Map<string, string>();
+
 // ---------------------------------------------------------------------------
 // Persistence helpers
 // ---------------------------------------------------------------------------
 
-const PERSIST_PATH = path.join(process.cwd(), ".aegis-tasks.json");
+const STORAGE_DIR = process.env.AEGIS_STORAGE_DIR ?? process.cwd();
+const PERSIST_PATH = path.join(STORAGE_DIR, ".aegis-tasks.json");
+const RECEIPTS_PATH = path.join(STORAGE_DIR, ".aegis-receipts.json");
+const RECEIPT_OUTPUTS_PATH = path.join(STORAGE_DIR, ".aegis-receipt-outputs.json");
+
+export function storageInfo(): {
+  mode: "file";
+  directory: string;
+  productionReady: boolean;
+} {
+  return {
+    mode: "file",
+    directory: STORAGE_DIR,
+    productionReady: Boolean(process.env.AEGIS_STORAGE_DIR),
+  };
+}
+
+function ensureStorageDir(): void {
+  if (!fs.existsSync(STORAGE_DIR)) {
+    fs.mkdirSync(STORAGE_DIR, { recursive: true });
+  }
+}
 
 function replacer(_key: string, value: unknown): unknown {
   if (value instanceof Date) return { __date: value.toISOString() };
@@ -52,12 +80,39 @@ function reviver(_key: string, value: unknown): unknown {
 /** Write completed/failed tasks to disk. */
 export function persistTasks(): void {
   try {
+    ensureStorageDir();
     const toSave = Array.from(tasks.values()).filter(
       (t) => t.status === "completed" || t.status === "failed"
     );
     fs.writeFileSync(PERSIST_PATH, JSON.stringify(toSave, replacer), "utf8");
   } catch (err) {
     console.warn("[taskStore] Failed to persist tasks:", err);
+  }
+}
+
+export function persistReceipts(): void {
+  try {
+    ensureStorageDir();
+    fs.writeFileSync(
+      RECEIPTS_PATH,
+      JSON.stringify(Array.from(receipts.values()), replacer),
+      "utf8"
+    );
+  } catch (err) {
+    console.warn("[taskStore] Failed to persist receipts:", err);
+  }
+}
+
+export function persistReceiptOutputs(): void {
+  try {
+    ensureStorageDir();
+    fs.writeFileSync(
+      RECEIPT_OUTPUTS_PATH,
+      JSON.stringify(Array.from(receiptOutputs.entries()), replacer),
+      "utf8"
+    );
+  } catch (err) {
+    console.warn("[taskStore] Failed to persist receipt outputs:", err);
   }
 }
 
@@ -73,5 +128,34 @@ export function persistTasks(): void {
     console.log(`[taskStore] Loaded ${arr.length} persisted task(s)`);
   } catch (err) {
     console.warn("[taskStore] Could not load persisted tasks:", err);
+  }
+})();
+
+(function loadReceipts(): void {
+  try {
+    if (!fs.existsSync(RECEIPTS_PATH)) return;
+    const raw = fs.readFileSync(RECEIPTS_PATH, "utf8");
+    const arr = JSON.parse(raw, reviver) as RunReceipt[];
+    for (const receipt of arr) {
+      receipts.set(receipt.runId, receipt);
+      if (receipt.taskId) receipts.set(receipt.taskId, receipt);
+    }
+    console.log(`[taskStore] Loaded ${arr.length} persisted receipt(s)`);
+  } catch (err) {
+    console.warn("[taskStore] Could not load persisted receipts:", err);
+  }
+})();
+
+(function loadReceiptOutputs(): void {
+  try {
+    if (!fs.existsSync(RECEIPT_OUTPUTS_PATH)) return;
+    const raw = fs.readFileSync(RECEIPT_OUTPUTS_PATH, "utf8");
+    const arr = JSON.parse(raw, reviver) as Array<[string, string]>;
+    for (const [id, output] of arr) {
+      receiptOutputs.set(id, output);
+    }
+    console.log(`[taskStore] Loaded ${arr.length} persisted receipt output(s)`);
+  } catch (err) {
+    console.warn("[taskStore] Could not load persisted receipt outputs:", err);
   }
 })();

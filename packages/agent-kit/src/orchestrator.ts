@@ -12,6 +12,7 @@ import type {
 import { payAndFetch, submitXlmPayment } from "./payments.js";
 import { ShieldContract } from "./contracts/shield.js";
 import { IdentityRegistry } from "./contracts/registry.js";
+import { createAgentManifests } from "./discovery.js";
 
 /**
  * Create a governed multi-agent orchestrator.
@@ -104,6 +105,7 @@ export function createOrchestrator(
     const walletKeys: Record<string, string> = {};
     for (const [id, kp] of wallets) walletKeys[id] = kp.publicKey();
     emit("wallets", walletKeys);
+    emit("agent_manifests", createAgentManifests(agents, walletKeys));
     for (const agent of agents) {
       emit("agent_status", { agent: agent.id, status: "idle" });
     }

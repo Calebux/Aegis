@@ -160,7 +160,7 @@ export class CeloIdentityRegistry {
       return txHash;
     } catch (err) {
       const msg = String(err);
-      if (msg.includes("AlreadyRegistered") || msg.includes("0x")) {
+      if (msg.includes("AlreadyRegistered")) {
         // Already registered — not an error
         return "0x" as Hex;
       }

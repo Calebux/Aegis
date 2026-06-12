@@ -19,6 +19,7 @@ npm install @calebux/agent-kit
 | **x402 payments** | `pay()` probes any URL; if a `402 Payment Required` comes back, it pays in XLM and retries automatically |
 | **Verifiable reputation** | Each success/failure is recorded on the Identity Registry (Soroban); scores are readable by anyone |
 | **Agent-to-agent payments** | Agents can pay each other in XLM with on-chain memos — real settlement, not mock |
+| **Agent manifests** | Agents declare capabilities, endpoints, payment support, accepted assets, and policy constraints |
 | **Streaming events** | Pass an `EventEmitter` to stream logs, agent status, and results to any UI in real time |
 
 ---
@@ -31,6 +32,17 @@ import { defineAgent, createOrchestrator } from '@calebux/agent-kit'
 const researcher = defineAgent({
   id: 'researcher',
   spendCapXlm: 1,                     // enforced on-chain by Soroban Shield Contract
+  manifest: {
+    name: 'Researcher',
+    capabilities: ['research', 'web-search'],
+    payments: [
+      { protocol: 'x402', network: 'stellar:testnet', asset: 'USDC', price: '$0.001' }
+    ],
+    policies: {
+      allowedAssets: ['USDC'],
+      minCounterpartyReputation: 5000,
+    },
+  },
   run: async (task, { pay }) => {
     // pay() handles x402 automatically — probe → pay XLM → retry
     const data = await pay<{ summary: string }>('https://my-x402-api.com/search?q=' + task)
@@ -53,6 +65,41 @@ console.log(report)
 //   txHashes:   { researcher: ['...'] },  // Stellar tx hashes
 // }
 ```
+
+---
+
+## Agent manifests and local discovery
+
+Manifests are the portable metadata shape for agent discovery, MCP tools,
+registry indexers, and agent-to-agent routing.
+
+```ts
+import {
+  createAgentManifest,
+  createAgentManifests,
+  discoverAgents,
+} from '@calebux/agent-kit'
+
+const manifest = createAgentManifest(researcher, {
+  walletAddress: 'G...',
+  registryContractId: process.env.REGISTRY_CONTRACT_ID,
+  shieldContractId: process.env.SHIELD_CONTRACT_ID,
+})
+
+const matches = discoverAgents([manifest], {
+  capability: 'web-search',
+  protocol: 'x402',
+  asset: 'USDC',
+  network: 'stellar:testnet',
+  minReputation: 5000,
+}, {
+  researcher: 6500,
+})
+```
+
+`createOrchestrator` emits an `agent_manifests` event after wallets are
+provisioned, so dashboards and APIs can expose discoverable agents with wallet
+addresses attached.
 
 ---
 

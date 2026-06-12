@@ -189,6 +189,36 @@ async function verifyCusdPayment(
   }
 }
 
+function extractPaymentTxHash(paymentPayload: unknown): string | undefined {
+  if (!paymentPayload || typeof paymentPayload !== "object") return undefined;
+  const payload = paymentPayload as Record<string, unknown>;
+  if (typeof payload["txHash"] === "string") return payload["txHash"];
+  if (payload["payload"] && typeof payload["payload"] === "object") {
+    const nested = payload["payload"] as Record<string, unknown>;
+    if (typeof nested["txHash"] === "string") return nested["txHash"];
+    if (typeof nested["transaction"] === "string") return nested["transaction"];
+  }
+  if (typeof payload["transaction"] === "string") return payload["transaction"];
+  return undefined;
+}
+
+function extractPaymentRequirement(body: unknown): {
+  payTo?: string;
+  amountWei?: string;
+} {
+  if (!body || typeof body !== "object") return {};
+  const root = body as Record<string, unknown>;
+  const direct = root["paymentRequirements"] as Record<string, unknown> | undefined;
+  const accepted = (root["paymentPayload"] as Record<string, unknown> | undefined)?.[
+    "accepted"
+  ] as Record<string, unknown> | undefined;
+  const source = direct ?? accepted;
+  return {
+    payTo: typeof source?.["payTo"] === "string" ? source["payTo"] : undefined,
+    amountWei: typeof source?.["amount"] === "string" ? source["amount"] : undefined,
+  };
+}
+
 // ── Express app ───────────────────────────────────────────────────────────────
 
 const app = express();
@@ -322,27 +352,31 @@ app.post("/session/open", async (req: Request, res: Response) => {
 // ── Facilitator: verify ───────────────────────────────────────────────────────
 
 app.post("/verify", async (req: Request, res: Response) => {
-  const { paymentPayload } = req.body as {
-    paymentPayload?: { txHash?: string; payTo?: string; amountWei?: string };
-    paymentRequirements?: unknown;
-  };
+  const { paymentPayload } = req.body as { paymentPayload?: unknown };
+  const txHash = extractPaymentTxHash(paymentPayload);
 
-  if (!paymentPayload?.txHash) {
-    res.status(400).json({ valid: false, error: "paymentPayload.txHash required" });
+  if (!txHash) {
+    res.status(400).json({
+      valid: false,
+      isValid: false,
+      error: "paymentPayload txHash required",
+    });
     return;
   }
 
-  const payTo = paymentPayload.payTo ?? RECEIVER;
-  const minAmount = paymentPayload.amountWei ?? AMOUNT_WEI;
+  const requirement = extractPaymentRequirement(req.body);
+  const payTo = requirement.payTo ?? RECEIVER;
+  const minAmount = requirement.amountWei ?? AMOUNT_WEI;
 
-  const result = await verifyCusdPayment(paymentPayload.txHash, payTo, minAmount);
-  res.json(result);
+  const result = await verifyCusdPayment(txHash, payTo, minAmount);
+  res.json({ ...result, isValid: result.valid });
 });
 
 // ── Facilitator: settle ───────────────────────────────────────────────────────
 
 app.post("/settle", (req: Request, res: Response) => {
-  const { txHash } = req.body as { txHash?: string };
+  const { paymentPayload } = req.body as { paymentPayload?: unknown };
+  const txHash = extractPaymentTxHash(paymentPayload) ?? (req.body as { txHash?: string }).txHash;
   if (!txHash) {
     res.status(400).json({ error: "txHash required" });
     return;
@@ -355,7 +389,9 @@ app.post("/settle", (req: Request, res: Response) => {
 
   res.json({
     settled: true,
+    success: true,
     txHash,
+    transaction: txHash,
     settlementTimestamp: new Date().toISOString(),
     network: `eip155:${CHAIN_ID}`,
     asset: "cUSD",

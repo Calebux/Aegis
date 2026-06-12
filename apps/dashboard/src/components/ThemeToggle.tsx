@@ -1,28 +1,45 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+
+const THEME_EVENT = "aegis-theme-change";
+
+function subscribe(callback: () => void) {
+  window.addEventListener(THEME_EVENT, callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    window.removeEventListener(THEME_EVENT, callback);
+    window.removeEventListener("storage", callback);
+  };
+}
+
+function getSnapshot() {
+  return document.documentElement.getAttribute("data-theme") === "light";
+}
+
+function getServerSnapshot() {
+  return false;
+}
 
 export function ThemeToggle() {
-  const [light, setLight] = useState(false);
+  const light = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   useEffect(() => {
-    const saved = localStorage.getItem("aegis-theme");
-    if (saved === "light") {
+    const next = localStorage.getItem("aegis-theme") === "light";
+    if (next) {
       document.documentElement.setAttribute("data-theme", "light");
-      setLight(true);
+    } else {
+      document.documentElement.removeAttribute("data-theme");
     }
+    window.dispatchEvent(new Event(THEME_EVENT));
   }, []);
 
   function toggle() {
     const next = !light;
-    setLight(next);
-    if (next) {
-      document.documentElement.setAttribute("data-theme", "light");
-      localStorage.setItem("aegis-theme", "light");
-    } else {
-      document.documentElement.removeAttribute("data-theme");
-      localStorage.setItem("aegis-theme", "dark");
-    }
+    document.documentElement.toggleAttribute("data-theme", next);
+    if (next) document.documentElement.setAttribute("data-theme", "light");
+    localStorage.setItem("aegis-theme", next ? "light" : "dark");
+    window.dispatchEvent(new Event(THEME_EVENT));
   }
 
   return (
