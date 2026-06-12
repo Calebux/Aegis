@@ -39,6 +39,9 @@ import { startHorizonX402Server } from "./services/horizon-x402-server.js";
 
 export type { OrchestratorReport as AegisReport };
 
+// Celo pipeline entry point (re-exported for dashboard compatibility)
+export { runCeloTask } from "./celo-index.js";
+
 // ── Default demo task ─────────────────────────────────────────────────────────
 
 const TASK =

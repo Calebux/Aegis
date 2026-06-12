@@ -3,18 +3,46 @@
   "version": "0.1.0",
   "private": true,
   "description": "Soroban-governed multi-agent system on Stellar",
+  "keywords": [
+    "stellar",
+    "soroban",
+    "ai-agents",
+    "agent-infrastructure",
+    "x402",
+    "mpp",
+    "mcp",
+    "llm-tools",
+    "agent-wallets",
+    "on-chain-reputation",
+    "verifiable-agents"
+  ],
   "workspaces": [
     "packages/*",
     "apps/*"
   ],
   "scripts": {
     "aegis": "cd packages/orchestrator && tsx src/index.ts",
+    "demo:receipt": "node scripts/demo-receipt.mjs",
+    "demo:foundation": "node scripts/stellar-foundation-demo.mjs",
+    "example:x402-agent": "node scripts/example-x402-agent-client.mjs",
+    "smoke:api": "node scripts/api-smoke-test.mjs",
+    "publish:manifest-hashes": "npm run build --workspace=packages/agent-kit && node scripts/publish-manifest-hashes.mjs",
+    "publish:celo-manifest-hashes": "npm run build --workspace=packages/aegis-chain-celo && node scripts/publish-celo-manifest-hashes.mjs",
+    "deploy:celo-contracts": "cd contracts/celo && bash deploy.sh",
     "dev:horizon": "cd packages/orchestrator && tsx src/services/horizon-x402-server.ts",
+    "dev:celo": "tsx packages/agents/src/celo-x402-server.ts",
     "build": "npm run build --workspaces --if-present",
     "dev": "npm run dev --workspace=apps/dashboard",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "clean": "npm run clean --workspaces --if-present && rm -rf node_modules"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.15"
+    },
+    "postcss": "8.5.15",
+    "ws": "8.20.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",
