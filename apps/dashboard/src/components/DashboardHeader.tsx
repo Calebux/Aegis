@@ -1,5 +1,4 @@
 import { WalletStrip } from "@/components/WalletStrip";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function DashboardHeader() {
   return (
@@ -16,8 +15,6 @@ export function DashboardHeader() {
           SYS.OK
         </span>
         <span>Celo · Mainnet</span>
-        <span className="hdr-divider" />
-        <ThemeToggle />
       </div>
     </header>
   );

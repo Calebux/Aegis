@@ -27,8 +27,8 @@ export function WalletStrip() {
         return (
           <span key={id} style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.58rem", letterSpacing: "0.08em" }}>
             <span style={{ width: 4, height: 4, borderRadius: "50%", background: DOTS[id], flexShrink: 0, display: "inline-block" }} />
-            <span style={{ color: "#484848" }}>{ABBR[id]}</span>
-            <span style={{ color: "#606062" }}>{bal}</span>
+            <span style={{ color: "#656d76" }}>{ABBR[id]}</span>
+            <span style={{ color: "#1a1a2e" }}>{bal}</span>
           </span>
         );
       })}

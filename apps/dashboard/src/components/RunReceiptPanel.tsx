@@ -30,6 +30,7 @@ export function RunReceiptPanel({ receipt, verification }: Props) {
     <div className="receipt-panel">
       <div className="receipt-status-row">
         <span className={`receipt-status ${status.toLowerCase()}`}>{status}</span>
+        <span className="infra-badge" data-tooltip="Cryptographically signed receipt with task hash, output hash, and payment proof">Verifiable</span>
         <a className="receipt-link" href={receiptUrl}>
           OPEN PROOF
         </a>

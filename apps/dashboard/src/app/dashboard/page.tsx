@@ -350,7 +350,8 @@ export default function DashboardPage() {
             <div className="module">
               <div className="mod-header">
                 TASK GRAPH
-                <span style={{ color: "#505052", fontSize: "0.65rem", fontFamily: "monospace", marginLeft: "auto" }}>
+                <span className="infra-badge" data-tooltip="Task graph generated per prompt by the AI planner" style={{ marginLeft: 6 }}>Dynamic Planner</span>
+                <span style={{ color: "#656d76", fontSize: "0.65rem", fontFamily: "monospace", marginLeft: "auto" }}>
                   {taskGraph.nodes.length} NODES
                 </span>
               </div>
@@ -368,7 +369,7 @@ export default function DashboardPage() {
           <div className="module">
             <div className="mod-header">
               ON-CHAIN PROOF
-              <span style={{ color: "#2a5a2a", fontSize: "0.6rem", marginLeft: "auto" }}>
+              <span style={{ color: "#2a8a3a", fontSize: "0.6rem", marginLeft: "auto" }}>
                 CELO · MAINNET
               </span>
             </div>
@@ -397,12 +398,13 @@ export default function DashboardPage() {
               {running && <span className="live-dot" />}
               OUTPUT
               {running && <span style={{ color: "#5890d8" }}>· LIVE</span>}
+              <span className="infra-badge" data-tooltip="Real-time server-sent events from the orchestrator" style={{ marginLeft: 6 }}>SSE Stream</span>
             </div>
             <div className="terminal">
               {!hasRun ? (
-                <span style={{ color: "#303032" }}>STANDBY — submit a task to begin</span>
+                <span style={{ color: "#8b949e" }}>STANDBY — submit a task to begin</span>
               ) : logs.length === 0 ? (
-                <span style={{ color: "#303032" }}>Waiting for output…</span>
+                <span style={{ color: "#8b949e" }}>Waiting for output…</span>
               ) : (
                 logs.map(entry => (
                   <div key={entry.id} className={`log-line ${entry.level}`}>
