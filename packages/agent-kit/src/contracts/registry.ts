@@ -120,6 +120,61 @@ export class IdentityRegistry {
     }
   }
 
+  /** Store the canonical manifest hash for an already-registered agent. */
+  async setManifestHash(agentId: string, manifestHash: string): Promise<string | null> {
+    try {
+      const horizon = getHorizonServer();
+      const acct = await horizon.loadAccount(this.adminKeypair.publicKey());
+      const contract = new Contract(this.contractId);
+      const tx = new TransactionBuilder(acct, {
+        fee: BASE_FEE,
+        networkPassphrase: networkPassphrase(),
+      })
+        .addOperation(
+          contract.call(
+            "set_manifest_hash",
+            nativeToScVal(agentId, { type: "symbol" }),
+            nativeToScVal(manifestHash, { type: "string" })
+          )
+        )
+        .setTimeout(30)
+        .build();
+      const sim = await this.rpc.simulateTransaction(tx);
+      if (SorobanRpc.Api.isSimulationError(sim)) return null;
+      const prepared = SorobanRpc.assembleTransaction(tx, sim).build();
+      prepared.sign(this.adminKeypair);
+      const sent = await this.rpc.sendTransaction(prepared);
+      return sent.status !== "ERROR" ? sent.hash : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Read the canonical manifest hash for an agent via Soroban simulation. */
+  async getManifestHash(agentId: string): Promise<string | null> {
+    try {
+      const horizon = getHorizonServer();
+      const acct = await horizon.loadAccount(this.adminKeypair.publicKey());
+      const contract = new Contract(this.contractId);
+      const tx = new TransactionBuilder(acct, {
+        fee: BASE_FEE,
+        networkPassphrase: networkPassphrase(),
+      })
+        .addOperation(
+          contract.call("get_manifest_hash", nativeToScVal(agentId, { type: "symbol" }))
+        )
+        .setTimeout(30)
+        .build();
+      const sim = await this.rpc.simulateTransaction(tx);
+      if (SorobanRpc.Api.isSimulationSuccess(sim) && sim.result) {
+        return scValToNative(sim.result.retval) as string;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   /** Decrement this agent's on-chain reputation score after a failed task. */
   async recordFailure(agentId: string, agentKeypair: Keypair): Promise<void> {
     try {

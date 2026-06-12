@@ -32,20 +32,52 @@
 // Core API
 export { defineAgent } from "./agent.js";
 export { createOrchestrator } from "./orchestrator.js";
+export {
+  computeAgentManifestHash,
+  createAgentManifest,
+  createAgentManifests,
+  discoverAgents,
+} from "./discovery.js";
+export {
+  computeReceiptHash,
+  createRunReceipt,
+  sha256Hex,
+  signRunReceipt,
+  stableStringify,
+  verifyRunReceipt,
+} from "./receipts.js";
 
 // Payment utilities
 export { payAndFetch, submitXlmPayment, agentToAgentPayment } from "./payments.js";
+export { submitCusdPayment, payAndFetchCelo, celoAgentToAgentPayment } from "./payments-celo.js";
 
 // Soroban contract wrappers
 export { ShieldContract } from "./contracts/shield.js";
 export { IdentityRegistry } from "./contracts/registry.js";
 
+// Celo contract wrappers
+export { CeloIdentityRegistry } from "./contracts/celo-registry.js";
+export { CeloPolicyManager } from "./contracts/celo-policy.js";
+
 // Types
 export type {
   AgentDefinition,
+  AgentDiscoveryQuery,
   AgentContext,
+  AgentChain,
+  AgentEndpoint,
+  AgentManifest,
+  AgentPaymentAsset,
+  AgentPaymentCapability,
+  AgentPaymentProtocol,
+  AgentPolicyConstraints,
   AgentRunResult,
   AgentResult,
+  RunReceipt,
+  RunReceiptAgent,
+  RunReceiptPolicy,
+  RunReceiptSignature,
+  RunReceiptVerification,
   OrchestratorOptions,
   OrchestratorReport,
   Orchestrator,

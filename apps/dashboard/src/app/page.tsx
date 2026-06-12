@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useId } from "react";
 import { AgentCard, type AgentStatus } from "@/components/AgentCard";
 import { TaskFeed } from "@/components/TaskFeed";
 import { TaskGraphView, type TaskGraph, type AgentType as GraphAgentType, type NodeStatus } from "./TaskGraph";
 import { OnChainProofPanel } from "@/components/OnChainProofPanel";
+import { RunReceiptPanel } from "@/components/RunReceiptPanel";
+import type { RunReceipt, RunReceiptVerification } from "@calebux/agent-kit";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -113,6 +115,7 @@ function clock(): string { return ts(); }
 
 export default function DashboardPage() {
   const [task, setTask]     = useState("");
+  const [chain, setChain]   = useState<"stellar" | "celo">("stellar");
   const [running, setRunning] = useState(false);
   const [logs, setLogs]     = useState<LogEntry[]>([]);
   const [hasRun, setHasRun] = useState(false);
@@ -148,10 +151,12 @@ export default function DashboardPage() {
   const [taskGraph, setTaskGraph] = useState<TaskGraph | null>(null);
   const [graphStatusMap, setGraphStatusMap] = useState<Partial<Record<GraphAgentType, NodeStatus>>>({});
   const [graphConfidenceMap, setGraphConfidenceMap] = useState<Partial<Record<GraphAgentType, number>>>({});
+  const [runReceipt, setRunReceipt] = useState<RunReceipt | null>(null);
+  const [receiptVerification, setReceiptVerification] = useState<RunReceiptVerification | undefined>();
 
   const logEndRef   = useRef<HTMLDivElement>(null);
   const counterRef  = useRef(0);
-  const sessionRef  = useRef(`SES_${Math.random().toString(36).slice(2, 9).toUpperCase()}`);
+  const sessionId   = `SES_${useId().replace(/[^a-z0-9]/gi, "").toUpperCase()}`;
 
   // Live clock
   useEffect(() => {
@@ -201,12 +206,14 @@ export default function DashboardPage() {
     setTaskGraph(null);
     setGraphStatusMap({});
     setGraphConfidenceMap({});
+    setRunReceipt(null);
+    setReceiptVerification(undefined);
 
     try {
       const res = await fetch("/api/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task }),
+        body: JSON.stringify({ task, chain }),
       });
 
       if (!res.ok || !res.body) throw new Error(`API ${res.status}`);
@@ -264,6 +271,13 @@ export default function DashboardPage() {
               setReputation(p.reputation);
               setWallets(p.wallets);
               if (p.txHashes) setAgentTxHashes(p.txHashes as Record<AgentId, string[]>);
+            } else if (type === "receipt") {
+              const receipt = payload as RunReceipt;
+              setRunReceipt(receipt);
+              fetch(`/api/receipts/${receipt.runId}/verify`)
+                .then((r) => r.ok ? r.json() : undefined)
+                .then((v) => setReceiptVerification(v as RunReceiptVerification | undefined))
+                .catch(() => {});
             } else if (type === "error") {
               addLog(`Error: ${(payload as { message: string }).message}`, "error");
             }
@@ -300,6 +314,22 @@ export default function DashboardPage() {
               placeholder="Enter research task…  (⌘↵ to execute)"
               disabled={running}
             />
+            <button
+              className={`cmd-chain-pill${chain === "stellar" ? " active" : ""}`}
+              onClick={() => setChain("stellar")}
+              disabled={running}
+              title="Stellar pipeline"
+            >
+              STELLAR
+            </button>
+            <button
+              className={`cmd-chain-pill${chain === "celo" ? " active" : ""}`}
+              onClick={() => setChain("celo")}
+              disabled={running}
+              title="Celo pipeline"
+            >
+              CELO
+            </button>
             <button
               className={`cmd-exec${running ? " is-running" : ""}`}
               onClick={runAegis}
@@ -370,6 +400,18 @@ export default function DashboardPage() {
             />
           </div>
 
+          {runReceipt && (
+            <div className="module">
+              <div className="mod-header">
+                RUN RECEIPT
+                <span style={{ color: receiptVerification?.valid ? "#48a858" : "#a08010", fontSize: "0.6rem", marginLeft: "auto" }}>
+                  {receiptVerification?.valid ? "VERIFIED" : "PENDING"}
+                </span>
+              </div>
+              <RunReceiptPanel receipt={runReceipt} verification={receiptVerification} />
+            </div>
+          )}
+
           {/* Output log — always visible */}
           <div className="module">
             <div className="mod-header">
@@ -428,10 +470,13 @@ export default function DashboardPage() {
           TASK <span className="ftr-val">{taskSnippet}</span>
         </span>
         <span className="ftr-item">
+          CHAIN <span className="ftr-val">{chain.toUpperCase()}</span>
+        </span>
+        <span className="ftr-item">
           TOTAL SPEND <span className="ftr-val">{stroopsToXlm(totalSpent)} XLM{totalTxCount > 0 ? ` · ${totalTxCount} TXS` : ""}</span>
         </span>
         <span className="ftr-item" style={{ marginLeft: "auto" }}>
-          SESSION <span className="ftr-val">{sessionRef.current}</span>
+          SESSION <span className="ftr-val">{sessionId}</span>
         </span>
         <button className="ftr-btn" onClick={() => setHistoryOpen(v => !v)}>
           HISTORY

@@ -1,192 +1,264 @@
 # Aegis
 
-**Soroban-governed multi-agent system on Stellar**
+**Multi-chain agent execution and trust infrastructure**
 
-Built for the [Stellar Hacks: Agents](https://dorahacks.io) hackathon on DoraHacks.
+Aegis is a multi-agent orchestration framework where a master orchestrator decomposes tasks into specialized sub-agents — each with its own wallet, on-chain spend caps, verifiable reputation, and x402 payment gating. Agents pay for external services, settle micropayments with each other, and produce cryptographically signed run receipts.
 
-## Overview
+Currently live on **Celo mainnet** and **Stellar testnet**.
 
-Aegis is a multi-agent orchestration framework where a master orchestrator decomposes high-level tasks into specialized sub-agents — each with its own Stellar testnet wallet, spend cap enforced on-chain by a **Soroban Shield Contract**, and reputation tracked by an **Identity Registry**. Agents pay for external services using the x402 payment protocol over Stellar testnet, and settle agent-to-agent micropayments after every task.
-
-**What makes Aegis different from every other agent hack:**
-
-1. **Full-stack x402 on Stellar** — Aegis is simultaneously an x402 *provider* (running its own paywall server) and an x402 *consumer* (paying for queries from within the agent pipeline). Most entries pick one side.
-2. **On-chain spend governance** — the Shield Contract blocks any agent from overspending before the transaction ever hits the network. Guardrails are not a config file; they are a deployed Soroban contract.
-3. **Agent-to-agent payments** — Scribe pays Scout 0.001 XLM after every synthesis, logged on-chain with a memo (`aegis:scribe->scout`). Agents have financial relationships with each other, not just with external APIs.
-4. **Live reputation** — the Identity Registry increments each agent's reputation score on-chain after every successful task, making trustworthiness a first-class, verifiable property.
-
-## Architecture
-
-```
-                        ┌─────────────────────┐
-                        │  Master Orchestrator │
-                        │   (TypeScript)       │
-                        └────────┬────────────┘
-                                 │ decomposes task
-               ┌─────────────────┼──────────────────────┐
-               │                 │                       │
-        ┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐
-        │    Scout    │  │   Ledger    │  │   Signal    │  │    Scribe   │
-        │  (Search)   │  │ (Horizon)   │  │ (Analytics) │  │  (Reports)  │
-        └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘
-               │                 │ x402 pay               │                 │
-               │          ┌──────▼──────┐            │                 │
-               │          │  Horizon    │            │                 │
-               │          │ x402 Server │            │                 │
-               │          │  (port 3001)│            │                 │
-               │          └──────┬──────┘            │                 │
-               │                 │ proxies           │                 │
-               │          ┌──────▼──────┐            │                 │
-               │          │  Stellar    │            │                 │
-               │          │  Horizon    │            │                 │
-               │          │  Testnet    │            │                 │
-               │          └─────────────┘            │                 │
-               └─────────────────┴────────────────┴─────────────────┘
-                                          │
-                              ┌───────────▼───────────┐
-                              │    Soroban Contracts   │
-                              │  Shield Contract       │
-                              │  Identity Registry     │
-                              └───────────────────────┘
+```bash
+npm install @calebux/agent-kit
 ```
 
-## x402 Dual Role — What Makes Aegis Unique
+---
 
-Most x402 integrations are one-sided: a client that pays for external APIs.
-Aegis operates on **both sides of the protocol simultaneously**:
+## Celo — Live on Mainnet
 
-| Role | Component | What it does |
-|------|-----------|--------------|
-| **x402 Provider** | `horizon-x402-server.ts` | Wraps Stellar Horizon behind a paywall; returns 402 if no valid payment header is present |
-| **x402 Consumer** | `ledger.ts` | Uses `@x402/axios` to automatically handle 402 responses, sign a Stellar payment, and retry the request |
+Aegis deploys a full agent infrastructure on Celo: identity registry, policy enforcement, stablecoin payments, Mento oracle integration, and verifiable attestations — all on mainnet.
 
-The Ledger agent pays the Horizon x402 server **$0.001 per query** for:
-- `GET /network-stats` — latest ledger, base fee, transaction count
-- `GET /account/:address` — account balances and recent transactions
+### Deployed Contracts
 
-Every payment is logged server-side:
+| Contract | Address | Purpose |
+|---|---|---|
+| **AegisCeloRegistry** | [`0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C`](https://celoscan.io/address/0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C) | Agent identity, manifest hashes, on-chain reputation |
+| **AegisCeloPolicy** | [`0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c`](https://celoscan.io/address/0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c) | Per-agent spend caps and session management |
+
+### Celo Agents
+
+| Agent | Capabilities | What it does |
+|---|---|---|
+| **celo-ledger** | `celo`, `onchain-data`, `stablecoins`, `rpc` | Live Celo RPC reads — block height, gas price, chain ID |
+| **celo-notary** | `celo`, `attestation`, `execution`, `proof` | On-chain attestation writes to AegisCeloRegistry |
+| **celo-defi** | `celo`, `defi`, `stablecoins`, `mento`, `oracles` | Mento SortedOracles: live cUSD/cEUR/cREAL exchange rates |
+| **celo-price** | `celo`, `price`, `market-data` | CELO token price via CoinGecko in a verifiable receipt |
+
+### Celo Pipeline
+
+The Celo pipeline mirrors the Stellar pipeline architecture:
+
 ```
-💰 Payment received: 0.001 XLM from G...SCOUT_ADDRESS
+Prompt → Celo Scout (web research) + Celo Ledger (on-chain data)
+       → Celo Signal (market analytics, 3-source averaging)
+       → Consensus Manager (reconciliation, validator if confidence < 0.7)
+       → Celo Scribe (final report synthesis via Claude)
+       → Celo Notary (SHA-256 → AegisCeloRegistry attestation on mainnet)
 ```
 
-The Ledger agent also demonstrates **cross-agent awareness**: it fetches the Scout agent's on-chain account as one of its data points, showing that Aegis agents can reason about each other's Stellar state.
+Run the Celo pipeline:
 
-## Sub-Agents
+```bash
+# POST with chain: "celo"
+curl -X POST http://localhost:3000/api/run \
+  -H "Content-Type: application/json" \
+  -d '{"task":"What is the current state of the Celo ecosystem?","chain":"celo"}'
+```
 
-| Agent  | Role | Tool |
-|--------|------|------|
-| **Scout** | Web search & research | Linkup x402-native search SDK |
-| **Ledger** | Stellar on-chain data | Local Horizon x402 server (pays per query) |
-| **Signal** | Market signals & analytics | External data APIs via x402 |
-| **Scribe** | Report synthesis | Claude API (Anthropic) |
+### Celo x402 Payments
 
-## Soroban Contracts
+Agents are gated behind x402 with **cUSD** as the settlement asset:
 
-Deployed on **Stellar testnet** (not futurenet).
+```bash
+# Discover Celo agents
+curl "http://localhost:3000/api/agents?chain=celo"
+
+# Call a single agent (returns receipt + optional 402 challenge)
+curl -X POST http://localhost:3000/api/agents/celo-defi/run \
+  -H "Content-Type: application/json" \
+  -d '{"task":"Get Mento stablecoin exchange rates"}'
+```
+
+### Celo SDK
+
+```ts
+import {
+  CeloIdentityRegistry,
+  CeloPolicyManager,
+  payAndFetchCelo,
+  submitCusdPayment,
+  celoAgentToAgentPayment,
+} from '@calebux/agent-kit'
+
+const registry = new CeloIdentityRegistry(
+  '0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C',
+  process.env.CELO_DEPLOYER_PRIVATE_KEY!,
+  'https://forno.celo.org',
+  'mainnet'
+)
+
+await registry.registerAgent('my-agent', 'My Agent', 'research')
+await registry.recordSuccess('my-agent')
+const rep = await registry.getReputation('my-agent')
+```
+
+### Celo Environment
+
+| Variable | Purpose |
+|---|---|
+| `AEGIS_CELO_NETWORK` | `mainnet` or `alfajores` |
+| `CELO_RPC_URL` | Celo JSON-RPC endpoint |
+| `CELO_REGISTRY_ADDRESS` | AegisCeloRegistry address |
+| `CELO_POLICY_ADDRESS` | AegisCeloPolicy address |
+| `CELO_DEPLOYER_PRIVATE_KEY` | Admin key for registry/policy writes |
+| `AEGIS_CELO_X402_RECEIVER` | Celo address receiving x402 cUSD payments |
+| `AEGIS_CELO_X402_FACILITATOR_URL` | Celo/EVM x402 facilitator |
+
+### Celo Contracts (Foundry)
+
+```bash
+# Deploy
+cd contracts/celo && bash deploy.sh
+
+# Test
+cd contracts/celo && forge test
+
+# Publish manifest hashes (dashboard must be running)
+npm run publish:celo-manifest-hashes
+```
+
+---
+
+## Stellar — Testnet
+
+Aegis's original chain integration. Full Soroban contract suite with x402 payment protocol.
+
+### Deployed Contracts (Stellar Testnet)
 
 | Contract | ID | Purpose |
-|----------|----|---------|
-| **Shield Contract** | `CDD4J3B3Y44SDUKZQYEU2XPS4KBGAMLUQEWVSR2I25GXFGAQ6KD453N5` | Enforces per-agent spend caps — `authorize_spend` is called before every external request |
-| **Identity Registry** | `CD5SGG7E6GIZPCGSOAKLCKRF5RRNZ3462MX4RQDT3NE6BD74GVAOMHET` | Tracks agent reputation — `record_success` / `record_failure` updates scores after each task |
+|---|---|---|
+| **Shield Contract** | `CDGVUNE47FXSG6KJATMZB3MFTE7UJFBMUKNFK7FWZRAHPG5BUGBFV2RS` | Per-agent spend cap enforcement |
+| **Identity Registry** | `CBQV3JXYZS7ABOTLCYZM6U4LUEF7PTIUXV76QAPHYAACERXHROVTT2YM` | Agent identity and reputation |
 
 Admin: `GDSUBJ4J6V4DR7B3UZ7IETLM7TPF23BXEZ7U4KTHQPSHXM3HACV2HWIC`
+
+### Stellar Agents
+
+| Agent | Role | Tool |
+|---|---|---|
+| **Scout** | Web search and research | Linkup x402-native search SDK |
+| **Ledger** | Stellar on-chain data | Local Horizon x402 server (pays per query) |
+| **Signal** | Market signals and analytics | External data APIs via x402 |
+| **Scribe** | Report synthesis | Claude API (Anthropic) |
+| **Notary** | Consensus attestation | SHA-256 → Soroban Shield Contract + DEX settlement |
+
+### x402 Dual Role
+
+Aegis operates on **both sides of x402 simultaneously**:
+
+| Role | Component | What it does |
+|---|---|---|
+| **Provider** | `horizon-x402-server.ts` | Wraps Stellar Horizon behind a paywall; returns 402 if no valid payment |
+| **Consumer** | `ledger.ts` | Handles 402 responses, signs Stellar payment, retries |
+
+Agent-to-agent payments: Scribe pays Scout 0.001 XLM per synthesis (`aegis:scribe->scout`).
+
+### Stellar Environment
+
+| Variable | Purpose |
+|---|---|
+| `STELLAR_NETWORK` | `testnet` (default) |
+| `STELLAR_HORIZON_URL` | Horizon endpoint |
+| `STELLAR_RPC_URL` | Soroban RPC endpoint |
+| `SHIELD_CONTRACT_ID` | Shield Contract address |
+| `REGISTRY_CONTRACT_ID` | Identity Registry address |
+| `ORCHESTRATOR_SECRET_KEY` | Admin keypair for on-chain registration |
+| `HORIZON_PAYMENT_RECEIVER` | Stellar address for x402 payments (blank = dev mode) |
+
+---
+
+## What Makes Aegis Different
+
+1. **Multi-chain from day one** — same agent architecture on Celo (EVM/cUSD) and Stellar (Soroban/XLM)
+2. **Full-stack x402** — simultaneously an x402 provider and consumer on both chains
+3. **On-chain spend governance** — Shield Contract (Stellar) and AegisCeloPolicy (Celo) enforce caps before transactions hit the network
+4. **Agent-to-agent payments** — agents have financial relationships with each other, settled on-chain
+5. **Live reputation** — Identity Registry increments scores on-chain after every task
+6. **Verifiable run receipts** — every run produces `aegis.receipt.v1` with task/output hashes, payment txs, Ed25519 signature
+7. **Discoverable manifests** — agents declare capabilities, endpoints, payment terms via portable SDK manifests
+
+---
 
 ## Monorepo Structure
 
 ```
 aegis/
-├── contracts/              # Soroban smart contracts (Rust)
-│   ├── shield-contract/    # Spend cap enforcement per agent
-│   └── identity-registry/  # Agent identity & reputation
+├── apps/dashboard/              Next.js 14 App Router — live dashboard + public agent API
 ├── packages/
-│   ├── orchestrator/       # Master orchestrator (TypeScript)
-│   │   └── src/
-│   │       ├── agents/     # Scout, Ledger, Signal, Scribe sub-agents
-│   │       └── services/   # horizon-x402-server.ts (x402 provider)
-│   ├── agents/             # Standalone agent processes
-│   └── shared/             # Shared types, Stellar helpers, x402 utils
-└── apps/
-    └── dashboard/          # Next.js live dashboard
+│   ├── orchestrator/            Master pipeline (Scout→Ledger→Signal→Scribe→Notary)
+│   ├── agent-kit/               @calebux/agent-kit — reusable SDK
+│   ├── agents/                  Standalone agent processes / x402 servers
+│   ├── shared/                  Shared types
+│   ├── aegis-chain-celo/        Celo/viem helpers, registry ABI
+│   └── aegis-mcp-stellar/       MCP server wrapping the public agent API
+├── contracts/
+│   ├── identity-registry/       Soroban — agent identity + reputation (Rust)
+│   ├── shield-contract/         Soroban — per-agent spend cap enforcement (Rust)
+│   └── celo/                    Foundry — AegisCeloRegistry + AegisCeloPolicy (Solidity)
+└── scripts/                     Manifest publishing, smoke tests, demos
 ```
 
-## Tech Stack
-
-- **Smart Contracts**: Soroban (Rust) on Stellar testnet
-- **Orchestrator & Agents**: TypeScript (Node.js)
-- **Payments**: x402 protocol on Stellar testnet (`@x402/express` + `@x402/axios`)
-- **Dashboard**: Next.js 14 (App Router)
-- **Search**: Linkup x402-native search SDK
-- **AI Synthesis**: Anthropic Claude API
+---
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js >= 20
-- Rust + `cargo`
-- Stellar CLI (`stellar`)
-- A Stellar testnet account funded via [Friendbot](https://friendbot.stellar.org)
+- `ANTHROPIC_API_KEY` and `LINKUP_API_KEY`
 
-### Install
+### Install and Run
 
 ```bash
 npm install
+cp .env.example .env.local
+# Fill in ANTHROPIC_API_KEY and LINKUP_API_KEY
+
+npm run dev    # Dashboard on :3000
 ```
 
-### Build Contracts
+### API Endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/health` | Deployment readiness, x402 config, contract pointers |
+| `GET /api/agents` | Machine-readable agent manifests |
+| `GET /api/agents?chain=celo` | Celo agent manifests |
+| `POST /api/agents/:id/run` | Call a single agent (x402 gated) |
+| `POST /api/run` | Full pipeline orchestration (add `chain: "celo"` for Celo) |
+| `GET /api/receipts` | List run receipts |
+| `GET /api/receipts/:id` | Fetch receipt with verification |
+| `GET /api/openapi.json` | OpenAPI spec |
+
+### Publish Manifest Hashes
 
 ```bash
-cd contracts
-cargo build --target wasm32-unknown-unknown --release
+# Stellar
+npm run publish:manifest-hashes
+
+# Celo
+npm run publish:celo-manifest-hashes
 ```
 
-### Run Horizon x402 Server (in a separate terminal)
+### MCP Setup
 
-```bash
-# Set the wallet that will receive payments
-export HORIZON_WALLET_ADDRESS=G...YOUR_ADDRESS
-
-npm run dev:horizon --workspace=packages/orchestrator
-# Listening on http://localhost:3001
-# GET /network-stats   → $0.001
-# GET /account/:address → $0.001
+```json
+{
+  "mcpServers": {
+    "aegis-stellar": {
+      "command": "node",
+      "args": ["packages/aegis-mcp-stellar/dist/index.js"],
+      "env": {
+        "AEGIS_BASE_URL": "http://localhost:3000"
+      }
+    }
+  }
+}
 ```
-
-### Run Orchestrator (dev)
-
-```bash
-npm run dev --workspace=packages/orchestrator
-```
-
-### Run Dashboard
-
-```bash
-npm run dev --workspace=apps/dashboard
-```
-
-## Environment Variables
-
-```bash
-cp .env.example .env
-# then fill in the three required keys
-```
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | ✅ | Claude API — task decomposition + Scribe synthesis. [Get one](https://console.anthropic.com) |
-| `LINKUP_API_KEY` | ✅ | Linkup search — Scout's web research tool. [Get one](https://app.linkup.so) |
-| `ORCHESTRATOR_SECRET_KEY` | ✅ | Stellar admin secret key — registers agents on-chain |
-| `SHIELD_CONTRACT_ID` | pre-filled | Soroban Shield Contract (testnet) |
-| `REGISTRY_CONTRACT_ID` | pre-filled | Soroban Identity Registry (testnet) |
-| `HORIZON_PAYMENT_RECEIVER` | optional | Stellar address for x402 payments — leave blank for dev mode |
-
-All other variables default correctly for Stellar testnet. Agent wallets (`SCOUT_SECRET_KEY`, etc.) are auto-provisioned at runtime.
 
 ---
 
 ## @calebux/agent-kit
 
-The orchestration layer has been extracted as a standalone npm package so anyone can build governed multi-agent systems on Stellar:
+The reusable SDK for building governed multi-agent systems:
 
 ```bash
 npm install @calebux/agent-kit
@@ -197,7 +269,7 @@ import { defineAgent, createOrchestrator } from '@calebux/agent-kit'
 
 const researcher = defineAgent({
   id: 'researcher',
-  spendCapXlm: 1,                        // enforced by Soroban Shield Contract
+  spendCapXlm: 1,
   run: async (task, { pay }) => {
     const data = await pay('https://my-x402-api.com/search?q=' + task)
     return { result: JSON.stringify(data) }
@@ -209,11 +281,7 @@ const { run } = createOrchestrator([researcher], {
   registryContractId: process.env.REGISTRY_CONTRACT_ID,
 })
 
-const report = await run('What is happening in Stellar DeFi right now?')
-// report.wallets     → agentId → Stellar public key
-// report.spent       → agentId → stroops spent
-// report.reputation  → agentId → on-chain score
-// report.txHashes    → agentId → Stellar tx hashes
+const report = await run('Analyze current DeFi activity')
 ```
 
 Full docs: [npmjs.com/package/@calebux/agent-kit](https://www.npmjs.com/package/@calebux/agent-kit)

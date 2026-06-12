@@ -6,7 +6,9 @@
 // Agent identifiers
 // ---------------------------------------------------------------------------
 
-export type AgentId = "scout" | "ledger" | "signal" | "scribe" | "executor";
+export type AgentId =
+  | "scout" | "ledger" | "signal" | "scribe" | "executor"
+  | "celo-scout" | "celo-ledger" | "celo-signal" | "celo-scribe" | "celo-executor";
 
 export interface AgentIdentity {
   id: AgentId;
@@ -43,6 +45,7 @@ export interface Task {
   id: string;
   prompt: string;
   status: TaskStatus;
+  chain?: "stellar" | "celo";
   subTasks: SubTask[];
   finalReport?: string;
   createdAt: Date;

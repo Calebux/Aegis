@@ -108,6 +108,7 @@ app.get("/market-data", async (req: Request, res: Response) => {
 
     const prices = recentTrades
       .map((t) => {
+        if (!t.price) return 0;
         const n = parseFloat(String(t.price.n));
         const d = parseFloat(String(t.price.d));
         return d !== 0 ? n / d : 0;

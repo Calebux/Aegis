@@ -37,6 +37,7 @@ pub enum Capability {
     Ledger,
     Signal,
     Scribe,
+    Executor,
 }
 
 /// Full on-chain identity record for a single agent.
@@ -66,6 +67,8 @@ pub enum DataKey {
     Agent(Symbol),
     /// Ordered list of all registered agent_id Symbols (for list_agents)
     AgentList,
+    /// Canonical SHA-256 manifest hash for the agent manifest JSON.
+    ManifestHash(Symbol),
     /// Contract administrator address
     Admin,
 }
@@ -169,6 +172,25 @@ impl IdentityRegistry {
         Ok(())
     }
 
+    /// Store or update the canonical manifest hash for an agent. Admin only.
+    pub fn set_manifest_hash(
+        env: Env,
+        agent_id: Symbol,
+        manifest_hash: String,
+    ) -> Result<(), Error> {
+        Self::require_admin(&env)?;
+        Self::load_agent(&env, &agent_id)?;
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::ManifestHash(agent_id.clone()), &manifest_hash);
+
+        env.events()
+            .publish((symbol_short!("manifest"), agent_id), manifest_hash);
+
+        Ok(())
+    }
+
     // -----------------------------------------------------------------------
     // Outcome recording
     // -----------------------------------------------------------------------
@@ -221,6 +243,15 @@ impl IdentityRegistry {
     /// Return just the reputation score for an agent.
     pub fn get_reputation(env: Env, agent_id: Symbol) -> Result<u32, Error> {
         Ok(Self::load_agent(&env, &agent_id)?.reputation_score)
+    }
+
+    /// Return the canonical manifest hash for an agent when one has been set.
+    pub fn get_manifest_hash(env: Env, agent_id: Symbol) -> Result<String, Error> {
+        Self::load_agent(&env, &agent_id)?;
+        env.storage()
+            .persistent()
+            .get(&DataKey::ManifestHash(agent_id))
+            .ok_or(Error::AgentNotFound)
     }
 
     /// Return all registered agent IDs in registration order.
@@ -304,6 +335,7 @@ mod tests {
             ("ledger1", Capability::Ledger),
             ("signal1", Capability::Signal),
             ("scribe1", Capability::Scribe),
+            ("exec1", Capability::Executor),
         ] {
             let id = Symbol::new(&env, id_str);
             client.register_agent(&id, &name(&env, id_str), &cap);
@@ -326,6 +358,23 @@ mod tests {
 
         let result = client.try_register_agent(&id, &name(&env, "Scout Dup"), &Capability::Scout);
         assert_eq!(result, Err(Ok(Error::AlreadyRegistered)));
+    }
+
+    #[test]
+    fn test_set_and_get_manifest_hash() {
+        let env = Env::default();
+        let (cid, _) = setup_contract(&env);
+        let client = IdentityRegistryClient::new(&env, &cid);
+
+        let id = Symbol::new(&env, "ledger1");
+        let hash = name(
+            &env,
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        );
+        client.register_agent(&id, &name(&env, "Ledger 1"), &Capability::Ledger);
+        client.set_manifest_hash(&id, &hash);
+
+        assert_eq!(client.get_manifest_hash(&id), hash);
     }
 
     // -----------------------------------------------------------------------

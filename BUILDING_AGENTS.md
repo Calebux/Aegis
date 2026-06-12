@@ -29,6 +29,28 @@ import { defineAgent, createOrchestrator } from '@calebux/agent-kit'
 const researcher = defineAgent({
   id: 'researcher',
   spendCapXlm: 1,                         // max 1 XLM spend, enforced on-chain
+  manifest: {
+    name: 'Researcher',
+    description: 'Finds and summarizes paid web data for Stellar agents',
+    capabilities: ['research', 'web-search'],
+    endpoint: {
+      url: 'https://example.com/agents/researcher',
+      protocol: 'http',
+    },
+    payments: [
+      {
+        protocol: 'x402',
+        network: 'stellar:testnet',
+        asset: 'USDC',
+        price: '$0.001',
+      },
+    ],
+    policies: {
+      allowedAssets: ['USDC'],
+      allowedDomains: ['my-x402-api.com'],
+      minCounterpartyReputation: 5000,
+    },
+  },
   run: async (task, { pay, txHashes }) => {
     // pay() probes the URL; if a 402 comes back it pays via Stellar and retries
     const data = await pay<{ summary: string }>('https://my-x402-api.com/search?q=' + task)
@@ -57,6 +79,48 @@ console.log(report.report)
 //   timestamp
 // }
 ```
+
+---
+
+## Agent manifests and discovery
+
+Agents can publish portable manifests for discovery, registry indexing, and
+future MCP tools.
+
+```ts
+import {
+  createAgentManifest,
+  createAgentManifests,
+  discoverAgents,
+} from '@calebux/agent-kit'
+
+const manifest = createAgentManifest(researcher, {
+  walletAddress: 'G...',
+  registryContractId: process.env.REGISTRY_CONTRACT_ID,
+  shieldContractId: process.env.SHIELD_CONTRACT_ID,
+})
+
+const matches = discoverAgents([manifest], {
+  capability: 'web-search',
+  protocol: 'x402',
+  asset: 'USDC',
+  network: 'stellar:testnet',
+  minReputation: 5000,
+}, {
+  researcher: 6500,
+})
+```
+
+Use this model anywhere you need a discoverable Stellar-native agent:
+
+- HTTP registry endpoints.
+- MCP tools.
+- On-chain registry metadata hashes.
+- Agent-to-agent routing.
+- Wallet or dashboard UI.
+
+`createOrchestrator` also emits an `agent_manifests` event after wallets are
+provisioned, with wallet addresses attached.
 
 ---
 
@@ -194,6 +258,84 @@ Deploy the contracts to your own Stellar testnet account:
 ```bash
 bash contracts/deploy.sh
 ```
+
+---
+
+## Building Celo agents
+
+`@calebux/agent-kit` includes first-class Celo support using viem and the
+AegisCeloRegistry / AegisCeloPolicy contracts deployed on Celo mainnet.
+
+### Install
+
+```bash
+npm install @calebux/agent-kit viem
+```
+
+### Celo agent with cUSD x402 payments
+
+```ts
+import { payAndFetchCelo, celoAgentToAgentPayment } from '@calebux/agent-kit'
+import { privateKeyToAccount, generatePrivateKey } from 'viem/accounts'
+
+// Load or generate an EVM wallet
+const account = privateKeyToAccount(
+  (process.env.MY_AGENT_PRIVATE_KEY as `0x${string}`) ?? generatePrivateKey()
+)
+
+// Pay a cUSD-gated API and get JSON back
+// Returns the JSON directly if AEGIS_CELO_X402_RECEIVER is unset (dev mode)
+const data = await payAndFetchCelo<{ rate: number }>(
+  'http://localhost:3002/market-data',
+  account,
+  []            // txHashes accumulator — appended to in place
+)
+
+// Agent-to-agent cUSD settlement (fire-and-forget)
+await celoAgentToAgentPayment(account, '0xRecipientAddress', '0.001')
+```
+
+### On-chain identity and reputation (Celo)
+
+```ts
+import { CeloIdentityRegistry, CeloPolicyManager } from '@calebux/agent-kit'
+
+const registry = new CeloIdentityRegistry(
+  process.env.CELO_REGISTRY_ADDRESS!,    // AegisCeloRegistry on Celo mainnet
+  process.env.CELO_DEPLOYER_PRIVATE_KEY!
+)
+
+// Register agent and publish a manifest hash
+await registry.registerAgent('my-agent', 'My Agent', 'research', '0x...')
+await registry.setManifestHash('my-agent', '0x...')
+
+// Record outcomes (affects on-chain reputation score)
+await registry.recordSuccess('my-agent')   // +10 reputation
+await registry.recordFailure('my-agent')   // -5 reputation
+
+// Read reputation (no gas, eth_call)
+const rep = await registry.getReputation('my-agent')   // number, 0–N
+
+// Spend-cap enforcement
+const policy = new CeloPolicyManager(
+  process.env.CELO_POLICY_ADDRESS!,
+  process.env.CELO_DEPLOYER_PRIVATE_KEY!
+)
+await policy.setPolicy('my-agent', BigInt('1000000000000000000'), ['cUSD'])
+const allowed = await policy.authorizeSpend('my-agent', BigInt('100000'), 'cUSD')
+```
+
+### Environment variables (Celo)
+
+| Variable | Description |
+|---|---|
+| `AEGIS_CELO_NETWORK` | `mainnet` or `alfajores` |
+| `CELO_RPC_URL` | Celo JSON-RPC endpoint |
+| `CELO_REGISTRY_ADDRESS` | `0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C` (mainnet) |
+| `CELO_POLICY_ADDRESS` | `0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c` (mainnet) |
+| `CELO_DEPLOYER_PRIVATE_KEY` | EVM key for on-chain registry writes |
+| `AEGIS_CELO_X402_RECEIVER` | Celo address receiving cUSD x402 payments (unset = dev mode) |
+| `AEGIS_CELO_X402_FACILITATOR_URL` | Celo x402 facilitator URL (enables enforcement) |
 
 ---
 
