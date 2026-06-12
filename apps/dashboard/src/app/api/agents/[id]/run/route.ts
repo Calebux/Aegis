@@ -353,7 +353,14 @@ async function celoDefiOutput(task: string): Promise<string> {
   }
 
   const CUSD_ADDRESS = CELO_STABLE_ASSET_CONTRACT;
-  const cusdRate = await getOracleRate(CUSD_ADDRESS);
+  const CEUR_ADDRESS = "0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73";
+  const CREAL_ADDRESS = "0xe8537a3d056DA446677B9E9d6c5dB704EaAb4787";
+
+  const [cusdRate, ceurRate, crealRate] = await Promise.all([
+    getOracleRate(CUSD_ADDRESS),
+    getOracleRate(CEUR_ADDRESS),
+    getOracleRate(CREAL_ADDRESS),
+  ]);
 
   // Fallback to CoinGecko for additional rates
   let celoUsd = 0;
@@ -379,7 +386,9 @@ async function celoDefiOutput(task: string): Promise<string> {
     `SortedOracles contract: ${MENTO_ORACLE}`,
     "",
     "Exchange rates (Mento SortedOracles):",
-    `  cUSD/CELO: ${cusdRate != null ? cusdRate.toFixed(6) : "unavailable"}`,
+    `  cUSD/CELO:  ${cusdRate != null ? cusdRate.toFixed(6) : "unavailable"}`,
+    `  cEUR/CELO:  ${ceurRate != null ? ceurRate.toFixed(6) : "unavailable"}`,
+    `  cREAL/CELO: ${crealRate != null ? crealRate.toFixed(6) : "unavailable"}`,
     `  CELO/USD (CoinGecko): ${celoUsd > 0 ? `$${celoUsd.toFixed(4)}` : "unavailable"}`,
     "",
     "Settlement asset: cUSD (ERC-20 stablecoin on Celo)",
