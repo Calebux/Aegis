@@ -6,6 +6,9 @@ import { TaskFeed } from "@/components/TaskFeed";
 import { TaskGraphView, type TaskGraph, type AgentType as GraphAgentType, type NodeStatus } from "../TaskGraph";
 import { OnChainProofPanel } from "@/components/OnChainProofPanel";
 import { RunReceiptPanel } from "@/components/RunReceiptPanel";
+import { CostBreakdown } from "@/components/CostBreakdown";
+import { PipelineTimeline } from "@/components/PipelineTimeline";
+import { VerifyPanel } from "@/components/VerifyPanel";
 import type { RunReceipt, RunReceiptVerification } from "@calebux/agent-kit";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -151,6 +154,8 @@ export default function DashboardPage() {
   const [graphConfidenceMap, setGraphConfidenceMap] = useState<Partial<Record<GraphAgentType, number>>>({});
   const [runReceipt, setRunReceipt] = useState<RunReceipt | null>(null);
   const [receiptVerification, setReceiptVerification] = useState<RunReceiptVerification | undefined>();
+  const [agentStartedAt, setAgentStartedAt] = useState<Record<string, number>>({});
+  const [agentCompletedAt, setAgentCompletedAt] = useState<Record<string, number>>({});
 
   const logEndRef   = useRef<HTMLDivElement>(null);
   const counterRef  = useRef(0);
@@ -205,6 +210,8 @@ export default function DashboardPage() {
     setGraphConfidenceMap({});
     setRunReceipt(null);
     setReceiptVerification(undefined);
+    setAgentStartedAt({});
+    setAgentCompletedAt({});
 
     try {
       const res = await fetch("/api/run", {
@@ -241,9 +248,15 @@ export default function DashboardPage() {
               for (const n of g.nodes) initStatus[n.agentType as GraphAgentType] = "pending";
               setGraphStatusMap(initStatus);
             } else if (type === "agent_status") {
-              const p = payload as { agent: AgentId | "validator"; status?: AgentStatus; spent?: number; txHashes?: string[]; paymentMode?: string; confidence?: number; sigTxHash?: string };
+              const p = payload as { agent: AgentId | "validator"; status?: AgentStatus; spent?: number; txHashes?: string[]; paymentMode?: string; confidence?: number; sigTxHash?: string; timestamp?: number };
               if (p.agent !== "validator" && p.status) {
                 setAgentStatus(prev => ({ ...prev, [p.agent]: p.status! }));
+                const ts = p.timestamp ?? Date.now();
+                if (p.status === "running") {
+                  setAgentStartedAt(prev => prev[p.agent as string] ? prev : { ...prev, [p.agent as string]: ts });
+                } else if (p.status === "complete") {
+                  setAgentCompletedAt(prev => ({ ...prev, [p.agent as string]: ts }));
+                }
               }
               if (p.spent !== undefined && p.agent !== "validator") setAgentSpent(prev => ({ ...prev, [p.agent]: p.spent! }));
               if (p.txHashes && p.agent !== "validator") setAgentTxHashes(prev => ({ ...prev, [p.agent]: p.txHashes! }));
@@ -319,6 +332,17 @@ export default function DashboardPage() {
             </button>
           </div>
 
+          {/* Prompt chips */}
+          {!running && (
+            <div className="prompt-chips">
+              {["Analyze Celo DeFi yields", "Research CELO staking rewards", "Compare Celo stablecoins", "Evaluate Celo validator ecosystem"].map((chip) => (
+                <button key={chip} className="prompt-chip" onClick={() => setTask(chip)}>
+                  {chip}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Agents module */}
           <div className="module agents-module">
             {AGENTS.map((agent, i) => (
@@ -380,6 +404,25 @@ export default function DashboardPage() {
             />
           </div>
 
+          {/* Pipeline Timeline */}
+          {Object.keys(agentStartedAt).length > 0 && (
+            <div className="module">
+              <PipelineTimeline
+                agents={AGENTS}
+                startedAt={agentStartedAt}
+                completedAt={agentCompletedAt}
+                running={running}
+              />
+            </div>
+          )}
+
+          {/* Cost Breakdown */}
+          {report && (
+            <div className="module">
+              <CostBreakdown spent={agentSpent} agents={AGENTS} />
+            </div>
+          )}
+
           {runReceipt && (
             <div className="module">
               <div className="mod-header">
@@ -425,6 +468,18 @@ export default function DashboardPage() {
                 <span className="done-badge">COMPLETE</span>
               </div>
               <SimpleMarkdown content={report} />
+            </div>
+          )}
+
+          {/* Verify On-Chain */}
+          {report && (
+            <div className="module">
+              <VerifyPanel
+                agentSigTxHashes={agentSigTxHashes}
+                registryAddress={process.env.NEXT_PUBLIC_CELO_REGISTRY_ADDRESS ?? "0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C"}
+                policyAddress={process.env.NEXT_PUBLIC_CELO_POLICY_ADDRESS ?? "0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c"}
+                receiptId={runReceipt?.runId}
+              />
             </div>
           )}
         </div>

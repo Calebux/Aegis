@@ -95,6 +95,7 @@ function bridgeBusToEmitter(msg: AgentMessage, emit: EmitFn): void {
       txHashes: p["txHashes"] ?? [],
       paymentMode: p["paymentMode"] ?? "celo",
       confidence: msg.confidence,
+      timestamp: Date.now(),
     });
   }
 
@@ -109,7 +110,7 @@ function bridgeBusToEmitter(msg: AgentMessage, emit: EmitFn): void {
   }
 
   if (msg.topic === "consensus:reached" && msg.agentId === "scribe") {
-    emit("agent_status", { agent: "celo-scribe", status: "complete", confidence: msg.confidence });
+    emit("agent_status", { agent: "celo-scribe", status: "complete", confidence: msg.confidence, timestamp: Date.now() });
   }
 
   if (msg.topic === "executor:complete") {
@@ -123,6 +124,7 @@ function bridgeBusToEmitter(msg: AgentMessage, emit: EmitFn): void {
       paymentMode: "celo-notary",
       confidence: msg.confidence,
       sigTxHash: notaryTxHash || undefined,
+      timestamp: Date.now(),
     });
     emit("log", {
       message: notaryTxHash
@@ -174,7 +176,7 @@ export async function runCeloTask(
   emit("wallets", walletKeys);
 
   for (const [agentId, addr] of Object.entries(walletKeys)) {
-    emit("agent_status", { agent: agentId, status: "idle" });
+    emit("agent_status", { agent: agentId, status: "idle", timestamp: Date.now() });
     emit("log", { message: `   ${agentId.padEnd(12)} → ${addr}`, level: "info" });
   }
 
@@ -275,15 +277,15 @@ export async function runCeloTask(
     rpcUrl: process.env.CELO_RPC_URL,
     network: process.env.AEGIS_CELO_NETWORK,
   });
-  emit("agent_status", { agent: "celo-executor", status: "running" });
+  emit("agent_status", { agent: "celo-executor", status: "running", timestamp: Date.now() });
   emit("log", { message: "   Celo Notary wired (waiting for consensus)", level: "info" });
 
   // ── 5. Fire Scout + Ledger in parallel ────────────────────────────────────
   emit("log", { message: "▶ Launching Celo Scout and Ledger in parallel…", level: "info" });
-  emit("agent_status", { agent: "celo-scout",  status: "running" });
-  emit("agent_status", { agent: "celo-ledger", status: "running" });
-  emit("agent_status", { agent: "celo-signal", status: "running" });
-  emit("agent_status", { agent: "celo-scribe", status: "running" });
+  emit("agent_status", { agent: "celo-scout",  status: "running", timestamp: Date.now() });
+  emit("agent_status", { agent: "celo-ledger", status: "running", timestamp: Date.now() });
+  emit("agent_status", { agent: "celo-signal", status: "running", timestamp: Date.now() });
+  emit("agent_status", { agent: "celo-scribe", status: "running", timestamp: Date.now() });
 
   const scoutAgent  = new CeloScoutAgent();
   const ledgerAgent = new CeloLedgerAgent();

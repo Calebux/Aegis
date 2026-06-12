@@ -169,6 +169,57 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── MCP Integration ──────────────────────────────────────── */}
+      <section className="landing-section">
+        <div className="landing-container">
+          <h2 className="landing-section-title">MCP Integration</h2>
+          <p className="landing-section-subtitle">
+            Let LLMs discover and call Aegis agents as native tools via Model Context Protocol.
+          </p>
+          <div className="landing-mcp-layout">
+            <div className="landing-mcp-tools">
+              {[
+                { name: "discover_agents", desc: "List all registered agents with capabilities and payment info" },
+                { name: "get_agent_manifest", desc: "Fetch full manifest for a specific agent by ID" },
+                { name: "run_agent_task", desc: "Execute a task on any agent and get a verifiable receipt" },
+                { name: "call_external_agent", desc: "Route tasks to agents on other Aegis instances" },
+                { name: "get_run_receipt", desc: "Retrieve a receipt by run ID with full hash chain" },
+                { name: "verify_run_receipt", desc: "Cryptographically verify a receipt's integrity" },
+                { name: "get_task_status", desc: "Check pipeline progress and agent statuses" },
+                { name: "aegis_agents_endpoint", desc: "Raw HTTP access to the agent discovery endpoint" },
+              ].map((tool) => (
+                <div key={tool.name} className="landing-mcp-tool">
+                  <code>{tool.name}</code>
+                  <span>{tool.desc}</span>
+                </div>
+              ))}
+            </div>
+            <div className="landing-mcp-code">
+              <div className="landing-terminal" style={{ maxWidth: "100%", margin: 0 }}>
+                <div className="landing-terminal-dots">
+                  <span /><span /><span />
+                </div>
+                <code>{`> Using run_agent_task
+  agent: "celo-ledger"
+  task: "Get latest Celo block"
+
+✓ Agent returned result
+  block: 28491023
+  gasPrice: "5 gwei"
+
+> Using verify_run_receipt
+  runId: "a3f8...c912"
+
+✓ Receipt verified
+  taskHash: "sha256:e4b2..."
+  outputHash: "sha256:9c1f..."
+  signature: valid`}</code>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── CTA Section ──────────────────────────────────────────── */}
       <section className="landing-cta-section">
         <div className="landing-container" style={{ textAlign: "center" }}>
