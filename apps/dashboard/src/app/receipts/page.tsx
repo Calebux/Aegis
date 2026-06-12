@@ -4,8 +4,8 @@ function shortHash(value: string): string {
   return value.length > 18 ? `${value.slice(0, 10)}...${value.slice(-8)}` : value;
 }
 
-function xlm(stroops: number): string {
-  return `${(stroops / 1e7).toFixed(4)} XLM`;
+function cusd(wei: number): string {
+  return `${(wei / 1e18).toFixed(4)} cUSD`;
 }
 
 export default function ReceiptsPage() {
@@ -53,7 +53,7 @@ export default function ReceiptsPage() {
                   </td>
                   <td>{receipt.task}</td>
                   <td>{shortHash(receipt.receiptHash)}</td>
-                  <td>{xlm(receipt.totalSpentStroops)}</td>
+                  <td>{cusd(receipt.totalSpentStroops)}</td>
                   <td>{receipt.createdAt}</td>
                 </tr>
               ))

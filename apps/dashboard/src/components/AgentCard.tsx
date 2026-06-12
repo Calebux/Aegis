@@ -4,8 +4,8 @@ export type AgentStatus = "idle" | "running" | "complete" | "failed";
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
-const EXPLORER    = "https://stellar.expert/explorer/testnet/account";
-const TX_EXPLORER = "https://stellar.expert/explorer/testnet/tx";
+const EXPLORER    = "https://celoscan.io/address";
+const TX_EXPLORER = "https://celoscan.io/tx";
 
 const STATUS_DOT: Record<AgentStatus, string> = {
   idle:     "#303034",
@@ -38,7 +38,7 @@ export interface AgentCardProps {
   capability: string;
   status: AgentStatus;
   wallet: string;
-  spent: number;          // stroops
+  spent: number;          // wei (cUSD)
   reputation: number;     // basis points 0–10 000
   reputationOnChain?: number | null;
   color: string;
@@ -55,7 +55,7 @@ export function AgentCard({
   color, isLast, txHashes, paymentMode, sigTxHash,
 }: AgentCardProps) {
   const repScore  = String(Math.round(reputation / 100)).padStart(3, "0");
-  const spentXlm  = (spent / 1e7).toFixed(4);
+  const spentCusd = (spent / 1e18).toFixed(4);
   const dotColor  = status === "running" ? color : STATUS_DOT[status];
   const isActive  = status === "running";
   const hasTx     = txHashes && txHashes.length > 0;
@@ -201,8 +201,8 @@ export function AgentCard({
           color: "#484848",
           textTransform: "uppercase",
         }}>
-          {spentXlm}{" "}
-          <span style={{ color: "#363638" }}>XLM</span>
+          {spentCusd}{" "}
+          <span style={{ color: "#363638" }}>cUSD</span>
         </span>
       </div>
 

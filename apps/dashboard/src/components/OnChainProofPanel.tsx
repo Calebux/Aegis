@@ -4,25 +4,24 @@
  * OnChainProofPanel
  *
  * Surfaces the full verifiability story for the Aegis infrastructure pitch:
- *   - Live Soroban contract links (Shield + Identity Registry)
+ *   - Live Celo contract links (AegisCeloRegistry + AegisCeloPolicy)
  *   - Per-agent output signatures stored on-chain
  *   - Final consensus notarisation tx (from Notary/Executor agent)
  *
- * Every item is a direct link to stellar.expert so judges can verify
+ * Every item is a direct link to Celoscan so judges can verify
  * without trusting Aegis.
  */
 
-const EXPLORER    = "https://stellar.expert/explorer/testnet";
+const EXPLORER    = "https://celoscan.io";
 const TX_EXPLORER = `${EXPLORER}/tx`;
-const CT_EXPLORER = `${EXPLORER}/contract`;
+const CT_EXPLORER = `${EXPLORER}/address`;
 
-type AgentId = "scout" | "ledger" | "signal" | "scribe" | "executor";
+type AgentId = "celo-scout" | "celo-ledger" | "celo-signal" | "celo-scribe" | "celo-executor";
 
 interface Props {
   agentSigTxHashes:   Record<AgentId, string>;
-  dexSettleTxHash:    string;
-  shieldContractId:   string;
-  registryContractId: string;
+  registryAddress:    string;
+  policyAddress:      string;
 }
 
 function truncate(s: string, n = 10): string {
@@ -85,17 +84,17 @@ function Row({
 }
 
 const AGENT_LABELS: Record<AgentId, string> = {
-  scout:    "Scout   sig",
-  ledger:   "Ledger  sig",
-  signal:   "Signal  sig",
-  scribe:   "Scribe  sig",
-  executor: "Notary  sig",
+  "celo-scout":    "Scout   sig",
+  "celo-ledger":   "Ledger  sig",
+  "celo-signal":   "Signal  sig",
+  "celo-scribe":   "Scribe  sig",
+  "celo-executor": "Notary  sig",
 };
 
-export function OnChainProofPanel({ agentSigTxHashes, dexSettleTxHash, shieldContractId, registryContractId }: Props) {
+export function OnChainProofPanel({ agentSigTxHashes, registryAddress, policyAddress }: Props) {
   const sigs = Object.entries(agentSigTxHashes) as [AgentId, string][];
   const hasSig = sigs.some(([, h]) => !!h);
-  const notaryHash = agentSigTxHashes["executor"];
+  const notaryHash = agentSigTxHashes["celo-executor"];
 
   return (
     <div style={{ padding: "0.75rem 1.25rem" }}>
@@ -103,17 +102,17 @@ export function OnChainProofPanel({ agentSigTxHashes, dexSettleTxHash, shieldCon
       {/* ── Contracts ── */}
       <div style={{ marginBottom: "0.5rem" }}>
         <div style={{ fontSize: "0.42rem", letterSpacing: "0.12em", color: "#303034", textTransform: "uppercase", marginBottom: "0.4rem", fontFamily: "var(--font)" }}>
-          Soroban Contracts
+          Celo Contracts
         </div>
         <Row
-          label="Shield Contract"
-          value={truncate(shieldContractId, 12)}
-          href={shieldContractId ? `${CT_EXPLORER}/${shieldContractId}` : undefined}
+          label="AegisCeloRegistry"
+          value={truncate(registryAddress, 12)}
+          href={registryAddress ? `${CT_EXPLORER}/${registryAddress}` : undefined}
         />
         <Row
-          label="Identity Registry"
-          value={truncate(registryContractId, 12)}
-          href={registryContractId ? `${CT_EXPLORER}/${registryContractId}` : undefined}
+          label="AegisCeloPolicy"
+          value={truncate(policyAddress, 12)}
+          href={policyAddress ? `${CT_EXPLORER}/${policyAddress}` : undefined}
         />
       </div>
 
@@ -134,25 +133,11 @@ export function OnChainProofPanel({ agentSigTxHashes, dexSettleTxHash, shieldCon
               label={AGENT_LABELS[id]}
               value={truncate(hash, 14)}
               href={`${TX_EXPLORER}/${hash}`}
-              highlight={id === "executor"}
+              highlight={id === "celo-executor"}
             />
           ) : null
         )}
       </div>
-
-      {/* ── DEX settlement ── */}
-      {dexSettleTxHash && (
-        <div style={{ marginBottom: "0.5rem" }}>
-          <div style={{ fontSize: "0.42rem", letterSpacing: "0.12em", color: "#303034", textTransform: "uppercase", marginBottom: "0.4rem", fontFamily: "var(--font)" }}>
-            DEX Settlement
-          </div>
-          <Row
-            label="XLM → USDC swap"
-            value={truncate(dexSettleTxHash, 14)}
-            href={`${TX_EXPLORER}/${dexSettleTxHash}`}
-          />
-        </div>
-      )}
 
       {/* ── Final consensus proof ── */}
       {notaryHash && (
@@ -172,7 +157,7 @@ export function OnChainProofPanel({ agentSigTxHashes, dexSettleTxHash, shieldCon
             rel="noopener noreferrer"
             style={{ fontSize: "0.5rem", color: "#48a858", fontFamily: "var(--font)", textDecoration: "none", letterSpacing: "0.04em" }}
           >
-            View on Stellar Explorer ↗
+            View on Celoscan ↗
           </a>
         </div>
       )}

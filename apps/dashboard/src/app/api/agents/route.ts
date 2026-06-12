@@ -11,7 +11,7 @@ function parseQuery(req: NextRequest): AgentDiscoveryQuery {
     minReputationRaw === null ? undefined : Number(minReputationRaw);
 
   return {
-    chain: params.get("chain") ?? undefined,
+    chain: params.get("chain") ?? "celo",
     capability: params.get("capability") ?? undefined,
     protocol: (params.get("protocol") as AgentDiscoveryQuery["protocol"]) ?? undefined,
     asset: params.get("asset") ?? undefined,

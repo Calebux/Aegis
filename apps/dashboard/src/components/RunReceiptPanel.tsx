@@ -8,8 +8,8 @@ function shortHash(value: string, left = 10, right = 8): string {
   return `${value.slice(0, left)}...${value.slice(-right)}`;
 }
 
-function stroopsToXlm(stroops: number): string {
-  return (stroops / 1e7).toFixed(4);
+function formatCusd(value: number): string {
+  return (value / 1e18).toFixed(4);
 }
 
 function statusText(verification?: RunReceiptVerification): string {
@@ -50,7 +50,7 @@ export function RunReceiptPanel({ receipt, verification }: Props) {
         </div>
         <div className="receipt-item">
           <span>Spend</span>
-          <code>{stroopsToXlm(receipt.totalSpentStroops)} XLM</code>
+          <code>{formatCusd(receipt.totalSpentStroops)} cUSD</code>
         </div>
         <div className="receipt-item">
           <span>Signer</span>

@@ -10,7 +10,7 @@ import type { RunReceipt, RunReceiptVerification } from "@calebux/agent-kit";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type AgentId = "scout" | "ledger" | "signal" | "scribe" | "executor";
+type AgentId = "celo-scout" | "celo-ledger" | "celo-signal" | "celo-scribe" | "celo-executor";
 
 interface LogEntry {
   id: number;
@@ -30,11 +30,11 @@ interface CompletePayload {
 // ── Agent definitions ─────────────────────────────────────────────────────
 
 const AGENTS: { id: AgentId; name: string; capability: string; color: string }[] = [
-  { id: "scout",    name: "Scout",    capability: "Web Research",        color: "#c8c040" },
-  { id: "ledger",   name: "Ledger",   capability: "On-Chain Data",       color: "#48b858" },
-  { id: "signal",   name: "Signal",   capability: "Market Intelligence", color: "#b050c0" },
-  { id: "scribe",   name: "Scribe",   capability: "Report Synthesis",    color: "#d04828" },
-  { id: "executor", name: "Notary",   capability: "Consensus Proof",     color: "#e07840" },
+  { id: "celo-scout",    name: "Scout",    capability: "Web Research",        color: "#c8c040" },
+  { id: "celo-ledger",   name: "Ledger",   capability: "On-Chain Data",       color: "#48b858" },
+  { id: "celo-signal",   name: "Signal",   capability: "Market Intelligence", color: "#b050c0" },
+  { id: "celo-scribe",   name: "Scribe",   capability: "Report Synthesis",    color: "#d04828" },
+  { id: "celo-executor", name: "Notary",   capability: "Consensus Proof",     color: "#e07840" },
 ];
 
 // ── Markdown renderer ──────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ function SimpleMarkdown({ content }: { content: string }) {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function stroopsToXlm(s: number): string { return (s / 1e7).toFixed(4); }
+function formatCusd(s: number): string { return (s / 1e18).toFixed(4); }
 function ts(): string {
   const n = new Date();
   return [n.getHours(), n.getMinutes(), n.getSeconds()].map(v => String(v).padStart(2, "0")).join(":");
@@ -115,7 +115,6 @@ function clock(): string { return ts(); }
 
 export default function DashboardPage() {
   const [task, setTask]     = useState("");
-  const [chain, setChain]   = useState<"stellar" | "celo">("stellar");
   const [running, setRunning] = useState(false);
   const [logs, setLogs]     = useState<LogEntry[]>([]);
   const [hasRun, setHasRun] = useState(false);
@@ -123,30 +122,29 @@ export default function DashboardPage() {
   const [time, setTime]     = useState(clock);
 
   const [agentStatus, setAgentStatus] = useState<Record<AgentId, AgentStatus>>({
-    scout: "idle", ledger: "idle", signal: "idle", scribe: "idle", executor: "idle",
+    "celo-scout": "idle", "celo-ledger": "idle", "celo-signal": "idle", "celo-scribe": "idle", "celo-executor": "idle",
   });
   const [agentSpent, setAgentSpent] = useState<Record<AgentId, number>>({
-    scout: 0, ledger: 0, signal: 0, scribe: 0, executor: 0,
+    "celo-scout": 0, "celo-ledger": 0, "celo-signal": 0, "celo-scribe": 0, "celo-executor": 0,
   });
   const [wallets, setWallets] = useState<Record<AgentId, string>>({
-    scout: "", ledger: "", signal: "", scribe: "", executor: "",
+    "celo-scout": "", "celo-ledger": "", "celo-signal": "", "celo-scribe": "", "celo-executor": "",
   });
   const [reputation, setReputation] = useState<Record<AgentId, number>>({
-    scout: 5000, ledger: 5000, signal: 5000, scribe: 5000, executor: 5000,
+    "celo-scout": 5000, "celo-ledger": 5000, "celo-signal": 5000, "celo-scribe": 5000, "celo-executor": 5000,
   });
   const [agentTxHashes, setAgentTxHashes] = useState<Record<AgentId, string[]>>({
-    scout: [], ledger: [], signal: [], scribe: [], executor: [],
+    "celo-scout": [], "celo-ledger": [], "celo-signal": [], "celo-scribe": [], "celo-executor": [],
   });
   const [agentPaymentModes, setAgentPaymentModes] = useState<Record<AgentId, string>>({
-    scout: "", ledger: "", signal: "", scribe: "", executor: "",
+    "celo-scout": "", "celo-ledger": "", "celo-signal": "", "celo-scribe": "", "celo-executor": "",
   });
   const [agentSigTxHashes, setAgentSigTxHashes] = useState<Record<AgentId, string>>({
-    scout: "", ledger: "", signal: "", scribe: "", executor: "",
+    "celo-scout": "", "celo-ledger": "", "celo-signal": "", "celo-scribe": "", "celo-executor": "",
   });
   const [reputationOnChain, setReputationOnChain] = useState<Record<AgentId, number | null>>({
-    scout: null, ledger: null, signal: null, scribe: null, executor: null,
+    "celo-scout": null, "celo-ledger": null, "celo-signal": null, "celo-scribe": null, "celo-executor": null,
   });
-  const [dexSettleTxHash, setDexSettleTxHash] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [taskGraph, setTaskGraph] = useState<TaskGraph | null>(null);
   const [graphStatusMap, setGraphStatusMap] = useState<Partial<Record<GraphAgentType, NodeStatus>>>({});
@@ -171,7 +169,7 @@ export default function DashboardPage() {
         const res = await fetch("/api/status");
         if (!res.ok) return;
         const data = await res.json() as Array<{ agentId: AgentId; reputationOnChain: number | null }>;
-        const map: Record<AgentId, number | null> = { scout: null, ledger: null, signal: null, scribe: null, executor: null };
+        const map: Record<AgentId, number | null> = { "celo-scout": null, "celo-ledger": null, "celo-signal": null, "celo-scribe": null, "celo-executor": null };
         for (const d of data) map[d.agentId] = d.reputationOnChain;
         setReputationOnChain(map);
       } catch { /* non-fatal */ }
@@ -195,14 +193,13 @@ export default function DashboardPage() {
     setLogs([]);
     setReport(null);
     counterRef.current = 0;
-    setAgentStatus({ scout: "idle", ledger: "idle", signal: "idle", scribe: "idle", executor: "idle" });
-    setAgentSpent({ scout: 0, ledger: 0, signal: 0, scribe: 0, executor: 0 });
-    setWallets({ scout: "", ledger: "", signal: "", scribe: "", executor: "" });
-    setReputation({ scout: 5000, ledger: 5000, signal: 5000, scribe: 5000, executor: 5000 });
-    setAgentTxHashes({ scout: [], ledger: [], signal: [], scribe: [], executor: [] });
-    setAgentPaymentModes({ scout: "", ledger: "", signal: "", scribe: "", executor: "" });
-    setAgentSigTxHashes({ scout: "", ledger: "", signal: "", scribe: "", executor: "" });
-    setDexSettleTxHash("");
+    setAgentStatus({ "celo-scout": "idle", "celo-ledger": "idle", "celo-signal": "idle", "celo-scribe": "idle", "celo-executor": "idle" });
+    setAgentSpent({ "celo-scout": 0, "celo-ledger": 0, "celo-signal": 0, "celo-scribe": 0, "celo-executor": 0 });
+    setWallets({ "celo-scout": "", "celo-ledger": "", "celo-signal": "", "celo-scribe": "", "celo-executor": "" });
+    setReputation({ "celo-scout": 5000, "celo-ledger": 5000, "celo-signal": 5000, "celo-scribe": 5000, "celo-executor": 5000 });
+    setAgentTxHashes({ "celo-scout": [], "celo-ledger": [], "celo-signal": [], "celo-scribe": [], "celo-executor": [] });
+    setAgentPaymentModes({ "celo-scout": "", "celo-ledger": "", "celo-signal": "", "celo-scribe": "", "celo-executor": "" });
+    setAgentSigTxHashes({ "celo-scout": "", "celo-ledger": "", "celo-signal": "", "celo-scribe": "", "celo-executor": "" });
     setTaskGraph(null);
     setGraphStatusMap({});
     setGraphConfidenceMap({});
@@ -213,7 +210,7 @@ export default function DashboardPage() {
       const res = await fetch("/api/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task, chain }),
+        body: JSON.stringify({ task, chain: "celo" }),
       });
 
       if (!res.ok || !res.body) throw new Error(`API ${res.status}`);
@@ -252,7 +249,6 @@ export default function DashboardPage() {
               if (p.txHashes && p.agent !== "validator") setAgentTxHashes(prev => ({ ...prev, [p.agent]: p.txHashes! }));
               if (p.paymentMode && p.agent !== "validator") setAgentPaymentModes(prev => ({ ...prev, [p.agent]: p.paymentMode! }));
               if (p.sigTxHash && p.agent !== "validator") setAgentSigTxHashes(prev => ({ ...prev, [p.agent]: p.sigTxHash! }));
-              if (p.agent === "executor" && (p as Record<string, unknown>).dexTxHash) setDexSettleTxHash((p as Record<string, unknown>).dexTxHash as string);
               // Update graph status
               const graphStatus: NodeStatus =
                 p.status === "complete" ? "complete" :
@@ -315,22 +311,6 @@ export default function DashboardPage() {
               disabled={running}
             />
             <button
-              className={`cmd-chain-pill${chain === "stellar" ? " active" : ""}`}
-              onClick={() => setChain("stellar")}
-              disabled={running}
-              title="Stellar pipeline"
-            >
-              STELLAR
-            </button>
-            <button
-              className={`cmd-chain-pill${chain === "celo" ? " active" : ""}`}
-              onClick={() => setChain("celo")}
-              disabled={running}
-              title="Celo pipeline"
-            >
-              CELO
-            </button>
-            <button
               className={`cmd-exec${running ? " is-running" : ""}`}
               onClick={runAegis}
               disabled={running || !task.trim()}
@@ -389,14 +369,13 @@ export default function DashboardPage() {
             <div className="mod-header">
               ON-CHAIN PROOF
               <span style={{ color: "#2a5a2a", fontSize: "0.6rem", marginLeft: "auto" }}>
-                SOROBAN · STELLAR TESTNET
+                CELO · MAINNET
               </span>
             </div>
             <OnChainProofPanel
               agentSigTxHashes={agentSigTxHashes}
-              dexSettleTxHash={dexSettleTxHash}
-              shieldContractId={process.env.NEXT_PUBLIC_SHIELD_CONTRACT_ID ?? "CDGVUNE47FXSG6KJATMZB3MFTE7UJFBMUKNFK7FWZRAHPG5BUGBFV2RS"}
-              registryContractId={process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ID ?? "CBQV3JXYZS7ABOTLCYZM6U4LUEF7PTIUXV76QAPHYAACERXHROVTT2YM"}
+              registryAddress={process.env.NEXT_PUBLIC_CELO_REGISTRY_ADDRESS ?? "0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C"}
+              policyAddress={process.env.NEXT_PUBLIC_CELO_POLICY_ADDRESS ?? "0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c"}
             />
           </div>
 
@@ -470,10 +449,10 @@ export default function DashboardPage() {
           TASK <span className="ftr-val">{taskSnippet}</span>
         </span>
         <span className="ftr-item">
-          CHAIN <span className="ftr-val">{chain.toUpperCase()}</span>
+          CHAIN <span className="ftr-val">CELO</span>
         </span>
         <span className="ftr-item">
-          TOTAL SPEND <span className="ftr-val">{stroopsToXlm(totalSpent)} XLM{totalTxCount > 0 ? ` · ${totalTxCount} TXS` : ""}</span>
+          TOTAL SPEND <span className="ftr-val">{formatCusd(totalSpent)} cUSD{totalTxCount > 0 ? ` · ${totalTxCount} TXS` : ""}</span>
         </span>
         <span className="ftr-item" style={{ marginLeft: "auto" }}>
           SESSION <span className="ftr-val">{sessionId}</span>

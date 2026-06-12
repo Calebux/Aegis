@@ -12,8 +12,8 @@ import type { AgentId } from "@aegis/shared";
 
 interface SerializedWalletBalance {
   agentId: AgentId;
-  spentStroops: string;
-  capStroops: string;
+  spentWei: string;
+  capWei: string;
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -47,10 +47,10 @@ export function SpendChart() {
       {balances.map((b) => {
         const pct = Math.min(
           100,
-          (Number(b.spentStroops) / Number(b.capStroops)) * 100
+          (Number(b.spentWei) / Number(b.capWei)) * 100
         );
-        const spentXlm = (Number(b.spentStroops) / 1e7).toFixed(4);
-        const capXlm = (Number(b.capStroops) / 1e7).toFixed(4);
+        const spentCusd = (Number(b.spentWei) / 1e18).toFixed(4);
+        const capCusd = (Number(b.capWei) / 1e18).toFixed(4);
 
         return (
           <div key={b.agentId}>
@@ -66,7 +66,7 @@ export function SpendChart() {
                 {b.agentId}
               </span>
               <span style={{ color: "var(--text-muted)" }}>
-                {spentXlm} / {capXlm} XLM ({pct.toFixed(1)}%)
+                {spentCusd} / {capCusd} cUSD ({pct.toFixed(1)}%)
               </span>
             </div>
             <div

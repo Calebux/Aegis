@@ -46,7 +46,7 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
       <div className="module receipt-page-title">
         <h1>Agent Registry</h1>
         <p>
-          Discoverable Aegis agent manifests for Stellar-native agent routing,
+          Discoverable Aegis agent manifests for Celo-native agent routing,
           x402 payments, policy checks, and MCP tooling.
         </p>
       </div>
@@ -59,9 +59,6 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
           <a href={filterHref()} style={filterStyle(!chain)}>
             All
-          </a>
-          <a href={filterHref("stellar")} style={filterStyle(chain === "stellar")}>
-            Stellar
           </a>
           <a href={filterHref("celo")} style={filterStyle(chain === "celo")}>
             Celo

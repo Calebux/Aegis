@@ -7,12 +7,6 @@ import {
 } from "@calebux/agent-kit";
 import { lastReputation, lastWallets } from "@/lib/taskStore";
 import {
-  AEGIS_AGENT_PRICE_USDC,
-  STELLAR_NETWORK_ID,
-  STELLAR_USDC_ISSUER,
-  paymentReceiver,
-} from "@/lib/stellarX402";
-import {
   AEGIS_CELO_AGENT_PRICE,
   CELO_CHAIN,
   CELO_NETWORK_ID,
@@ -20,52 +14,6 @@ import {
   CELO_STABLE_ASSET_CONTRACT,
   celoPaymentReceiver,
 } from "@/lib/celoX402";
-
-function stellarManifestAgent(
-  id: string,
-  name: string,
-  description: string,
-  capabilities: string[],
-  price: string
-): AgentDefinition {
-  return {
-    id,
-    spendCapXlm: 1,
-    manifest: {
-      name,
-      description,
-      chain: "stellar",
-      capabilities,
-      endpoint: {
-        url: `/api/agents/${id}/run`,
-        protocol: "http",
-      },
-      payments: [
-        {
-          protocol: "x402",
-          chain: "stellar",
-          network: STELLAR_NETWORK_ID,
-          asset: "USDC",
-          price: `${price} USDC`,
-          payTo: paymentReceiver(),
-        },
-      ],
-      policies: {
-        allowedAssets: ["USDC"],
-        minCounterpartyReputation: 5000,
-      },
-      metadata: {
-        paymentScheme: "x402.exact",
-        chain: "stellar",
-        settlementNetwork: STELLAR_NETWORK_ID,
-        settlementAsset: "USDC",
-        settlementIssuer: STELLAR_USDC_ISSUER,
-        receiptVersion: "aegis.receipt.v1",
-      },
-    },
-    run: async () => ({ result: "" }),
-  };
-}
 
 function celoManifestAgent(
   id: string,
@@ -113,40 +61,12 @@ function celoManifestAgent(
 }
 
 const AGENT_DEFINITIONS: AgentDefinition[] = [
-  stellarManifestAgent(
-    "scout",
-    "Scout",
-    "Web research agent for paid search and source discovery.",
-    ["research", "web-search", "source-discovery"],
-    AEGIS_AGENT_PRICE_USDC
-  ),
-  stellarManifestAgent(
-    "ledger",
-    "Ledger",
-    "Stellar network and account intelligence agent.",
-    ["stellar", "onchain-data", "horizon"],
-    AEGIS_AGENT_PRICE_USDC
-  ),
-  stellarManifestAgent(
-    "signal",
-    "Signal",
-    "Market intelligence and cross-source analysis agent.",
-    ["market-intelligence", "analytics", "risk"],
-    AEGIS_AGENT_PRICE_USDC
-  ),
-  stellarManifestAgent(
-    "scribe",
-    "Scribe",
-    "Report synthesis agent that turns consensus outputs into final reports.",
-    ["synthesis", "reporting", "summarization"],
-    AEGIS_AGENT_PRICE_USDC
-  ),
-  stellarManifestAgent(
-    "executor",
-    "Notary",
-    "Verifiable action and consensus proof agent.",
-    ["attestation", "execution", "proof"],
-    AEGIS_AGENT_PRICE_USDC
+  celoManifestAgent(
+    "celo-scout",
+    "Celo Scout",
+    "Web research agent for paid search and source discovery on Celo.",
+    ["research", "web-search", "source-discovery", "celo"],
+    AEGIS_CELO_AGENT_PRICE
   ),
   celoManifestAgent(
     "celo-ledger",
@@ -156,9 +76,23 @@ const AGENT_DEFINITIONS: AgentDefinition[] = [
     AEGIS_CELO_AGENT_PRICE
   ),
   celoManifestAgent(
-    "celo-notary",
+    "celo-signal",
+    "Celo Signal",
+    "Market intelligence and cross-source analysis agent for Celo.",
+    ["celo", "market-intelligence", "analytics", "risk"],
+    AEGIS_CELO_AGENT_PRICE
+  ),
+  celoManifestAgent(
+    "celo-scribe",
+    "Celo Scribe",
+    "Report synthesis agent that turns consensus outputs into final Celo reports.",
+    ["celo", "synthesis", "reporting", "summarization"],
+    AEGIS_CELO_AGENT_PRICE
+  ),
+  celoManifestAgent(
+    "celo-executor",
     "Celo Notary",
-    "Verifiable Celo action and manifest attestation agent.",
+    "Verifiable Celo action and consensus proof agent.",
     ["celo", "attestation", "execution", "proof"],
     AEGIS_CELO_AGENT_PRICE
   ),
@@ -180,16 +114,10 @@ const AGENT_DEFINITIONS: AgentDefinition[] = [
 
 export function buildAgentManifests(): AgentManifest[] {
   return AGENT_DEFINITIONS.map((agent) => {
-    const isCeloAgent = agent.manifest?.chain === CELO_CHAIN;
-
     return createAgentManifest(agent, {
       walletAddress: lastWallets.get(agent.id),
-      registryContractId: isCeloAgent
-        ? process.env.CELO_REGISTRY_ADDRESS
-        : process.env.REGISTRY_CONTRACT_ID,
-      shieldContractId: isCeloAgent
-        ? process.env.CELO_POLICY_ADDRESS
-        : process.env.SHIELD_CONTRACT_ID,
+      registryContractId: process.env.CELO_REGISTRY_ADDRESS,
+      shieldContractId: process.env.CELO_POLICY_ADDRESS,
     });
   });
 }

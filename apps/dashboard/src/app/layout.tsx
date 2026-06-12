@@ -5,37 +5,36 @@ import { WalletStrip } from "@/components/WalletStrip";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const metadata: Metadata = {
-  title: "Aegis - Stellar Agent Infrastructure",
+  title: "Aegis - Celo Agent Infrastructure",
   description:
-    "Agent execution and trust infrastructure for Stellar: x402 payments, MPP-ready agent discovery, Soroban policy controls, on-chain reputation, and MCP tooling.",
+    "Agent execution and trust infrastructure for Celo: x402 payments, agent discovery, EVM policy controls, on-chain reputation, and MCP tooling.",
   keywords: [
-    "Stellar agents",
-    "Stellar agent infrastructure",
-    "Soroban agents",
-    "x402 Stellar",
-    "MPP payments",
-    "MCP Stellar",
+    "Celo agents",
+    "Celo agent infrastructure",
+    "x402 Celo",
     "AI agent payments",
     "on-chain reputation",
     "agent wallet policy",
     "verifiable agent execution",
+    "cUSD",
+    "MCP agents",
   ],
   applicationName: "Aegis",
   authors: [{ name: "Aegis" }],
   creator: "Aegis",
   publisher: "Aegis",
   openGraph: {
-    title: "Aegis - Stellar Agent Infrastructure",
+    title: "Aegis - Celo Agent Infrastructure",
     description:
-      "Build governed AI agents on Stellar with x402 payments, Soroban spend policies, on-chain reputation, agent discovery, and MCP tools.",
+      "Build governed AI agents on Celo with x402 payments, EVM spend policies, on-chain reputation, agent discovery, and MCP tools.",
     siteName: "Aegis",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "Aegis - Stellar Agent Infrastructure",
+    title: "Aegis - Celo Agent Infrastructure",
     description:
-      "Governed AI agent infrastructure for Stellar: wallets, policy, x402 payments, reputation, discovery, and MCP.",
+      "Governed AI agent infrastructure for Celo: wallets, policy, x402 payments, reputation, discovery, and MCP.",
   },
 };
 
@@ -55,7 +54,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <span className="sys-dot" />
               SYS.OK
             </span>
-            <span>Stellar · Testnet</span>
+            <span>Celo · Mainnet</span>
             <span className="hdr-divider" />
             <ThemeToggle />
           </div>

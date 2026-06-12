@@ -7,8 +7,8 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-function xlm(stroops: number): string {
-  return `${(stroops / 1e7).toFixed(4)} XLM`;
+function cusd(wei: number): string {
+  return `${(wei / 1e18).toFixed(4)} cUSD`;
 }
 
 function Row({ label, value }: { label: string; value: string | number | undefined }) {
@@ -36,7 +36,7 @@ export default async function ReceiptPage({ params }: PageProps) {
         <h1>Run Receipt</h1>
         <p>
           Verifiable Aegis agent execution receipt with task/output hashes,
-          Stellar payment traces, policy contracts, and signature status.
+          Celo payment traces, policy contracts, and signature status.
         </p>
       </div>
 
@@ -62,7 +62,7 @@ export default async function ReceiptPage({ params }: PageProps) {
             <Row label="Task Hash" value={receipt.taskHash} />
             <Row label="Output Hash" value={receipt.outputHash} />
             <Row label="Receipt Hash" value={receipt.receiptHash} />
-            <Row label="Total Spend" value={xlm(receipt.totalSpentStroops)} />
+            <Row label="Total Spend" value={cusd(receipt.totalSpentStroops)} />
             <Row label="Network" value={receipt.policy.network} />
             <Row label="Shield Contract" value={receipt.policy.shieldContractId} />
             <Row label="Registry Contract" value={receipt.policy.registryContractId} />
@@ -89,7 +89,7 @@ export default async function ReceiptPage({ params }: PageProps) {
               <tr key={agent.agentId}>
                 <td>{agent.agentId}</td>
                 <td>{agent.walletAddress || "-"}</td>
-                <td>{xlm(agent.spentStroops)}</td>
+                <td>{cusd(agent.spentStroops)}</td>
                 <td>{agent.reputation}</td>
                 <td>{agent.txHashes.length}</td>
               </tr>

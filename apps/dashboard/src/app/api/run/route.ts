@@ -14,7 +14,7 @@
 
 import { NextRequest } from "next/server";
 import { EventEmitter } from "events";
-import { runTask, runCeloTask } from "@aegis/orchestrator";
+import { runCeloTask } from "@aegis/orchestrator";
 import { Keypair } from "@stellar/stellar-sdk";
 import {
   createRunReceipt,
@@ -56,71 +56,41 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const chain = (body?.chain ?? "stellar").toLowerCase();
-
   const taskId = crypto.randomUUID();
   const emitter = new EventEmitter();
   emitter.setMaxListeners(20);
 
-  const isCeloChain = chain === "celo";
   const task: Task = {
     id: taskId,
     prompt,
     status: "running",
-    chain: isCeloChain ? "celo" : "stellar",
-    subTasks: isCeloChain
-      ? [
-          {
-            id: crypto.randomUUID(),
-            assignedAgent: "celo-scout",
-            instruction: `Search the web for: ${prompt}`,
-            status: "pending",
-          },
-          {
-            id: crypto.randomUUID(),
-            assignedAgent: "celo-ledger",
-            instruction: `Fetch relevant Celo on-chain metrics for: ${prompt}`,
-            status: "pending",
-          },
-          {
-            id: crypto.randomUUID(),
-            assignedAgent: "celo-signal",
-            instruction: `Identify Celo market signals for: ${prompt}`,
-            status: "pending",
-          },
-          {
-            id: crypto.randomUUID(),
-            assignedAgent: "celo-scribe",
-            instruction: `Synthesize all Celo findings into a report for: ${prompt}`,
-            status: "pending",
-          },
-        ]
-      : [
-          {
-            id: crypto.randomUUID(),
-            assignedAgent: "scout",
-            instruction: `Search the web for: ${prompt}`,
-            status: "pending",
-          },
-          {
-            id: crypto.randomUUID(),
-            assignedAgent: "ledger",
-            instruction: `Fetch relevant Stellar on-chain metrics for: ${prompt}`,
-            status: "pending",
-          },
-          {
-            id: crypto.randomUUID(),
-            assignedAgent: "signal",
-            instruction: `Identify market signals for: ${prompt}`,
-            status: "pending",
-          },
-          {
-            id: crypto.randomUUID(),
-            assignedAgent: "scribe",
-            instruction: `Synthesize all findings into a report for: ${prompt}`,
-            status: "pending",
-          },
-        ],
+    chain: "celo",
+    subTasks: [
+      {
+        id: crypto.randomUUID(),
+        assignedAgent: "celo-scout",
+        instruction: `Search the web for: ${prompt}`,
+        status: "pending",
+      },
+      {
+        id: crypto.randomUUID(),
+        assignedAgent: "celo-ledger",
+        instruction: `Fetch relevant Celo on-chain metrics for: ${prompt}`,
+        status: "pending",
+      },
+      {
+        id: crypto.randomUUID(),
+        assignedAgent: "celo-signal",
+        instruction: `Identify Celo market signals for: ${prompt}`,
+        status: "pending",
+      },
+      {
+        id: crypto.randomUUID(),
+        assignedAgent: "celo-scribe",
+        instruction: `Synthesize all Celo findings into a report for: ${prompt}`,
+        status: "pending",
+      },
+    ],
     createdAt: new Date(),
   };
 
@@ -153,9 +123,8 @@ export async function POST(req: NextRequest) {
     }
   );
 
-  // Fire-and-forget: run the orchestrator pipeline (Stellar or Celo)
-  const pipelineFn = chain === "celo" ? runCeloTask : runTask;
-  void pipelineFn(prompt, emitter)
+  // Fire-and-forget: run the Celo orchestrator pipeline
+  void runCeloTask(prompt, emitter)
     .then((report) => {
       const t = tasks.get(taskId);
       if (t) {
@@ -216,11 +185,9 @@ export async function POST(req: NextRequest) {
         taskId,
         createdAt: task.createdAt.toISOString(),
         completedAt: payload.timestamp ?? new Date().toISOString(),
-        shieldContractId: isCeloChain ? process.env.CELO_POLICY_ADDRESS : process.env.SHIELD_CONTRACT_ID,
-        registryContractId: isCeloChain ? process.env.CELO_REGISTRY_ADDRESS : process.env.REGISTRY_CONTRACT_ID,
-        network: isCeloChain
-          ? `eip155:${process.env.AEGIS_CELO_NETWORK === "mainnet" ? "42220" : "44787"}`
-          : `stellar:${process.env.STELLAR_NETWORK ?? "testnet"}`,
+        shieldContractId: process.env.CELO_POLICY_ADDRESS,
+        registryContractId: process.env.CELO_REGISTRY_ADDRESS,
+        network: `eip155:${process.env.AEGIS_CELO_NETWORK === "mainnet" ? "42220" : "44787"}`,
 
       });
 
