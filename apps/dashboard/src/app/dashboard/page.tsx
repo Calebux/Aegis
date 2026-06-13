@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useId } from "react";
+import { LLMConfig, type LLMConfigValue } from "@/components/LLMConfig";
 import { AgentCard, type AgentStatus } from "@/components/AgentCard";
 import { TaskFeed } from "@/components/TaskFeed";
 import { TaskGraphView, type TaskGraph, type AgentType as GraphAgentType, type NodeStatus } from "../TaskGraph";
@@ -156,6 +157,7 @@ export default function DashboardPage() {
   const [receiptVerification, setReceiptVerification] = useState<RunReceiptVerification | undefined>();
   const [agentStartedAt, setAgentStartedAt] = useState<Record<string, number>>({});
   const [agentCompletedAt, setAgentCompletedAt] = useState<Record<string, number>>({});
+  const [llmConfig, setLlmConfig] = useState<LLMConfigValue>({ provider: "anthropic" });
 
   const logEndRef   = useRef<HTMLDivElement>(null);
   const counterRef  = useRef(0);
@@ -217,7 +219,11 @@ export default function DashboardPage() {
       const res = await fetch("/api/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task, chain: "celo" }),
+        body: JSON.stringify({
+          task,
+          chain: "celo",
+          ...(llmConfig.provider !== "anthropic" ? { llm: llmConfig } : {}),
+        }),
       });
 
       if (!res.ok || !res.body) throw new Error(`API ${res.status}`);
@@ -310,6 +316,9 @@ export default function DashboardPage() {
       <div className="dashboard-layout">
         {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
         <div className="d-left">
+          {/* LLM config */}
+          <LLMConfig disabled={running} onChange={setLlmConfig} />
+
           {/* CMD module */}
           <div className="module cmd-module">
             <span className="cmd-prefix">
@@ -509,7 +518,7 @@ export default function DashboardPage() {
           CHAIN <span className="ftr-val">CELO</span>
         </span>
         <span className="ftr-item">
-          TOTAL SPEND <span className="ftr-val">{formatCusd(totalSpent)} cUSD{totalTxCount > 0 ? ` · ${totalTxCount} TXS` : ""}</span>
+          TOTAL SPEND <span className="ftr-val">{formatCusd(totalSpent)} USDm{totalTxCount > 0 ? ` · ${totalTxCount} TXS` : ""}</span>
         </span>
         <span className="ftr-item" style={{ marginLeft: "auto" }}>
           SESSION <span className="ftr-val">{sessionId}</span>

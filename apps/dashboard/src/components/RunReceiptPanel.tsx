@@ -51,7 +51,7 @@ export function RunReceiptPanel({ receipt, verification }: Props) {
         </div>
         <div className="receipt-item">
           <span>Spend</span>
-          <code>{formatCusd(receipt.totalSpentStroops)} cUSD</code>
+          <code>{formatCusd(receipt.totalSpentStroops)} USDm</code>
         </div>
         <div className="receipt-item">
           <span>Signer</span>

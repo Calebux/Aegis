@@ -5,7 +5,7 @@ function shortHash(value: string): string {
 }
 
 function cusd(wei: number): string {
-  return `${(wei / 1e18).toFixed(4)} cUSD`;
+  return `${(wei / 1e18).toFixed(4)} USDm`;
 }
 
 export default function ReceiptsPage() {

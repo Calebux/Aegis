@@ -66,7 +66,7 @@ export function SpendChart() {
                 {b.agentId}
               </span>
               <span style={{ color: "var(--text-muted)" }}>
-                {spentCusd} / {capCusd} cUSD ({pct.toFixed(1)}%)
+                {spentCusd} / {capCusd} USDm ({pct.toFixed(1)}%)
               </span>
             </div>
             <div

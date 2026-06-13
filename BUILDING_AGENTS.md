@@ -272,7 +272,7 @@ AegisCeloRegistry / AegisCeloPolicy contracts deployed on Celo mainnet.
 npm install @calebux/agent-kit viem
 ```
 
-### Celo agent with cUSD x402 payments
+### Celo agent with USDm x402 payments
 
 ```ts
 import { payAndFetchCelo, celoAgentToAgentPayment } from '@calebux/agent-kit'
@@ -283,7 +283,7 @@ const account = privateKeyToAccount(
   (process.env.MY_AGENT_PRIVATE_KEY as `0x${string}`) ?? generatePrivateKey()
 )
 
-// Pay a cUSD-gated API and get JSON back
+// Pay a USDm-gated API and get JSON back
 // Returns the JSON directly if CALAGENT_CELO_X402_RECEIVER is unset (dev mode)
 const data = await payAndFetchCelo<{ rate: number }>(
   'http://localhost:3002/market-data',
@@ -291,7 +291,7 @@ const data = await payAndFetchCelo<{ rate: number }>(
   []            // txHashes accumulator — appended to in place
 )
 
-// Agent-to-agent cUSD settlement (fire-and-forget)
+// Agent-to-agent USDm settlement (fire-and-forget)
 await celoAgentToAgentPayment(account, '0xRecipientAddress', '0.001')
 ```
 
@@ -321,8 +321,8 @@ const policy = new CeloPolicyManager(
   process.env.CELO_POLICY_ADDRESS!,
   process.env.CELO_DEPLOYER_PRIVATE_KEY!
 )
-await policy.setPolicy('my-agent', BigInt('1000000000000000000'), ['cUSD'])
-const allowed = await policy.authorizeSpend('my-agent', BigInt('100000'), 'cUSD')
+await policy.setPolicy('my-agent', BigInt('1000000000000000000'), ['USDm'])
+const allowed = await policy.authorizeSpend('my-agent', BigInt('100000'), 'USDm')
 ```
 
 ### Environment variables (Celo)
@@ -334,7 +334,7 @@ const allowed = await policy.authorizeSpend('my-agent', BigInt('100000'), 'cUSD'
 | `CELO_REGISTRY_ADDRESS` | `0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C` (mainnet) |
 | `CELO_POLICY_ADDRESS` | `0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c` (mainnet) |
 | `CELO_DEPLOYER_PRIVATE_KEY` | EVM key for on-chain registry writes |
-| `CALAGENT_CELO_X402_RECEIVER` | Celo address receiving cUSD x402 payments (unset = dev mode) |
+| `CALAGENT_CELO_X402_RECEIVER` | Celo address receiving USDm x402 payments (unset = dev mode) |
 | `CALAGENT_CELO_X402_FACILITATOR_URL` | Celo x402 facilitator URL (enables enforcement) |
 
 ---

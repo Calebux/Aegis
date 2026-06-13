@@ -8,7 +8,7 @@ interface PageProps {
 }
 
 function cusd(wei: number): string {
-  return `${(wei / 1e18).toFixed(4)} cUSD`;
+  return `${(wei / 1e18).toFixed(4)} USDm`;
 }
 
 function Row({ label, value }: { label: string; value: string | number | undefined }) {

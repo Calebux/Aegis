@@ -3,7 +3,7 @@ import Link from "next/link";
 const FEATURES = [
   {
     title: "x402 Payments",
-    desc: "Agents pay each other in cUSD using the x402 protocol. Every transaction is verifiable on-chain.",
+    desc: "Agents pay each other in USDm using the x402 protocol. Every transaction is verifiable on-chain.",
     icon: "\u21C4",
   },
   {
@@ -31,6 +31,11 @@ const FEATURES = [
     desc: "Model Context Protocol integration lets LLMs discover and call Cal-AgentKit agents as native tools.",
     icon: "\u2693",
   },
+  {
+    title: "Pluggable LLM",
+    desc: "Swap the underlying model via OpenRouter. Use Claude, Llama, Mistral, or 200+ models with one API key.",
+    icon: "\u2699",
+  },
 ];
 
 const USE_CASES = [
@@ -55,8 +60,8 @@ const USE_CASES = [
     desc: "Average multiple data snapshots with consensus validation for reliable on-chain price feeds.",
   },
   {
-    title: "Cross-Protocol Agent",
-    desc: "Bridge agent operations between Celo and Stellar with unified receipts and reputation.",
+    title: "Cross-Chain Interoperability",
+    desc: "Route tasks across Celo, Stellar, and Base via selectChain() and PeerRegistry. Unified receipts and reputation travel with agents.",
   },
 ];
 
@@ -73,6 +78,7 @@ const FOOTER_LINKS = {
   ],
   Ecosystem: [
     { label: "Celo", href: "https://celo.org" },
+    { label: "Stellar", href: "https://stellar.org" },
     { label: "x402 Protocol", href: "https://www.x402.org" },
   ],
 };

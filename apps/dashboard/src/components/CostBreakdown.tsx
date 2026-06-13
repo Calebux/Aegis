@@ -18,7 +18,7 @@ export function CostBreakdown({ spent, agents }: CostBreakdownProps) {
       <div className="mod-header">
         COST BREAKDOWN
         <span style={{ marginLeft: "auto", color: "var(--text-mid)", fontFamily: "var(--font-mono)" }}>
-          {(total / 1e18).toFixed(4)} cUSD
+          {(total / 1e18).toFixed(4)} USDm
         </span>
       </div>
       <div style={{ padding: "1rem" }}>

@@ -38,7 +38,7 @@ export interface AgentCardProps {
   capability: string;
   status: AgentStatus;
   wallet: string;
-  spent: number;          // wei (cUSD)
+  spent: number;          // wei (USDm)
   reputation: number;     // basis points 0–10 000
   reputationOnChain?: number | null;
   color: string;
@@ -206,7 +206,7 @@ export function AgentCard({
           textTransform: "uppercase" as const,
         }}>
           {spentCusd}{" "}
-          <span style={{ color: "#b0b0b8" }}>cUSD</span>
+          <span style={{ color: "#b0b0b8" }}>USDm</span>
         </span>
       </div>
 

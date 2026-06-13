@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * WalletCard — displays cUSD balance and spend info for a single agent.
+ * WalletCard — displays USDm balance and spend info for a single agent.
  */
 
 import useSWR from "swr";
@@ -53,13 +53,13 @@ export function WalletCard({ agentId }: Props) {
         </span>
       </div>
       <div style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "0.5rem" }}>
-        {balance ? `${parseFloat(balance.balance).toFixed(2)} cUSD` : "—"}
+        {balance ? `${parseFloat(balance.balance).toFixed(2)} USDm` : "—"}
       </div>
       {/* Spend bar */}
       <div style={{ marginBottom: "0.25rem", fontSize: "0.75rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
         <span>Spent</span>
         <span>
-          {balance ? `${weiToCusd(balance.spentWei)} / ${weiToCusd(balance.capWei)} cUSD` : "—"}
+          {balance ? `${weiToCusd(balance.spentWei)} / ${weiToCusd(balance.capWei)} USDm` : "—"}
         </span>
       </div>
       <div style={{ height: "4px", borderRadius: "2px", background: "var(--border)", overflow: "hidden" }}>

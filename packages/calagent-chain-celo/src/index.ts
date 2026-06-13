@@ -12,7 +12,9 @@ import { celo, celoAlfajores } from "viem/chains";
 export const CELO_CHAIN = "celo";
 export const CELO_MAINNET_NETWORK = "eip155:42220";
 export const CELO_ALFAJORES_NETWORK = "eip155:44787";
+/** USDm (formerly cUSD) on Celo mainnet */
 export const CELO_MAINNET_CUSD = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
+/** USDm (formerly cUSD) on Celo Alfajores testnet */
 export const CELO_ALFAJORES_CUSD = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1";
 
 export const CALAGENT_CELO_REGISTRY_ABI = [
@@ -90,7 +92,7 @@ export function createCeloAgentManifest(
   options: CeloAgentManifestOptions
 ): Partial<AgentManifest> {
   const network = options.network ?? CELO_ALFAJORES_NETWORK;
-  const asset = options.asset ?? "cUSD";
+  const asset = options.asset ?? "USDm";
 
   return {
     id: options.id,

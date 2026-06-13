@@ -11,7 +11,7 @@ mainnet.
 
 ## Core Use Cases
 
-- Build AI agents that can pay for APIs with Stellar XLM/USDC or Celo cUSD payments.
+- Build AI agents that can pay for APIs with Stellar XLM/USDC or Celo USDm payments.
 - Enforce agent spend limits and execution policies with Soroban contracts (Stellar)
   or AegisCeloPolicy (Celo EVM).
 - Discover trusted agents by capability, asset, payment protocol, network, and
@@ -38,7 +38,7 @@ mainnet.
 ## Packages
 
 - `@calebux/agent-kit`: governed agent SDK — Stellar wallets, x402 payments,
-  Soroban contracts, Celo cUSD payments, manifests, discovery, and run receipts.
+  Soroban contracts, Celo USDm payments, manifests, discovery, and run receipts.
 - `@calebux/aegis-chain-celo`: Celo EVM adapter — viem clients, AegisCeloRegistry
   ABI, CeloIdentityRegistry, CeloPolicyManager, manifest helpers.
 - `aegis-mcp-stellar`: MCP server (8 tools) for discovering and calling Aegis

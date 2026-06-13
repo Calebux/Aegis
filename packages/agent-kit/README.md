@@ -1,6 +1,6 @@
 # @calebux/agent-kit
 
-**Governed multi-agent orchestration on Stellar and Celo.**
+**Governed multi-agent orchestration on Celo and Stellar.**
 
 Build AI agents that pay for data, enforce on-chain spend limits, earn verifiable reputation, and produce cryptographically signed run receipts — without writing any infrastructure code.
 
@@ -12,19 +12,68 @@ npm install @calebux/agent-kit
 
 ## What it does
 
-| Feature | Stellar | Celo |
+| Feature | Celo | Stellar |
 |---|---|---|
-| **Wallet provisioning** | Fresh Stellar keypair, auto-funded via Friendbot on testnet | viem Account from private key or random |
-| **On-chain spend caps** | Soroban Shield Contract | AegisCeloPolicy contract |
-| **x402 payments** | `payAndFetch()` — probe → pay XLM → retry | `payAndFetchCelo()` — probe → pay cUSD → retry |
-| **Verifiable reputation** | Soroban Identity Registry | AegisCeloRegistry on Celo mainnet |
-| **Agent-to-agent payments** | XLM with on-chain memos | cUSD ERC-20 transfers |
+| **Wallet provisioning** | viem Account from private key or random | Fresh Stellar keypair, auto-funded via Friendbot on testnet |
+| **On-chain spend caps** | AegisCeloPolicy contract | Soroban Shield Contract |
+| **x402 payments** | `payAndFetchCelo()` — probe → pay USDm → retry | `payAndFetch()` — probe → pay XLM → retry |
+| **Verifiable reputation** | AegisCeloRegistry on Celo mainnet | Soroban Identity Registry |
+| **Agent-to-agent payments** | USDm ERC-20 transfers | XLM with on-chain memos |
 | **Run receipts** | SHA-256 hashed, Ed25519 signed | SHA-256 hashed, Ed25519 signed |
-| **Agent manifests** | Capabilities, endpoints, payment terms, policies | Same shape, `chain: "celo"` |
+| **Agent manifests** | Same shape, `chain: "celo"` | Capabilities, endpoints, payment terms, policies |
 
 ---
 
-## Quick start (Stellar)
+## Quick start (Celo)
+
+```ts
+import {
+  CeloIdentityRegistry,
+  CeloPolicyManager,
+  payAndFetchCelo,
+  submitCusdPayment,
+  celoAgentToAgentPayment,
+} from '@calebux/agent-kit'
+
+// Registry — agent identity and reputation on Celo mainnet
+const registry = new CeloIdentityRegistry(
+  '0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C',
+  process.env.CELO_DEPLOYER_PRIVATE_KEY!,
+  'https://forno.celo.org',
+  'mainnet'
+)
+
+await registry.registerAgent('my-agent', 'My Agent', 'research')
+await registry.setManifestHash('my-agent', manifestHash)
+await registry.recordSuccess('my-agent')
+const rep = await registry.getReputation('my-agent') // number | null
+
+// Policy — per-agent spend caps and session management on Celo
+const policy = new CeloPolicyManager(
+  '0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c',
+  process.env.CELO_DEPLOYER_PRIVATE_KEY!,
+  'https://forno.celo.org',
+  'mainnet'
+)
+
+await policy.setSpendCap('my-agent', 1000000n) // in USDm base units
+await policy.authorizeSpend('my-agent', 50000n)
+
+// x402 payment helper for Celo (probe → pay USDm → retry)
+const result = await payAndFetchCelo('https://api.example.com/data', account, txHashes)
+
+// Direct USDm transfer
+const txHash = await submitCusdPayment(account, '0xDEST...', '0.5')
+
+// Agent-to-agent USDm payment
+const hash = await celoAgentToAgentPayment(fromAccount, toAddress, '0.001')
+```
+
+---
+
+## Stellar support
+
+Full Stellar/Soroban support with x402 payments in XLM:
 
 ```ts
 import { defineAgent, createOrchestrator } from '@calebux/agent-kit'
@@ -55,55 +104,6 @@ const { run } = createOrchestrator([researcher], {
 })
 
 const report = await run('What is the current XLM price?')
-```
-
----
-
-## Celo support
-
-v0.2.0 adds full Celo/EVM support alongside Stellar:
-
-```ts
-import {
-  CeloIdentityRegistry,
-  CeloPolicyManager,
-  payAndFetchCelo,
-  submitCusdPayment,
-  celoAgentToAgentPayment,
-} from '@calebux/agent-kit'
-
-// Registry — agent identity and reputation on Celo
-const registry = new CeloIdentityRegistry(
-  '0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C',
-  process.env.CELO_DEPLOYER_PRIVATE_KEY!,
-  'https://forno.celo.org',
-  'mainnet'
-)
-
-await registry.registerAgent('my-agent', 'My Agent', 'research')
-await registry.setManifestHash('my-agent', manifestHash)
-await registry.recordSuccess('my-agent')
-const rep = await registry.getReputation('my-agent') // number | null
-
-// Policy — per-agent spend caps and session management on Celo
-const policy = new CeloPolicyManager(
-  '0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c',
-  process.env.CELO_DEPLOYER_PRIVATE_KEY!,
-  'https://forno.celo.org',
-  'mainnet'
-)
-
-await policy.setSpendCap('my-agent', 1000000n) // in cUSD base units
-await policy.authorizeSpend('my-agent', 50000n)
-
-// x402 payment helper for Celo (probe → pay cUSD → retry)
-const result = await payAndFetchCelo('https://api.example.com/data', account, txHashes)
-
-// Direct cUSD transfer
-const txHash = await submitCusdPayment(account, '0xDEST...', '0.5')
-
-// Agent-to-agent cUSD payment
-const hash = await celoAgentToAgentPayment(fromAccount, toAddress, '0.001')
 ```
 
 ---
@@ -166,7 +166,7 @@ const hash = computeAgentManifestHash(manifest)
 const matches = discoverAgents(manifests, {
   capability: 'web-search',
   protocol: 'x402',
-  asset: 'cUSD',
+  asset: 'USDm',
   network: 'eip155:42220',
   minReputation: 5000,
 }, reputationMap)
@@ -222,6 +222,49 @@ const registry = new IdentityRegistry(process.env.REGISTRY_CONTRACT_ID!, rpc, ad
 await registry.registerAgent('my-agent', 'My Agent', 'research')
 await registry.recordSuccess('my-agent', agentKeypair)
 const score = await registry.getReputation('my-agent')
+```
+
+---
+
+## Automation
+
+Schedule recurring agent tasks with `createAutomation()`:
+
+```ts
+import { createAutomation } from '@calebux/agent-kit'
+
+const automation = createAutomation({
+  agent: 'celo-defi',
+  task: 'Get Mento exchange rates',
+  schedule: '*/15 * * * *',  // every 15 minutes
+  chain: 'celo',
+  onResult: (receipt) => console.log('Rate:', receipt.output),
+})
+
+automation.start()
+```
+
+---
+
+## Interoperability
+
+Cal-AgentKit is chain-agnostic. The same agent definitions, manifests, and receipts work across every supported chain — and across independently deployed instances.
+
+```ts
+import { selectChain, PeerRegistry, routeToPeer } from '@calebux/agent-kit'
+
+// Route payments to any supported chain
+const chain = selectChain('celo')   // or 'stellar', 'base'
+await chain.pay(destination, amount)
+
+// Discover and delegate to peer instances
+const peers = new PeerRegistry()
+peers.add('https://partner.example.com', { trust: 'verified' })
+
+const result = await routeToPeer(peers, {
+  capability: 'celo-defi',
+  task: 'Get Mento exchange rates',
+})
 ```
 
 ---

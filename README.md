@@ -29,7 +29,7 @@ Cal-AgentKit deploys a full agent infrastructure on Celo: identity registry, pol
 |---|---|---|
 | **celo-ledger** | `celo`, `onchain-data`, `stablecoins`, `rpc` | Live Celo RPC reads — block height, gas price, chain ID |
 | **celo-notary** | `celo`, `attestation`, `execution`, `proof` | On-chain attestation writes to AegisCeloRegistry |
-| **celo-defi** | `celo`, `defi`, `stablecoins`, `mento`, `oracles` | Mento SortedOracles: live cUSD/cEUR/cREAL exchange rates |
+| **celo-defi** | `celo`, `defi`, `stablecoins`, `mento`, `oracles` | Mento SortedOracles: live USDm/cEUR/cREAL exchange rates |
 | **celo-price** | `celo`, `price`, `market-data` | CELO token price via CoinGecko in a verifiable receipt |
 
 ### Celo Pipeline
@@ -55,7 +55,7 @@ curl -X POST http://localhost:3000/api/run \
 
 ### Celo x402 Payments
 
-Agents are gated behind x402 with **cUSD** as the settlement asset:
+Agents are gated behind x402 with **USDm** (Mento USD) as the settlement asset:
 
 ```bash
 # Discover Celo agents
@@ -99,7 +99,7 @@ const rep = await registry.getReputation('my-agent')
 | `CELO_REGISTRY_ADDRESS` | AegisCeloRegistry address |
 | `CELO_POLICY_ADDRESS` | AegisCeloPolicy address |
 | `CELO_DEPLOYER_PRIVATE_KEY` | Admin key for registry/policy writes |
-| `CALAGENT_CELO_X402_RECEIVER` | Celo address receiving x402 cUSD payments |
+| `CALAGENT_CELO_X402_RECEIVER` | Celo address receiving x402 USDm payments |
 | `CALAGENT_CELO_X402_FACILITATOR_URL` | Celo/EVM x402 facilitator |
 
 ### Celo Contracts (Foundry)
@@ -167,13 +167,65 @@ Agent-to-agent payments: Scribe pays Scout 0.001 XLM per synthesis (`calagent:sc
 
 ## What Makes Cal-AgentKit Different
 
-1. **Multi-chain from day one** — same agent architecture on Celo (EVM/cUSD) and Stellar (Soroban/XLM)
+1. **Multi-chain from day one** — same agent architecture on Celo (EVM/USDm) and Stellar (Soroban/XLM)
 2. **Full-stack x402** — simultaneously an x402 provider and consumer on both chains
 3. **On-chain spend governance** — Shield Contract (Stellar) and AegisCeloPolicy (Celo) enforce caps before transactions hit the network
 4. **Agent-to-agent payments** — agents have financial relationships with each other, settled on-chain
 5. **Live reputation** — Identity Registry increments scores on-chain after every task
 6. **Verifiable run receipts** — every run produces `calagent.receipt.v1` with task/output hashes, payment txs, Ed25519 signature
 7. **Discoverable manifests** — agents declare capabilities, endpoints, payment terms via portable SDK manifests
+8. **Cross-chain federation** — `PeerRegistry` + `routeToPeer()` let independent Cal-AgentKit instances discover and delegate tasks across chains and organizations
+
+---
+
+## Interoperable by Design
+
+Cal-AgentKit is chain-agnostic infrastructure. The same agent definitions, manifests, receipts, and orchestration logic work across every supported chain — and across independently deployed instances.
+
+### Multi-chain settlement
+
+`selectChain()` routes agent payments to the right network at runtime:
+
+```ts
+import { selectChain } from '@calebux/agent-kit'
+
+const chain = selectChain('celo')   // or 'stellar', 'base'
+await chain.pay(destination, amount)
+await chain.attest(outputHash)
+```
+
+### Cross-instance federation
+
+`PeerRegistry` lets Cal-AgentKit instances discover and delegate tasks to each other, with trust verification:
+
+```ts
+import { PeerRegistry, routeToPeer } from '@calebux/agent-kit'
+
+const peers = new PeerRegistry()
+peers.add('https://partner-instance.example.com', { trust: 'verified' })
+
+// Route a task to a peer instance's specialized agent
+const result = await routeToPeer(peers, {
+  capability: 'celo-defi',
+  task: 'Get Mento exchange rates',
+})
+```
+
+### Unified receipts
+
+Every run produces `calagent.receipt.v1` — the same schema regardless of chain. Receipts from Celo, Stellar, or Base are interchangeable and independently verifiable.
+
+### Chain-agnostic manifests
+
+Agent manifests use the same `AgentManifest` shape across chains. To target a different chain, set the `chain` field:
+
+```ts
+const manifest = createAgentManifest(agent, {
+  chain: 'celo',        // or 'stellar', 'base'
+  network: 'eip155:42220',
+  asset: 'USDm',
+})
+```
 
 ---
 

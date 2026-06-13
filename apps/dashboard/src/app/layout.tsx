@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     "on-chain reputation",
     "agent wallet policy",
     "verifiable agent execution",
-    "cUSD",
+    "USDm",
     "MCP agents",
   ],
   applicationName: "Cal-AgentKit",

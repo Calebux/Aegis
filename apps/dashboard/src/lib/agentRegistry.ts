@@ -100,7 +100,7 @@ const AGENT_DEFINITIONS: AgentDefinition[] = [
   celoManifestAgent(
     "celo-defi",
     "Celo DeFi",
-    "Mento SortedOracles: live cUSD/cEUR/cREAL exchange rates and reserve ratio.",
+    "Mento SortedOracles: live USDm/cEUR/cREAL exchange rates and reserve ratio.",
     ["celo", "defi", "stablecoins", "mento", "oracles"],
     CALAGENT_CELO_AGENT_PRICE
   ),
