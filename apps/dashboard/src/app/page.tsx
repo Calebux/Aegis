@@ -74,7 +74,6 @@ const FOOTER_LINKS = {
   Ecosystem: [
     { label: "Celo", href: "https://celo.org" },
     { label: "x402 Protocol", href: "https://www.x402.org" },
-    { label: "Prezenti", href: "https://prezenti.xyz" },
   ],
 };
 
@@ -259,7 +258,7 @@ export default function LandingPage() {
             ))}
           </div>
           <div className="landing-footer-bottom">
-            <span>Built for the Prezenti Frontier Grant</span>
+            <span>Open-source agent infrastructure</span>
           </div>
         </div>
       </footer>
