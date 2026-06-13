@@ -1,13 +1,13 @@
 /**
- * HTTP client for the Aegis Celo agent manifest API.
+ * HTTP client for the Cal-AgentKit Celo agent manifest API.
  * Calls /api/agents?chain=celo to get Celo-specific agent manifests.
  */
 
 import type { AgentManifest, AgentDiscoveryQuery } from "@calebux/agent-kit";
 
-const BASE_URL = process.env.AEGIS_BASE_URL ?? "http://localhost:3000";
+const BASE_URL = process.env.CALAGENT_BASE_URL ?? "http://localhost:3000";
 const AGENTS_URL =
-  process.env.AEGIS_AGENTS_URL ??
+  process.env.CALAGENT_AGENTS_URL ??
   `${BASE_URL}/api/agents?chain=celo`;
 
 export async function fetchCeloAgents(
@@ -30,7 +30,7 @@ export async function fetchCeloAgents(
   });
 
   if (!res.ok) {
-    throw new Error(`Aegis Celo API error ${res.status}: ${await res.text()}`);
+    throw new Error(`Cal-AgentKit Celo API error ${res.status}: ${await res.text()}`);
   }
 
   const body = (await res.json()) as { agents?: AgentManifest[] } | AgentManifest[];

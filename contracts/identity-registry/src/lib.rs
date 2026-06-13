@@ -1,6 +1,6 @@
 //! Identity Registry Contract
 //!
-//! Tracks on-chain identities and reputation scores for Aegis sub-agents.
+//! Tracks on-chain identities and reputation scores for Cal-AgentKit sub-agents.
 //! The orchestrator (admin) registers agents; reputation is updated after
 //! every completed or failed task.
 

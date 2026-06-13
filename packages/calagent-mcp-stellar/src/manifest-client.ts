@@ -12,11 +12,11 @@ export interface AgentListResponse {
 const DEFAULT_AGENTS_URL = "http://localhost:3000/api/agents";
 
 export function getAgentsUrl(): string {
-  return process.env.AEGIS_AGENTS_URL ?? DEFAULT_AGENTS_URL;
+  return process.env.CALAGENT_AGENTS_URL ?? DEFAULT_AGENTS_URL;
 }
 
-export function getAegisBaseUrl(): string {
-  const explicit = process.env.AEGIS_BASE_URL;
+export function getCalagentBaseUrl(): string {
+  const explicit = process.env.CALAGENT_BASE_URL;
   if (explicit) return explicit.replace(/\/$/, "");
   return getAgentsUrl().replace(/\/api\/agents\/?$/, "");
 }
@@ -35,7 +35,7 @@ export async function fetchAgentManifests(
 
   const res = await fetch(url);
   if (!res.ok) {
-    throw new Error(`Aegis agents endpoint returned ${res.status}`);
+    throw new Error(`Cal-AgentKit agents endpoint returned ${res.status}`);
   }
 
   const body = (await res.json()) as AgentListResponse;
@@ -55,36 +55,36 @@ export async function fetchAgentManifest(
 
 export async function fetchRunReceipt(
   receiptId: string,
-  baseUrl = getAegisBaseUrl()
+  baseUrl = getCalagentBaseUrl()
 ): Promise<unknown> {
   const res = await fetch(`${baseUrl}/api/receipts/${encodeURIComponent(receiptId)}`);
-  if (!res.ok) throw new Error(`Aegis receipt endpoint returned ${res.status}`);
+  if (!res.ok) throw new Error(`Cal-AgentKit receipt endpoint returned ${res.status}`);
   return res.json();
 }
 
 export async function verifyRunReceiptById(
   receiptId: string,
-  baseUrl = getAegisBaseUrl()
+  baseUrl = getCalagentBaseUrl()
 ): Promise<unknown> {
   const res = await fetch(
     `${baseUrl}/api/receipts/${encodeURIComponent(receiptId)}/verify`
   );
-  if (!res.ok) throw new Error(`Aegis receipt verify endpoint returned ${res.status}`);
+  if (!res.ok) throw new Error(`Cal-AgentKit receipt verify endpoint returned ${res.status}`);
   return res.json();
 }
 
 export async function fetchTaskStatus(
   taskId: string,
-  baseUrl = getAegisBaseUrl()
+  baseUrl = getCalagentBaseUrl()
 ): Promise<unknown> {
   const res = await fetch(`${baseUrl}/api/tasks/${encodeURIComponent(taskId)}`);
-  if (!res.ok) throw new Error(`Aegis task endpoint returned ${res.status}`);
+  if (!res.ok) throw new Error(`Cal-AgentKit task endpoint returned ${res.status}`);
   return res.json();
 }
 
 export async function runAgentTask(
   task: string,
-  baseUrl = getAegisBaseUrl()
+  baseUrl = getCalagentBaseUrl()
 ): Promise<unknown> {
   const res = await fetch(`${baseUrl}/api/run`, {
     method: "POST",
@@ -93,7 +93,7 @@ export async function runAgentTask(
   });
 
   if (!res.ok || !res.body) {
-    throw new Error(`Aegis run endpoint returned ${res.status}`);
+    throw new Error(`Cal-AgentKit run endpoint returned ${res.status}`);
   }
 
   const reader = res.body.getReader();
@@ -121,7 +121,7 @@ export async function runAgentTask(
       if (parsed.type === "receipt") receipt = parsed.payload;
       if (parsed.type === "error") {
         const p = parsed.payload as { message?: string };
-        throw new Error(p.message ?? "Aegis run failed");
+        throw new Error(p.message ?? "Cal-AgentKit run failed");
       }
     }
   }
@@ -136,7 +136,7 @@ export async function runAgentTask(
 export async function callExternalAgent(
   agentId: string,
   task: string,
-  baseUrl = getAegisBaseUrl()
+  baseUrl = getCalagentBaseUrl()
 ): Promise<unknown> {
   const res = await fetch(
     `${baseUrl}/api/agents/${encodeURIComponent(agentId)}/run`,
@@ -158,7 +158,7 @@ export async function callExternalAgent(
   }
 
   if (!res.ok) {
-    throw new Error(`Aegis external agent endpoint returned ${res.status}`);
+    throw new Error(`Cal-AgentKit external agent endpoint returned ${res.status}`);
   }
 
   return body;

@@ -93,7 +93,7 @@ export function createRunReceipt(params: {
   );
 
   const receiptWithoutHash: Omit<RunReceipt, "receiptHash"> = {
-    version: "aegis.receipt.v1",
+    version: "calagent.receipt.v1",
     runId: params.runId,
     taskId: params.taskId,
     task: report.task,

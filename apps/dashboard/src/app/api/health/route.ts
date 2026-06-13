@@ -17,7 +17,7 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
-    service: "aegis-dashboard",
+    service: "calagent-dashboard",
     version: process.env.npm_package_version ?? "0.1.0",
     agents: agents.length,
     receipts: new Set(Array.from(receipts.keys())).size,
@@ -32,7 +32,7 @@ export async function GET() {
       rpcUrl: CELO_RPC_URL,
       asset: CELO_STABLE_ASSET,
       assetContract: CELO_STABLE_ASSET_CONTRACT,
-      receiverConfigured: Boolean(process.env.AEGIS_CELO_X402_RECEIVER),
+      receiverConfigured: Boolean(process.env.CALAGENT_CELO_X402_RECEIVER),
       facilitatorConfigured: Boolean(celoFacilitatorUrl()),
       enforce: celoX402Enforced(),
     },

@@ -1,7 +1,7 @@
 {
-  "name": "aegis-mcp-celo",
+  "name": "calagent-mcp-celo",
   "version": "0.1.0",
-  "description": "MCP server for discovering and using Aegis Celo agents",
+  "description": "MCP server for discovering and using Cal-AgentKit Celo agents",
   "keywords": [
     "celo",
     "mcp",
@@ -18,7 +18,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "aegis-mcp-celo": "./dist/index.js"
+    "calagent-mcp-celo": "./dist/index.js"
   },
   "files": [
     "dist",

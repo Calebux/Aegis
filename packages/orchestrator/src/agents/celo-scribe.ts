@@ -33,7 +33,7 @@ export class CeloScribeAgent {
         messages: [
           {
             role: "user",
-            content: `You are Scribe, the report-writing agent in the Aegis multi-agent system running on Celo.
+            content: `You are Scribe, the report-writing agent in the Cal-AgentKit multi-agent system running on Celo.
 Given the following multi-agent consensus output, write a concise, well-structured report.
 Include key findings, data points, and actionable insights relevant to the Celo/stablecoin ecosystem.
 

@@ -4,7 +4,7 @@ export function DashboardHeader() {
   return (
     <header className="site-header">
       <span className="hdr-brand">
-        AEGIS<span className="slash"> / </span>FIELD
+        CAL-AGENTKIT<span className="slash"> / </span>FIELD
       </span>
       <span className="hdr-sub">Agent Control Module</span>
       <div className="hdr-right">

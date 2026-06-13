@@ -7,7 +7,7 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
-import { keypairFromSecret } from "@aegis/shared";
+import { keypairFromSecret } from "@calagent/shared";
 import { Keypair } from "@stellar/stellar-sdk";
 import { bus } from "../lib/bus.js";
 import { agentToAgentPayment } from "@calebux/agent-kit";
@@ -55,7 +55,7 @@ export class ScribeAgent {
       messages: [
         {
           role: "user",
-          content: `You are Scribe, the report-writing agent in the Aegis multi-agent system.
+          content: `You are Scribe, the report-writing agent in the Cal-AgentKit multi-agent system.
 Given the following research contributions from specialised sub-agents,
 write a concise, well-structured report that addresses the original task.
 Include key findings, data points, and actionable insights.
@@ -130,7 +130,7 @@ Total: ${totalXlm.toFixed(4)} XLM paid for data access
             keypair,
             scoutPublicKey,
             "0.0010000",
-            "aegis:scribe->scout"
+            "calagent:scribe->scout"
           ).catch(() => {});
         }
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const baseUrl = (process.env.AEGIS_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const baseUrl = (process.env.CALAGENT_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const task =
   process.argv.slice(2).join(" ").trim() ||
   "Show me the current Stellar network state and prove the agent output.";
@@ -18,7 +18,7 @@ async function json(path, init) {
   return { status: res.status, body };
 }
 
-console.log(`Aegis Stellar agent infrastructure demo`);
+console.log(`Cal-AgentKit Stellar agent infrastructure demo`);
 console.log(`Base URL: ${baseUrl}`);
 console.log("");
 

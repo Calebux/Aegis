@@ -1,6 +1,6 @@
 # Building Agents with @calebux/agent-kit
 
-`@calebux/agent-kit` is the governed multi-agent framework extracted from Aegis.
+`@calebux/agent-kit` is the governed multi-agent framework extracted from Cal-AgentKit.
 It handles the infrastructure so you can focus on agent logic:
 
 - Each agent gets a **fresh Stellar testnet wallet**, auto-funded via Friendbot
@@ -284,7 +284,7 @@ const account = privateKeyToAccount(
 )
 
 // Pay a cUSD-gated API and get JSON back
-// Returns the JSON directly if AEGIS_CELO_X402_RECEIVER is unset (dev mode)
+// Returns the JSON directly if CALAGENT_CELO_X402_RECEIVER is unset (dev mode)
 const data = await payAndFetchCelo<{ rate: number }>(
   'http://localhost:3002/market-data',
   account,
@@ -329,19 +329,19 @@ const allowed = await policy.authorizeSpend('my-agent', BigInt('100000'), 'cUSD'
 
 | Variable | Description |
 |---|---|
-| `AEGIS_CELO_NETWORK` | `mainnet` or `alfajores` |
+| `CALAGENT_CELO_NETWORK` | `mainnet` or `alfajores` |
 | `CELO_RPC_URL` | Celo JSON-RPC endpoint |
 | `CELO_REGISTRY_ADDRESS` | `0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C` (mainnet) |
 | `CELO_POLICY_ADDRESS` | `0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c` (mainnet) |
 | `CELO_DEPLOYER_PRIVATE_KEY` | EVM key for on-chain registry writes |
-| `AEGIS_CELO_X402_RECEIVER` | Celo address receiving cUSD x402 payments (unset = dev mode) |
-| `AEGIS_CELO_X402_FACILITATOR_URL` | Celo x402 facilitator URL (enables enforcement) |
+| `CALAGENT_CELO_X402_RECEIVER` | Celo address receiving cUSD x402 payments (unset = dev mode) |
+| `CALAGENT_CELO_X402_FACILITATOR_URL` | Celo x402 facilitator URL (enables enforcement) |
 
 ---
 
-## Aegis is the reference implementation
+## Cal-AgentKit is the reference implementation
 
-The Aegis orchestrator (`packages/orchestrator`) is built entirely on top of
+The Cal-AgentKit orchestrator (`packages/orchestrator`) is built entirely on top of
 `@calebux/agent-kit`. If you want to see a full real-world example with four
 specialized agents (Scout, Ledger, Signal, Scribe), x402 dual-role
 (provider + consumer), and a live Next.js dashboard, read the source there.

@@ -6,7 +6,7 @@ import {
   fetchAgentManifests,
   fetchTaskStatus,
   fetchRunReceipt,
-  getAegisBaseUrl,
+  getCalagentBaseUrl,
   getAgentsUrl,
   runAgentTask,
   verifyRunReceiptById,
@@ -34,7 +34,7 @@ interface JsonRpcResponse {
 }
 
 const SERVER_INFO = {
-  name: "aegis-mcp-stellar",
+  name: "calagent-mcp-stellar",
   version: "0.1.0",
 };
 
@@ -42,7 +42,7 @@ const TOOLS: Json[] = [
   {
     name: "discover_agents",
     description:
-      "Discover Aegis Stellar agent manifests by capability, payment protocol, asset, network, and minimum reputation.",
+      "Discover Cal-AgentKit Stellar agent manifests by capability, payment protocol, asset, network, and minimum reputation.",
     inputSchema: {
       type: "object",
       properties: {
@@ -57,7 +57,7 @@ const TOOLS: Json[] = [
   },
   {
     name: "get_agent_manifest",
-    description: "Fetch one Aegis Stellar agent manifest by ID.",
+    description: "Fetch one Cal-AgentKit Stellar agent manifest by ID.",
     inputSchema: {
       type: "object",
       required: ["agentId"],
@@ -68,8 +68,8 @@ const TOOLS: Json[] = [
     },
   },
   {
-    name: "aegis_agents_endpoint",
-    description: "Return the Aegis dashboard /api/agents endpoint used by this MCP server.",
+    name: "calagent_agents_endpoint",
+    description: "Return the Cal-AgentKit dashboard /api/agents endpoint used by this MCP server.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -79,7 +79,7 @@ const TOOLS: Json[] = [
   {
     name: "get_run_receipt",
     description:
-      "Fetch an Aegis run receipt by task ID, run ID, or receipt ID.",
+      "Fetch an Cal-AgentKit run receipt by task ID, run ID, or receipt ID.",
     inputSchema: {
       type: "object",
       required: ["receiptId"],
@@ -105,7 +105,7 @@ const TOOLS: Json[] = [
   {
     name: "run_agent_task",
     description:
-      "Run an Aegis multi-agent task through the dashboard API and return the final report and run receipt.",
+      "Run an Cal-AgentKit multi-agent task through the dashboard API and return the final report and run receipt.",
     inputSchema: {
       type: "object",
       required: ["task"],
@@ -118,7 +118,7 @@ const TOOLS: Json[] = [
   {
     name: "call_external_agent",
     description:
-      "Call a single discovered Aegis Stellar agent through its x402-compatible external run endpoint. Returns either the result and run receipt, or a 402 payment requirement.",
+      "Call a single discovered Cal-AgentKit Stellar agent through its x402-compatible external run endpoint. Returns either the result and run receipt, or a 402 payment requirement.",
     inputSchema: {
       type: "object",
       required: ["agentId", "task"],
@@ -132,7 +132,7 @@ const TOOLS: Json[] = [
   {
     name: "verify_run_receipt",
     description:
-      "Verify an Aegis run receipt hash chain and Stellar signature by task ID, run ID, or receipt ID.",
+      "Verify an Cal-AgentKit run receipt hash chain and Stellar signature by task ID, run ID, or receipt ID.",
     inputSchema: {
       type: "object",
       required: ["receiptId"],
@@ -186,8 +186,8 @@ async function callTool(name: string, args: Record<string, unknown> = {}): Promi
     return textResult(manifest);
   }
 
-  if (name === "aegis_agents_endpoint") {
-    return textResult({ agentsUrl: getAgentsUrl(), baseUrl: getAegisBaseUrl() });
+  if (name === "calagent_agents_endpoint") {
+    return textResult({ agentsUrl: getAgentsUrl(), baseUrl: getCalagentBaseUrl() });
   }
 
   if (name === "get_run_receipt") {

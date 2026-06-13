@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Register Aegis on the ERC-8004 Identity Registry (Celo mainnet)
+ * Register Cal-AgentKit on the ERC-8004 Identity Registry (Celo mainnet)
  *
  * Registry: 0x8004A169FB4a3325136EB29fA0ceB6D2e539a432
  */
@@ -23,11 +23,11 @@ if (!privateKey) {
 }
 
 async function main() {
-  console.log("🔗 Registering Aegis on ERC-8004 Identity Registry (Celo mainnet)…\n");
+  console.log("🔗 Registering Cal-AgentKit on ERC-8004 Identity Registry (Celo mainnet)…\n");
 
   const sdk = new ChaosChainSDK({
-    agentName: "aegis",
-    agentDomain: "aegis.calebux.com",
+    agentName: "calagent",
+    agentDomain: "calagent.xyz",
     agentRole: "orchestrator",
     network: NetworkConfig.CELO_MAINNET,
     privateKey: privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`,
@@ -39,8 +39,8 @@ async function main() {
 
   try {
     const registration = await sdk.registerIdentity({
-      name: "Aegis",
-      domain: "aegis.calebux.com",
+      name: "Cal-AgentKit",
+      domain: "calagent.xyz",
       role: "orchestrator",
       capabilities: [
         "agent-orchestration",

@@ -91,7 +91,7 @@ export class CeloScoutAgent {
       addr,
       key,
       process.env.CELO_RPC_URL,
-      process.env.AEGIS_CELO_NETWORK
+      process.env.CALAGENT_CELO_NETWORK
     );
   }
 

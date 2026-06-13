@@ -1,6 +1,6 @@
-# Aegis Celo Contracts
+# Cal-AgentKit Celo Contracts
 
-EVM/Celo contracts for the Aegis portable agent infrastructure layer.
+EVM/Celo contracts for the Cal-AgentKit portable agent infrastructure layer.
 
 ## Contracts
 
@@ -13,7 +13,7 @@ Requires Foundry (`forge` and `cast`).
 
 ```bash
 export CELO_DEPLOYER_PRIVATE_KEY=0x...
-export AEGIS_CELO_NETWORK=alfajores
+export CALAGENT_CELO_NETWORK=alfajores
 export CELO_RPC_URL=https://alfajores-forno.celo-testnet.org
 
 npm run deploy:celo-contracts
@@ -29,6 +29,6 @@ CELO_POLICY_ADDRESS=0x...
 After deploying and running the dashboard, publish Celo agent manifest hashes:
 
 ```bash
-export AEGIS_AGENTS_URL=https://your-aegis-domain.com/api/agents?chain=celo
+export CALAGENT_AGENTS_URL=https://your-calagent-domain.com/api/agents?chain=celo
 npm run publish:celo-manifest-hashes
 ```

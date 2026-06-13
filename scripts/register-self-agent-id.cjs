@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Register Aegis with Self Protocol Agent ID (Celo mainnet)
+ * Register Cal-AgentKit with Self Protocol Agent ID (Celo mainnet)
  *
  * Registry: 0xaC3DF9ABf80d0F5c020C06B04Cced27763355944
  */
@@ -40,7 +40,7 @@ async function main() {
   console.log("   No existing agents found.\n");
 
   // 2. Create registration session
-  console.log("🔐 Registering Aegis with Self Protocol Agent ID…\n");
+  console.log("🔐 Registering Cal-AgentKit with Self Protocol Agent ID…\n");
   console.log(`   Human wallet: ${deployerAddress}`);
   console.log(`   Network: mainnet (Celo)\n`);
 
@@ -51,7 +51,7 @@ async function main() {
       mode: "linked",
       network: "mainnet",
       humanAddress: deployerAddress,
-      agentName: "Aegis",
+      agentName: "Cal-AgentKit",
       agentDescription: "Multi-chain agent orchestration framework — identity, reputation, spend governance, x402 payments, verifiable receipts.",
       disclosures: { minimumAge: 18, ofac: true },
     }),

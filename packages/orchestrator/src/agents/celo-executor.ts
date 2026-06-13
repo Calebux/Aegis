@@ -34,7 +34,7 @@ export class CeloExecutorAgent {
       addr,
       key,
       this.rpcUrl ?? process.env.CELO_RPC_URL,
-      this.network ?? process.env.AEGIS_CELO_NETWORK
+      this.network ?? process.env.CALAGENT_CELO_NETWORK
     );
   }
 

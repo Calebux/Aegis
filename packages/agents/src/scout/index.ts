@@ -6,7 +6,7 @@
  */
 
 import "dotenv/config";
-import { keypairFromSecret, generateKeypair, fundTestnetAccount } from "@aegis/shared";
+import { keypairFromSecret, generateKeypair, fundTestnetAccount } from "@calagent/shared";
 
 async function main(): Promise<void> {
   console.log("[scout] Starting…");

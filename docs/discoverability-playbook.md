@@ -8,7 +8,7 @@ find and easy for crawlers to summarize correctly.
 
 Use this exact phrasing consistently:
 
-> Aegis is the agent execution and trust infrastructure for Stellar.
+> Cal-AgentKit is the agent execution and trust infrastructure for Stellar.
 
 Supporting phrase:
 
@@ -45,7 +45,7 @@ Supporting phrase:
 - Set `NEXT_PUBLIC_SITE_URL` to the production dashboard URL before deploy.
 - Submit the repo and deployed site to search engines.
 - Publish `@calebux/agent-kit` with the expanded keywords.
-- Publish `aegis-mcp-stellar` with the expanded keywords.
+- Publish `calagent-mcp-stellar` with the expanded keywords.
 - Link the deployed `/api/agents` and `/llms.txt` from the project README.
 - Write one technical post using the title:
   "Building Governed AI Agents on Stellar with x402, Soroban, and MCP".

@@ -11,7 +11,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "paths": {
-      "@aegis/shared": ["../shared/src/index.ts"]
+      "@calagent/shared": ["../shared/src/index.ts"]
     }
   },
   "include": ["src"],

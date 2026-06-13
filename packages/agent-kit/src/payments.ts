@@ -7,7 +7,7 @@ import {
   Asset,
   Memo,
 } from "@stellar/stellar-sdk";
-import { getHorizonServer } from "@aegis/shared";
+import { getHorizonServer } from "@calagent/shared";
 
 function networkPassphrase(): string {
   const net = process.env.STELLAR_NETWORK ?? "testnet";

@@ -33,7 +33,7 @@ import {
   Operation,
   Asset,
 } from "@stellar/stellar-sdk";
-import { keypairFromSecret, getHorizonServer } from "@aegis/shared";
+import { keypairFromSecret, getHorizonServer } from "@calagent/shared";
 import { bus } from "../lib/bus.js";
 import { cacheLedgerPayload } from "./consensus.js";
 import { publishSigned } from "../lib/signer.js";

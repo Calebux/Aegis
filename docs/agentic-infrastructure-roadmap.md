@@ -23,7 +23,7 @@ dashboard. The next phase is to standardize those pieces into reusable APIs.
 
 Do not lead with "multi-agent research dashboard." Lead with:
 
-> Aegis is the agent execution and trust layer for Stellar.
+> Cal-AgentKit is the agent execution and trust layer for Stellar.
 
 The dashboard remains the reference application, but the product is the
 infrastructure:
@@ -96,7 +96,7 @@ Aegis should support:
 
 ### 5. MCP Server
 
-Build `aegis-mcp-stellar` so agent runtimes and AI coding assistants can use
+Build `calagent-mcp-stellar` so agent runtimes and AI coding assistants can use
 Aegis directly.
 
 Implemented tools:

@@ -1,20 +1,20 @@
 /**
  * POST /api/run
  *
- * Accepts { task: string }, runs the Aegis multi-agent pipeline in-process,
+ * Accepts { task: string }, runs the Cal-AgentKit multi-agent pipeline in-process,
  * and streams progress back to the client via Server-Sent Events.
  *
  * Event shapes (unchanged from previous stub so the frontend needs no edits):
  *   { type: "log",          payload: { message: string, level: "info"|"success"|"error" } }
  *   { type: "agent_status", payload: { agent: AgentId, status: AgentStatus, spent?: number } }
  *   { type: "wallets",      payload: Record<AgentId, string> }
- *   { type: "complete",     payload: AegisReport }
+ *   { type: "complete",     payload: CalagentReport }
  *   { type: "error",        payload: { message: string } }
  */
 
 import { NextRequest } from "next/server";
 import { EventEmitter } from "events";
-import { runCeloTask } from "@aegis/orchestrator";
+import { runCeloTask } from "@calagent/orchestrator";
 import { Keypair } from "@stellar/stellar-sdk";
 import {
   createRunReceipt,
@@ -33,7 +33,7 @@ import {
   persistReceipts,
   persistTasks,
 } from "@/lib/taskStore";
-import type { Task } from "@aegis/shared";
+import type { Task } from "@calagent/shared";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // Vercel Pro: allow up to 5-min pipeline runs
@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
         completedAt: payload.timestamp ?? new Date().toISOString(),
         shieldContractId: process.env.CELO_POLICY_ADDRESS,
         registryContractId: process.env.CELO_REGISTRY_ADDRESS,
-        network: `eip155:${process.env.AEGIS_CELO_NETWORK === "mainnet" ? "42220" : "44787"}`,
+        network: `eip155:${process.env.CALAGENT_CELO_NETWORK === "mainnet" ? "42220" : "44787"}`,
 
       });
 

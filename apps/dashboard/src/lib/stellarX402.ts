@@ -19,14 +19,14 @@ const USDC_TESTNET_CONTRACT_ID =
 const USDC_DECIMALS = 7;
 
 export const STELLAR_NETWORK =
-  process.env.AEGIS_X402_STELLAR_NETWORK ?? "testnet";
+  process.env.CALAGENT_X402_STELLAR_NETWORK ?? "testnet";
 export const STELLAR_NETWORK_ID = `stellar:${STELLAR_NETWORK}`;
 export const STELLAR_USDC_ISSUER =
   process.env.STELLAR_USDC_ISSUER ?? USDC_TESTNET_ISSUER;
 export const STELLAR_USDC_CONTRACT_ID =
   process.env.STELLAR_USDC_CONTRACT_ID ?? USDC_TESTNET_CONTRACT_ID;
-export const AEGIS_AGENT_PRICE_USDC =
-  process.env.AEGIS_AGENT_PRICE_USDC ?? "0.001";
+export const CALAGENT_AGENT_PRICE_USDC =
+  process.env.CALAGENT_AGENT_PRICE_USDC ?? "0.001";
 
 export interface StellarX402PaymentRequirement {
   x402Version: 2;
@@ -46,20 +46,20 @@ export interface StellarX402PaymentRequirement {
 }
 
 export function x402Enforced(): boolean {
-  return process.env.AEGIS_X402_ENFORCE === "true";
+  return process.env.CALAGENT_X402_ENFORCE === "true";
 }
 
 export function x402DevAcceptEnabled(): boolean {
-  return process.env.AEGIS_X402_DEV_ACCEPT !== "false";
+  return process.env.CALAGENT_X402_DEV_ACCEPT !== "false";
 }
 
 export function facilitatorUrl(): string | undefined {
-  return process.env.AEGIS_X402_FACILITATOR_URL;
+  return process.env.CALAGENT_X402_FACILITATOR_URL;
 }
 
 export function paymentReceiver(): string | undefined {
   return (
-    process.env.AEGIS_X402_RECEIVER ??
+    process.env.CALAGENT_X402_RECEIVER ??
     process.env.HORIZON_PAYMENT_RECEIVER ??
     process.env.PAYMENT_RECEIVER
   );
@@ -82,7 +82,7 @@ export function buildStellarX402Requirement(params: {
   amount?: string;
   payTo?: string;
 }): StellarX402PaymentRequirement {
-  const displayAmount = params.amount ?? AEGIS_AGENT_PRICE_USDC;
+  const displayAmount = params.amount ?? CALAGENT_AGENT_PRICE_USDC;
   return {
     x402Version: 2,
     scheme: "exact",
@@ -96,7 +96,7 @@ export function buildStellarX402Requirement(params: {
     resource: params.resource,
     description: params.description,
     mimeType: "application/json",
-    maxTimeoutSeconds: Number(process.env.AEGIS_X402_TIMEOUT_SECONDS ?? 300),
+    maxTimeoutSeconds: Number(process.env.CALAGENT_X402_TIMEOUT_SECONDS ?? 300),
     facilitatorUrl: facilitatorUrl(),
   };
 }
@@ -130,7 +130,7 @@ export function buildPaymentRequired(
       url: requirement.resource,
       description: requirement.description,
       mimeType: requirement.mimeType,
-      serviceName: "Aegis",
+      serviceName: "Cal-AgentKit",
       tags: ["stellar", "agents", "x402", "usdc"],
     },
     accepts: [toX402PaymentRequirements(requirement)],
@@ -182,7 +182,7 @@ export interface X402PaymentCheck {
 }
 
 function facilitatorAuthHeaders(): Record<string, string> {
-  const apiKey = process.env.AEGIS_X402_FACILITATOR_API_KEY;
+  const apiKey = process.env.CALAGENT_X402_FACILITATOR_API_KEY;
   return apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
 }
 

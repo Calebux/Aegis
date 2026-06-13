@@ -22,7 +22,7 @@ import {
   Asset,
 } from "@stellar/stellar-sdk";
 import { LinkupClient } from "linkup-sdk";
-import { getHorizonServer } from "@aegis/shared";
+import { getHorizonServer } from "@calagent/shared";
 import Anthropic from "@anthropic-ai/sdk";
 import { bus } from "../lib/bus.js";
 import { publishSigned } from "../lib/signer.js";

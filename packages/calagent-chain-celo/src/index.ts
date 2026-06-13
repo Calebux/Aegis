@@ -15,7 +15,7 @@ export const CELO_ALFAJORES_NETWORK = "eip155:44787";
 export const CELO_MAINNET_CUSD = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
 export const CELO_ALFAJORES_CUSD = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1";
 
-export const AEGIS_CELO_REGISTRY_ABI = [
+export const CALAGENT_CELO_REGISTRY_ABI = [
   {
     type: "function",
     name: "registerAgent",
@@ -124,7 +124,7 @@ export function createCeloAgentManifest(
       settlementNetwork: network,
       settlementAsset: asset,
       settlementAssetContract: options.assetContract ?? null,
-      receiptVersion: "aegis.receipt.v1",
+      receiptVersion: "calagent.receipt.v1",
     },
   };
 }
@@ -187,7 +187,7 @@ export async function publishCeloManifestHash(params: {
   try {
     const hash = await walletClient.writeContract({
       address: params.registryAddress,
-      abi: AEGIS_CELO_REGISTRY_ABI,
+      abi: CALAGENT_CELO_REGISTRY_ABI,
       functionName: "registerAgent",
       args,
       account,
@@ -197,7 +197,7 @@ export async function publishCeloManifestHash(params: {
   } catch {
     const hash = await walletClient.writeContract({
       address: params.registryAddress,
-      abi: AEGIS_CELO_REGISTRY_ABI,
+      abi: CALAGENT_CELO_REGISTRY_ABI,
       functionName: "setManifestHash",
       args: [params.agentId, manifestHashToBytes32(params.manifestHash)],
       account,

@@ -28,7 +28,7 @@ const FEATURES = [
   },
   {
     title: "MCP Tooling",
-    desc: "Model Context Protocol integration lets LLMs discover and call Aegis agents as native tools.",
+    desc: "Model Context Protocol integration lets LLMs discover and call Cal-AgentKit agents as native tools.",
     icon: "\u2693",
   },
 ];
@@ -84,7 +84,7 @@ export default function LandingPage() {
       {/* ── Nav ──────────────────────────────────────────────────── */}
       <nav className="landing-nav">
         <div className="landing-nav-inner">
-          <span className="landing-logo">AEGIS</span>
+          <span className="landing-logo">CAL-AGENTKIT</span>
           <div className="landing-nav-links">
             <a href="https://github.com/calebcauthon/agent-kit" target="_blank" rel="noopener noreferrer">
               GitHub
@@ -174,7 +174,7 @@ export default function LandingPage() {
         <div className="landing-container">
           <h2 className="landing-section-title">MCP Integration</h2>
           <p className="landing-section-subtitle">
-            Let LLMs discover and call Aegis agents as native tools via Model Context Protocol.
+            Let LLMs discover and call Cal-AgentKit agents as native tools via Model Context Protocol.
           </p>
           <div className="landing-mcp-layout">
             <div className="landing-mcp-tools">
@@ -182,11 +182,11 @@ export default function LandingPage() {
                 { name: "discover_agents", desc: "List all registered agents with capabilities and payment info" },
                 { name: "get_agent_manifest", desc: "Fetch full manifest for a specific agent by ID" },
                 { name: "run_agent_task", desc: "Execute a task on any agent and get a verifiable receipt" },
-                { name: "call_external_agent", desc: "Route tasks to agents on other Aegis instances" },
+                { name: "call_external_agent", desc: "Route tasks to agents on other Cal-AgentKit instances" },
                 { name: "get_run_receipt", desc: "Retrieve a receipt by run ID with full hash chain" },
                 { name: "verify_run_receipt", desc: "Cryptographically verify a receipt's integrity" },
                 { name: "get_task_status", desc: "Check pipeline progress and agent statuses" },
-                { name: "aegis_agents_endpoint", desc: "Raw HTTP access to the agent discovery endpoint" },
+                { name: "calagent_agents_endpoint", desc: "Raw HTTP access to the agent discovery endpoint" },
               ].map((tool) => (
                 <div key={tool.name} className="landing-mcp-tool">
                   <code>{tool.name}</code>
@@ -240,7 +240,7 @@ export default function LandingPage() {
         <div className="landing-container">
           <div className="landing-footer-grid">
             <div className="landing-footer-brand">
-              <span className="landing-logo">AEGIS</span>
+              <span className="landing-logo">CAL-AGENTKIT</span>
               <p>Open-source agent infrastructure for Celo.</p>
             </div>
             {Object.entries(FOOTER_LINKS).map(([title, links]) => (

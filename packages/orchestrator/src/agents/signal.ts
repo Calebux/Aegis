@@ -26,7 +26,7 @@ import {
   SorobanRpc,
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
-import { keypairFromSecret, getHorizonServer } from "@aegis/shared";
+import { keypairFromSecret, getHorizonServer } from "@calagent/shared";
 import { bus, type AgentMessage } from "../lib/bus.js";
 import { publishSigned } from "../lib/signer.js";
 
@@ -348,7 +348,7 @@ export class SignalAgent {
 
   private async getPayee(serverUrl: string): Promise<string> {
     try {
-      const resp = await fetch(`${serverUrl}/.well-known/aegis.json`);
+      const resp = await fetch(`${serverUrl}/.well-known/calagent.json`);
       if (!resp.ok) return "";
       const manifest = (await resp.json()) as { payee: string };
       return manifest.payee ?? "";

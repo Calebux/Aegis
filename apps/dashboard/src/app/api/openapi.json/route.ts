@@ -8,10 +8,10 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     openapi: "3.1.0",
     info: {
-      title: "Aegis Agent API (Stellar + Celo)",
+      title: "Cal-AgentKit Agent API (Stellar + Celo)",
       version: "0.1.0",
       description:
-        "Discover, call, and verify Aegis agents on Stellar and Celo using x402 payments and signed run receipts.",
+        "Discover, call, and verify Cal-AgentKit agents on Stellar and Celo using x402 payments and signed run receipts.",
     },
     servers: [{ url: origin }],
     paths: {
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
       },
       "/api/agents": {
         get: {
-          summary: "Discover Aegis agents",
+          summary: "Discover Cal-AgentKit agents",
           parameters: [
             { name: "capability", in: "query", schema: { type: "string" } },
             { name: "chain", in: "query", schema: { type: "string", enum: ["stellar", "celo"] } },
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
       },
       "/api/agents/{id}/run": {
         post: {
-          summary: "Call one external Aegis agent",
+          summary: "Call one external Cal-AgentKit agent",
           parameters: [
             {
               name: "id",

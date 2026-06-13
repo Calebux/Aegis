@@ -1,7 +1,7 @@
 /**
  * Celo Orchestrator — Bus-Based Pipeline
  *
- * Parallel Celo implementation of the Aegis pipeline. Agents share the same
+ * Parallel Celo implementation of the Cal-AgentKit pipeline. Agents share the same
  * singleton bus as the Stellar pipeline — same event shapes, same SSE consumer.
  *
  * Pipeline:
@@ -34,7 +34,7 @@ import { CeloSignalAgent } from "./agents/celo-signal.js";
 import { CeloScribeAgent } from "./agents/celo-scribe.js";
 import { CeloExecutorAgent } from "./agents/celo-executor.js";
 
-export type { OrchestratorReport as AegisReport };
+export type { OrchestratorReport as CalagentReport };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -192,7 +192,7 @@ export async function runCeloTask(
         registryAddr,
         deployerKey,
         process.env.CELO_RPC_URL,
-        process.env.AEGIS_CELO_NETWORK
+        process.env.CALAGENT_CELO_NETWORK
       );
 
       const agentDefs = [
@@ -275,7 +275,7 @@ export async function runCeloTask(
     registryAddress: process.env.CELO_REGISTRY_ADDRESS,
     deployerPrivateKey: process.env.CELO_DEPLOYER_PRIVATE_KEY,
     rpcUrl: process.env.CELO_RPC_URL,
-    network: process.env.AEGIS_CELO_NETWORK,
+    network: process.env.CALAGENT_CELO_NETWORK,
   });
   emit("agent_status", { agent: "celo-executor", status: "running", timestamp: Date.now() });
   emit("log", { message: "   Celo Notary wired (waiting for consensus)", level: "info" });

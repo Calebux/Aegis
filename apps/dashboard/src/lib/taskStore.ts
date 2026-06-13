@@ -1,14 +1,14 @@
 /**
- * In-memory task store for the Aegis dashboard, with file-based persistence.
+ * In-memory task store for the Cal-AgentKit dashboard, with file-based persistence.
  *
- * Tasks are serialized to .aegis-tasks.json in the project root on each state
+ * Tasks are serialized to .calagent-tasks.json in the project root on each state
  * change and reloaded automatically when the module is first imported.
  */
 
 import { EventEmitter } from "events";
 import * as fs from "fs";
 import * as path from "path";
-import type { Task } from "@aegis/shared";
+import type { Task } from "@calagent/shared";
 import type { RunReceipt } from "@calebux/agent-kit";
 
 /** Active tasks keyed by taskId */
@@ -39,10 +39,10 @@ export const receiptOutputs = new Map<string, string>();
 // Persistence helpers
 // ---------------------------------------------------------------------------
 
-const STORAGE_DIR = process.env.AEGIS_STORAGE_DIR ?? process.cwd();
-const PERSIST_PATH = path.join(STORAGE_DIR, ".aegis-tasks.json");
-const RECEIPTS_PATH = path.join(STORAGE_DIR, ".aegis-receipts.json");
-const RECEIPT_OUTPUTS_PATH = path.join(STORAGE_DIR, ".aegis-receipt-outputs.json");
+const STORAGE_DIR = process.env.CALAGENT_STORAGE_DIR ?? process.cwd();
+const PERSIST_PATH = path.join(STORAGE_DIR, ".calagent-tasks.json");
+const RECEIPTS_PATH = path.join(STORAGE_DIR, ".calagent-receipts.json");
+const RECEIPT_OUTPUTS_PATH = path.join(STORAGE_DIR, ".calagent-receipt-outputs.json");
 
 export function storageInfo(): {
   mode: "file";
@@ -52,7 +52,7 @@ export function storageInfo(): {
   return {
     mode: "file",
     directory: STORAGE_DIR,
-    productionReady: Boolean(process.env.AEGIS_STORAGE_DIR),
+    productionReady: Boolean(process.env.CALAGENT_STORAGE_DIR),
   };
 }
 

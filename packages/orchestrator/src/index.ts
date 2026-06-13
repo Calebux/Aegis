@@ -1,5 +1,5 @@
 /**
- * Aegis Master Orchestrator — Bus-Based Pipeline (Upgrades 1–7)
+ * Cal-AgentKit Master Orchestrator — Bus-Based Pipeline (Upgrades 1–7)
  *
  * Pipeline flow:
  *   1. Generate task graph via Planner (Upgrade 6)
@@ -22,7 +22,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { EventEmitter } from "events";
 import { Keypair, SorobanRpc } from "@stellar/stellar-sdk";
-import { fundTestnetAccount } from "@aegis/shared";
+import { fundTestnetAccount } from "@calagent/shared";
 import { ShieldContract, IdentityRegistry } from "@calebux/agent-kit";
 import type { OrchestratorReport } from "@calebux/agent-kit";
 
@@ -37,7 +37,7 @@ import { ScribeAgent } from "./agents/scribe.js";
 import { ExecutorAgent } from "./agents/executor.js";
 import { startHorizonX402Server } from "./services/horizon-x402-server.js";
 
-export type { OrchestratorReport as AegisReport };
+export type { OrchestratorReport as CalagentReport };
 
 // Celo pipeline entry point (re-exported for dashboard compatibility)
 export { runCeloTask } from "./celo-index.js";
@@ -187,7 +187,7 @@ export async function runTask(
   const emit = makeEmit(emitter);
 
   // ── 1. Generate task graph ─────────────────────────────────────────────────
-  emit("log", { message: "🔮 Aegis pipeline initialising…", level: "info" });
+  emit("log", { message: "🔮 Cal-AgentKit pipeline initialising…", level: "info" });
   emit("log", {
     message: `📋 Task: "${prompt.slice(0, 90)}${prompt.length > 90 ? "…" : ""}"`,
     level: "info",
@@ -449,7 +449,7 @@ async function main(): Promise<void> {
     console.log("   [main] Horizon x402 server already running on :3001 — continuing");
   }
 
-  console.log("\n🔮 Aegis starting…");
+  console.log("\n🔮 Cal-AgentKit starting…");
   console.log(`   Task: "${TASK}"`);
 
   const report = await runTask(TASK);
@@ -461,7 +461,7 @@ async function main(): Promise<void> {
 
   const sep = "━".repeat(60);
   console.log(`\n${sep}`);
-  console.log("✅  AEGIS REPORT");
+  console.log("✅  CAL-AGENTKIT REPORT");
   console.log(sep);
   console.log(`\n📋  TASK\n${report.task}`);
   console.log(`\n✍️   FINAL REPORT\n${report.report}`);
@@ -472,7 +472,7 @@ async function main(): Promise<void> {
 const argv1 = process.argv[1] ?? "";
 if (argv1.endsWith("index.ts") || argv1.endsWith("index.js")) {
   void main().catch((err) => {
-    console.error("[aegis] Fatal error:", err);
+    console.error("[calagent] Fatal error:", err);
     process.exit(1);
   });
 }

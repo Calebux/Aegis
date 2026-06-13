@@ -7,7 +7,7 @@ import {
 } from "@calebux/agent-kit";
 import { lastReputation, lastWallets } from "@/lib/taskStore";
 import {
-  AEGIS_CELO_AGENT_PRICE,
+  CALAGENT_CELO_AGENT_PRICE,
   CELO_CHAIN,
   CELO_NETWORK_ID,
   CELO_STABLE_ASSET,
@@ -53,7 +53,7 @@ function celoManifestAgent(
         settlementNetwork: CELO_NETWORK_ID,
         settlementAsset: CELO_STABLE_ASSET,
         settlementAssetContract: CELO_STABLE_ASSET_CONTRACT,
-        receiptVersion: "aegis.receipt.v1",
+        receiptVersion: "calagent.receipt.v1",
       },
     },
     run: async () => ({ result: "" }),
@@ -66,49 +66,49 @@ const AGENT_DEFINITIONS: AgentDefinition[] = [
     "Celo Scout",
     "Web research agent for paid search and source discovery on Celo.",
     ["research", "web-search", "source-discovery", "celo"],
-    AEGIS_CELO_AGENT_PRICE
+    CALAGENT_CELO_AGENT_PRICE
   ),
   celoManifestAgent(
     "celo-ledger",
     "Celo Ledger",
     "Celo network and stablecoin intelligence agent.",
     ["celo", "onchain-data", "stablecoins", "rpc"],
-    AEGIS_CELO_AGENT_PRICE
+    CALAGENT_CELO_AGENT_PRICE
   ),
   celoManifestAgent(
     "celo-signal",
     "Celo Signal",
     "Market intelligence and cross-source analysis agent for Celo.",
     ["celo", "market-intelligence", "analytics", "risk"],
-    AEGIS_CELO_AGENT_PRICE
+    CALAGENT_CELO_AGENT_PRICE
   ),
   celoManifestAgent(
     "celo-scribe",
     "Celo Scribe",
     "Report synthesis agent that turns consensus outputs into final Celo reports.",
     ["celo", "synthesis", "reporting", "summarization"],
-    AEGIS_CELO_AGENT_PRICE
+    CALAGENT_CELO_AGENT_PRICE
   ),
   celoManifestAgent(
     "celo-executor",
     "Celo Notary",
     "Verifiable Celo action and consensus proof agent.",
     ["celo", "attestation", "execution", "proof"],
-    AEGIS_CELO_AGENT_PRICE
+    CALAGENT_CELO_AGENT_PRICE
   ),
   celoManifestAgent(
     "celo-defi",
     "Celo DeFi",
     "Mento SortedOracles: live cUSD/cEUR/cREAL exchange rates and reserve ratio.",
     ["celo", "defi", "stablecoins", "mento", "oracles"],
-    AEGIS_CELO_AGENT_PRICE
+    CALAGENT_CELO_AGENT_PRICE
   ),
   celoManifestAgent(
     "celo-price",
     "Celo Price",
-    "CELO token price via CoinGecko wrapped in an Aegis verifiable receipt.",
+    "CELO token price via CoinGecko wrapped in an Cal-AgentKit verifiable receipt.",
     ["celo", "price", "market-data"],
-    AEGIS_CELO_AGENT_PRICE
+    CALAGENT_CELO_AGENT_PRICE
   ),
 ];
 

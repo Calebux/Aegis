@@ -5,7 +5,7 @@
  */
 
 import useSWR from "swr";
-import type { AgentId } from "@aegis/shared";
+import type { AgentId } from "@calagent/shared";
 
 interface SerializedWalletBalance {
   agentId: AgentId;

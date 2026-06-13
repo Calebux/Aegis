@@ -33,7 +33,7 @@ export interface TaskGraph {
 // ── Planner system prompt ─────────────────────────────────────────────────────
 
 const PLANNER_SYSTEM_PROMPT = `
-You are a task graph planner for a multi-agent AI system called Aegis.
+You are a task graph planner for a multi-agent AI system called Cal-AgentKit.
 Given a user prompt, generate a JSON task graph describing which agents to use and in what order.
 
 Available agent types:

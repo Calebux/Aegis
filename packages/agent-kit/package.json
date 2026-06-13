@@ -38,7 +38,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@aegis/shared": "*",
+    "@calagent/shared": "*",
     "@stellar/stellar-sdk": "^12.0.0",
     "viem": "^2.0.0"
   },

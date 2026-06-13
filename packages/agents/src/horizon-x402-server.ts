@@ -25,7 +25,7 @@ import {
   generateKeypair,
   fundTestnetAccount,
   getHorizonServer,
-} from "@aegis/shared";
+} from "@calagent/shared";
 
 // ---------------------------------------------------------------------------
 // Constants

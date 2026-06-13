@@ -6,7 +6,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Aegis - Celo Agent Infrastructure",
+  title: "Cal-AgentKit - Celo Agent Infrastructure",
   description:
     "Agent execution and trust infrastructure for Celo: x402 payments, agent discovery, EVM policy controls, on-chain reputation, and MCP tooling.",
   keywords: [
@@ -20,20 +20,20 @@ export const metadata: Metadata = {
     "cUSD",
     "MCP agents",
   ],
-  applicationName: "Aegis",
-  authors: [{ name: "Aegis" }],
-  creator: "Aegis",
-  publisher: "Aegis",
+  applicationName: "Cal-AgentKit",
+  authors: [{ name: "Cal-AgentKit" }],
+  creator: "Cal-AgentKit",
+  publisher: "Cal-AgentKit",
   openGraph: {
-    title: "Aegis - Celo Agent Infrastructure",
+    title: "Cal-AgentKit - Celo Agent Infrastructure",
     description:
       "Build governed AI agents on Celo with x402 payments, EVM spend policies, on-chain reputation, agent discovery, and MCP tools.",
-    siteName: "Aegis",
+    siteName: "Cal-AgentKit",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "Aegis - Celo Agent Infrastructure",
+    title: "Cal-AgentKit - Celo Agent Infrastructure",
     description:
       "Governed AI agent infrastructure for Celo: wallets, policy, x402 payments, reputation, discovery, and MCP.",
   },

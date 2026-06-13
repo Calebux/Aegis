@@ -190,7 +190,7 @@ export default function DashboardPage() {
     setLogs(prev => [...prev, { id: counterRef.current++, message, level }]);
   }, []);
 
-  async function runAegis() {
+  async function runCalagent() {
     if (!task.trim() || running) return;
 
     setRunning(true);
@@ -319,13 +319,13 @@ export default function DashboardPage() {
               className="cmd-input"
               value={task}
               onChange={e => setTask(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runAegis(); }}
+              onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runCalagent(); }}
               placeholder="Enter research task…  (⌘↵ to execute)"
               disabled={running}
             />
             <button
               className={`cmd-exec${running ? " is-running" : ""}`}
-              onClick={runAegis}
+              onClick={runCalagent}
               disabled={running || !task.trim()}
             >
               {running ? <><span className="spinner" /> WAIT</> : "EXEC"}

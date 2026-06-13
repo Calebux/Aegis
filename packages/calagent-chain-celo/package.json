@@ -1,7 +1,7 @@
 {
-  "name": "@calebux/aegis-chain-celo",
+  "name": "@calebux/calagent-chain-celo",
   "version": "0.1.0",
-  "description": "Celo adapter constants and manifest helpers for Aegis agent infrastructure",
+  "description": "Celo adapter constants and manifest helpers for Cal-AgentKit agent infrastructure",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

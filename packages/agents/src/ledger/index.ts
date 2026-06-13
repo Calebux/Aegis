@@ -12,7 +12,7 @@ import {
   generateKeypair,
   fundTestnetAccount,
   getHorizonServer,
-} from "@aegis/shared";
+} from "@calagent/shared";
 
 // TODO: replace with express or hono once logic is implemented
 async function main(): Promise<void> {

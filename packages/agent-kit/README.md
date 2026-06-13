@@ -138,7 +138,7 @@ const verification = verifyRunReceipt(signed)
 const hash = computeReceiptHash(signed)
 ```
 
-Receipt schema: `aegis.receipt.v1`
+Receipt schema: `calagent.receipt.v1`
 
 ---
 
@@ -258,7 +258,7 @@ const score = await registry.getReputation('my-agent')
 | `CELO_REGISTRY_ADDRESS` | Celo | AegisCeloRegistry contract address |
 | `CELO_POLICY_ADDRESS` | Celo | AegisCeloPolicy contract address |
 | `CELO_DEPLOYER_PRIVATE_KEY` | Celo | Admin key for registry/policy writes |
-| `AEGIS_CELO_NETWORK` | Celo | `mainnet` or `alfajores` |
+| `CALAGENT_CELO_NETWORK` | Celo | `mainnet` or `alfajores` |
 
 All contract options are optional — omit them to run in dev mode with no on-chain enforcement.
 

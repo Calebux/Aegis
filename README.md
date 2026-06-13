@@ -1,8 +1,8 @@
-# Aegis
+# Cal-AgentKit
 
 **Multi-chain agent execution and trust infrastructure**
 
-Aegis is a multi-agent orchestration framework where a master orchestrator decomposes tasks into specialized sub-agents — each with its own wallet, on-chain spend caps, verifiable reputation, and x402 payment gating. Agents pay for external services, settle micropayments with each other, and produce cryptographically signed run receipts.
+Cal-AgentKit is a multi-agent orchestration framework where a master orchestrator decomposes tasks into specialized sub-agents — each with its own wallet, on-chain spend caps, verifiable reputation, and x402 payment gating. Agents pay for external services, settle micropayments with each other, and produce cryptographically signed run receipts.
 
 Currently live on **Celo mainnet** and **Stellar testnet**.
 
@@ -14,7 +14,7 @@ npm install @calebux/agent-kit
 
 ## Celo — Live on Mainnet
 
-Aegis deploys a full agent infrastructure on Celo: identity registry, policy enforcement, stablecoin payments, Mento oracle integration, and verifiable attestations — all on mainnet.
+Cal-AgentKit deploys a full agent infrastructure on Celo: identity registry, policy enforcement, stablecoin payments, Mento oracle integration, and verifiable attestations — all on mainnet.
 
 ### Deployed Contracts
 
@@ -94,13 +94,13 @@ const rep = await registry.getReputation('my-agent')
 
 | Variable | Purpose |
 |---|---|
-| `AEGIS_CELO_NETWORK` | `mainnet` or `alfajores` |
+| `CALAGENT_CELO_NETWORK` | `mainnet` or `alfajores` |
 | `CELO_RPC_URL` | Celo JSON-RPC endpoint |
 | `CELO_REGISTRY_ADDRESS` | AegisCeloRegistry address |
 | `CELO_POLICY_ADDRESS` | AegisCeloPolicy address |
 | `CELO_DEPLOYER_PRIVATE_KEY` | Admin key for registry/policy writes |
-| `AEGIS_CELO_X402_RECEIVER` | Celo address receiving x402 cUSD payments |
-| `AEGIS_CELO_X402_FACILITATOR_URL` | Celo/EVM x402 facilitator |
+| `CALAGENT_CELO_X402_RECEIVER` | Celo address receiving x402 cUSD payments |
+| `CALAGENT_CELO_X402_FACILITATOR_URL` | Celo/EVM x402 facilitator |
 
 ### Celo Contracts (Foundry)
 
@@ -149,7 +149,7 @@ Aegis operates on **both sides of x402 simultaneously**:
 | **Provider** | `horizon-x402-server.ts` | Wraps Stellar Horizon behind a paywall; returns 402 if no valid payment |
 | **Consumer** | `ledger.ts` | Handles 402 responses, signs Stellar payment, retries |
 
-Agent-to-agent payments: Scribe pays Scout 0.001 XLM per synthesis (`aegis:scribe->scout`).
+Agent-to-agent payments: Scribe pays Scout 0.001 XLM per synthesis (`calagent:scribe->scout`).
 
 ### Stellar Environment
 
@@ -165,14 +165,14 @@ Agent-to-agent payments: Scribe pays Scout 0.001 XLM per synthesis (`aegis:scrib
 
 ---
 
-## What Makes Aegis Different
+## What Makes Cal-AgentKit Different
 
 1. **Multi-chain from day one** — same agent architecture on Celo (EVM/cUSD) and Stellar (Soroban/XLM)
 2. **Full-stack x402** — simultaneously an x402 provider and consumer on both chains
 3. **On-chain spend governance** — Shield Contract (Stellar) and AegisCeloPolicy (Celo) enforce caps before transactions hit the network
 4. **Agent-to-agent payments** — agents have financial relationships with each other, settled on-chain
 5. **Live reputation** — Identity Registry increments scores on-chain after every task
-6. **Verifiable run receipts** — every run produces `aegis.receipt.v1` with task/output hashes, payment txs, Ed25519 signature
+6. **Verifiable run receipts** — every run produces `calagent.receipt.v1` with task/output hashes, payment txs, Ed25519 signature
 7. **Discoverable manifests** — agents declare capabilities, endpoints, payment terms via portable SDK manifests
 
 ---
@@ -180,15 +180,15 @@ Agent-to-agent payments: Scribe pays Scout 0.001 XLM per synthesis (`aegis:scrib
 ## Monorepo Structure
 
 ```
-aegis/
+calagent/
 ├── apps/dashboard/              Next.js 14 App Router — live dashboard + public agent API
 ├── packages/
 │   ├── orchestrator/            Master pipeline (Scout→Ledger→Signal→Scribe→Notary)
 │   ├── agent-kit/               @calebux/agent-kit — reusable SDK
 │   ├── agents/                  Standalone agent processes / x402 servers
 │   ├── shared/                  Shared types
-│   ├── aegis-chain-celo/        Celo/viem helpers, registry ABI
-│   └── aegis-mcp-stellar/       MCP server wrapping the public agent API
+│   ├── calagent-chain-celo/        Celo/viem helpers, registry ABI
+│   └── calagent-mcp-stellar/       MCP server wrapping the public agent API
 ├── contracts/
 │   ├── identity-registry/       Soroban — agent identity + reputation (Rust)
 │   ├── shield-contract/         Soroban — per-agent spend cap enforcement (Rust)
@@ -243,11 +243,11 @@ npm run publish:celo-manifest-hashes
 ```json
 {
   "mcpServers": {
-    "aegis-stellar": {
+    "calagent-stellar": {
       "command": "node",
-      "args": ["packages/aegis-mcp-stellar/dist/index.js"],
+      "args": ["packages/calagent-mcp-stellar/dist/index.js"],
       "env": {
-        "AEGIS_BASE_URL": "http://localhost:3000"
+        "CALAGENT_BASE_URL": "http://localhost:3000"
       }
     }
   }

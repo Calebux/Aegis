@@ -5,18 +5,18 @@
 # Prerequisites:
 #   - stellar CLI installed  (stellar --version)
 #   - wasm32-unknown-unknown target:  rustup target add wasm32-unknown-unknown
-#   - aegis-admin key in stellar keystore:  stellar keys generate aegis-admin --network testnet --fund
+#   - calagent-admin key in stellar keystore:  stellar keys generate calagent-admin --network testnet --fund
 #
 # Output: prints SHIELD_CONTRACT_ID and REGISTRY_CONTRACT_ID — paste into .env.local
 
 set -euo pipefail
 
-ADMIN_ALIAS="aegis-admin"
+ADMIN_ALIAS="calagent-admin"
 NETWORK="testnet"
 WASM_DIR="contracts/target/wasm32-unknown-unknown/release"
 
 echo ""
-echo "=== AEGIS — Soroban Contract Deployment ==="
+echo "=== CAL-AGENTKIT — Soroban Contract Deployment ==="
 echo ""
 
 # ── 0. Fund admin if needed ──────────────────────────────────────────────────

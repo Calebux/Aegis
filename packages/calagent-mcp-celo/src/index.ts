@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 /**
- * aegis-mcp-celo — MCP server for Celo agent infrastructure.
+ * calagent-mcp-celo — MCP server for Celo agent infrastructure.
  *
- * Exposes 8 tools for discovering, calling, and verifying Aegis Celo agents.
- * Uses the same JSON-RPC/stdio protocol as aegis-mcp-stellar.
+ * Exposes 8 tools for discovering, calling, and verifying Cal-AgentKit Celo agents.
+ * Uses the same JSON-RPC/stdio protocol as calagent-mcp-stellar.
  *
  * Example MCP config:
  * {
  *   "mcpServers": {
- *     "aegis-celo": {
+ *     "calagent-celo": {
  *       "command": "node",
- *       "args": ["packages/aegis-mcp-celo/dist/index.js"],
+ *       "args": ["packages/calagent-mcp-celo/dist/index.js"],
  *       "env": {
- *         "AEGIS_BASE_URL": "http://localhost:3000",
- *         "AEGIS_AGENTS_URL": "http://localhost:3000/api/agents?chain=celo"
+ *         "CALAGENT_BASE_URL": "http://localhost:3000",
+ *         "CALAGENT_AGENTS_URL": "http://localhost:3000/api/agents?chain=celo"
  *       }
  *     }
  *   }
@@ -49,10 +49,10 @@ interface JsonRpcResponse {
   };
 }
 
-const BASE_URL = process.env.AEGIS_BASE_URL ?? "http://localhost:3000";
+const BASE_URL = process.env.CALAGENT_BASE_URL ?? "http://localhost:3000";
 
 const SERVER_INFO = {
-  name: "aegis-mcp-celo",
+  name: "calagent-mcp-celo",
   version: "0.1.0",
 };
 
@@ -60,7 +60,7 @@ const TOOLS: Json[] = [
   {
     name: "discover_celo_agents",
     description:
-      "Discover Aegis Celo agent manifests. Filter by capability, payment protocol (x402/mpp), asset (cUSD/USDC), network (eip155:42220/44787), and minimum reputation.",
+      "Discover Cal-AgentKit Celo agent manifests. Filter by capability, payment protocol (x402/mpp), asset (cUSD/USDC), network (eip155:42220/44787), and minimum reputation.",
     inputSchema: {
       type: "object",
       properties: {
@@ -75,7 +75,7 @@ const TOOLS: Json[] = [
   },
   {
     name: "get_celo_agent_manifest",
-    description: "Fetch one Aegis Celo agent manifest by ID.",
+    description: "Fetch one Cal-AgentKit Celo agent manifest by ID.",
     inputSchema: {
       type: "object",
       required: ["agentId"],
@@ -86,8 +86,8 @@ const TOOLS: Json[] = [
     },
   },
   {
-    name: "aegis_celo_endpoint",
-    description: "Return the Aegis Celo dashboard API base URL and agents endpoint.",
+    name: "calagent_celo_endpoint",
+    description: "Return the Cal-AgentKit Celo dashboard API base URL and agents endpoint.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -97,7 +97,7 @@ const TOOLS: Json[] = [
   {
     name: "run_celo_agent_task",
     description:
-      "Run a multi-agent Celo pipeline task through the Aegis dashboard API. Streams progress and returns the OrchestratorReport when complete.",
+      "Run a multi-agent Celo pipeline task through the Cal-AgentKit dashboard API. Streams progress and returns the OrchestratorReport when complete.",
     inputSchema: {
       type: "object",
       required: ["task"],
@@ -128,7 +128,7 @@ const TOOLS: Json[] = [
   {
     name: "get_run_receipt",
     description:
-      "Fetch an Aegis Celo run receipt by receiptId. Includes Celo tx hashes and AegisCeloRegistry attestation data.",
+      "Fetch a Cal-AgentKit Celo run receipt by receiptId. Includes Celo tx hashes and AegisCeloRegistry attestation data.",
     inputSchema: {
       type: "object",
       required: ["receiptId"],
@@ -154,7 +154,7 @@ const TOOLS: Json[] = [
   {
     name: "verify_celo_receipt",
     description:
-      "Verify an Aegis Celo run receipt: hash chain integrity + AegisCeloRegistry manifest hash attestation.",
+      "Verify a Cal-AgentKit Celo run receipt: hash chain integrity + AegisCeloRegistry manifest hash attestation.",
     inputSchema: {
       type: "object",
       required: ["receiptId"],
@@ -264,11 +264,11 @@ async function callTool(
     return textResult(manifest);
   }
 
-  if (name === "aegis_celo_endpoint") {
+  if (name === "calagent_celo_endpoint") {
     return textResult({
       baseUrl: BASE_URL,
       agentsUrl: `${BASE_URL}/api/agents?chain=celo`,
-      facilitatorUrl: process.env.AEGIS_CELO_X402_FACILITATOR_URL ?? null,
+      facilitatorUrl: process.env.CALAGENT_CELO_X402_FACILITATOR_URL ?? null,
     });
   }
 

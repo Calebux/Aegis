@@ -40,14 +40,14 @@ const CUSD_ABI = [
 
 function getViemChain(rpcUrl?: string) {
   const network =
-    process.env.AEGIS_CELO_NETWORK ?? process.env.CELO_NETWORK ?? "alfajores";
+    process.env.CALAGENT_CELO_NETWORK ?? process.env.CELO_NETWORK ?? "alfajores";
   if (network === "mainnet") return celo;
   return celoAlfajores;
 }
 
 function getCusdAddress(): Address {
   const network =
-    process.env.AEGIS_CELO_NETWORK ?? process.env.CELO_NETWORK ?? "alfajores";
+    process.env.CALAGENT_CELO_NETWORK ?? process.env.CELO_NETWORK ?? "alfajores";
   return (network === "mainnet" ? CUSD_MAINNET : CUSD_ALFAJORES) as Address;
 }
 
@@ -106,7 +106,7 @@ interface CeloPaymentRequired {
 /**
  * Probe `url`. If the server returns HTTP 402, pay cUSD and retry.
  * Falls back transparently when the server returns 200 directly (dev mode)
- * or when AEGIS_CELO_X402_RECEIVER is not set.
+ * or when CALAGENT_CELO_X402_RECEIVER is not set.
  */
 export async function payAndFetchCelo<T = unknown>(
   url: string,
@@ -126,7 +126,7 @@ export async function payAndFetchCelo<T = unknown>(
   }
 
   const payReq = (await probe.json()) as CeloPaymentRequired;
-  const receiver = process.env.AEGIS_CELO_X402_RECEIVER;
+  const receiver = process.env.CALAGENT_CELO_X402_RECEIVER;
 
   // Dev mode: no receiver configured → pass through
   if (!receiver) {

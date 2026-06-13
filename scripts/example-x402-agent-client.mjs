@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-const baseUrl = (process.env.AEGIS_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
-const chain = process.env.AEGIS_AGENT_CHAIN ?? process.argv[2] ?? "celo";
+const baseUrl = (process.env.CALAGENT_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const chain = process.env.CALAGENT_AGENT_CHAIN ?? process.argv[2] ?? "celo";
 const agentId =
-  process.env.AEGIS_AGENT_ID ?? (chain === "stellar" ? "ledger" : "celo-ledger");
+  process.env.CALAGENT_AGENT_ID ?? (chain === "stellar" ? "ledger" : "celo-ledger");
 const task =
   process.argv.slice(3).join(" ").trim() ||
   `Run a verifiable ${chain} ledger read`;
@@ -14,7 +14,7 @@ async function getJson(path, init) {
   return { res, body };
 }
 
-console.log(`Aegis x402 agent client`);
+console.log(`Cal-AgentKit x402 agent client`);
 console.log(`Base URL: ${baseUrl}`);
 console.log(`Chain: ${chain}`);
 console.log(`Agent: ${agentId}`);

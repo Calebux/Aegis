@@ -3,7 +3,7 @@ set -euo pipefail
 
 : "${CELO_DEPLOYER_PRIVATE_KEY:?Set CELO_DEPLOYER_PRIVATE_KEY}"
 
-NETWORK="${AEGIS_CELO_NETWORK:-alfajores}"
+NETWORK="${CALAGENT_CELO_NETWORK:-alfajores}"
 RPC_URL="${CELO_RPC_URL:-https://alfajores-forno.celo-testnet.org}"
 ADMIN_ADDRESS="${CELO_ADMIN_ADDRESS:-}"
 GAS_PRICE_WEI="${CELO_GAS_PRICE_WEI:-}"
@@ -32,7 +32,7 @@ wait_for_nonce() {
   echo "Timed out waiting for nonce $target_nonce; continuing anyway." >&2
 }
 
-echo "Deploying Aegis Celo contracts"
+echo "Deploying Cal-AgentKit Celo contracts"
 echo "Network: $NETWORK"
 echo "RPC: $RPC_URL"
 echo "Admin: $ADMIN_ADDRESS"
@@ -97,5 +97,5 @@ Add these to your environment:
 CELO_REGISTRY_ADDRESS=$REGISTRY_ADDRESS
 CELO_POLICY_ADDRESS=$POLICY_ADDRESS
 CELO_RPC_URL=$RPC_URL
-AEGIS_CELO_NETWORK=$NETWORK
+CALAGENT_CELO_NETWORK=$NETWORK
 EOF

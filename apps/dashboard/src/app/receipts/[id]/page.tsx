@@ -35,7 +35,7 @@ export default async function ReceiptPage({ params }: PageProps) {
       <div className="module receipt-page-title">
         <h1>Run Receipt</h1>
         <p>
-          Verifiable Aegis agent execution receipt with task/output hashes,
+          Verifiable Cal-AgentKit agent execution receipt with task/output hashes,
           Celo payment traces, policy contracts, and signature status.
         </p>
       </div>

@@ -20,7 +20,7 @@ export default function ReceiptsPage() {
     <div className="receipt-page">
       <div className="module receipt-page-title">
         <h1>Run Receipts</h1>
-        <p>Public proof index for Aegis agent executions.</p>
+        <p>Public proof index for Cal-AgentKit agent executions.</p>
       </div>
 
       <div className="module">
