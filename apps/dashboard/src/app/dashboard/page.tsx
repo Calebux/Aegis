@@ -149,6 +149,12 @@ export default function DashboardPage() {
   const [reputationOnChain, setReputationOnChain] = useState<Record<AgentId, number | null>>({
     "celo-scout": null, "celo-ledger": null, "celo-signal": null, "celo-scribe": null, "celo-executor": null,
   });
+  const [selfVerified, setSelfVerified] = useState<Record<AgentId, boolean>>({
+    "celo-scout": false, "celo-ledger": false, "celo-signal": false, "celo-scribe": false, "celo-executor": false,
+  });
+  const [erc8004Ids, setErc8004Ids] = useState<Record<AgentId, string | null>>({
+    "celo-scout": null, "celo-ledger": null, "celo-signal": null, "celo-scribe": null, "celo-executor": null,
+  });
   const [historyOpen, setHistoryOpen] = useState(false);
   const [taskGraph, setTaskGraph] = useState<TaskGraph | null>(null);
   const [graphStatusMap, setGraphStatusMap] = useState<Partial<Record<GraphAgentType, NodeStatus>>>({});
@@ -184,6 +190,31 @@ export default function DashboardPage() {
     fetchOnChain();
     const id = setInterval(fetchOnChain, 15_000);
     return () => clearInterval(id);
+  }, []);
+
+  // Poll verification status (Self + ERC-8004) on mount
+  useEffect(() => {
+    async function fetchVerification() {
+      const selfMap: Record<AgentId, boolean> = { "celo-scout": false, "celo-ledger": false, "celo-signal": false, "celo-scribe": false, "celo-executor": false };
+      const erc8004Map: Record<AgentId, string | null> = { "celo-scout": null, "celo-ledger": null, "celo-signal": null, "celo-scribe": null, "celo-executor": null };
+      await Promise.all(
+        AGENTS.map(async (agent) => {
+          try {
+            const res = await fetch(`/api/agents/${agent.id}/verify`);
+            if (!res.ok) return;
+            const data = await res.json() as {
+              self?: { verified?: boolean };
+              erc8004?: { registered?: boolean; nftId?: string | null };
+            };
+            if (data.self?.verified) selfMap[agent.id] = true;
+            if (data.erc8004?.registered && data.erc8004?.nftId) erc8004Map[agent.id] = data.erc8004.nftId;
+          } catch { /* non-fatal */ }
+        }),
+      );
+      setSelfVerified(selfMap);
+      setErc8004Ids(erc8004Map);
+    }
+    fetchVerification();
   }, []);
 
   useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [logs]);
@@ -370,6 +401,8 @@ export default function DashboardPage() {
                 txHashes={agentTxHashes[agent.id]}
                 paymentMode={agentPaymentModes[agent.id]}
                 sigTxHash={agentSigTxHashes[agent.id]}
+                selfVerified={selfVerified[agent.id]}
+                erc8004Id={erc8004Ids[agent.id]}
               />
             ))}
           </div>

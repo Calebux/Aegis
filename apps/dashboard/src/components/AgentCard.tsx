@@ -46,13 +46,15 @@ export interface AgentCardProps {
   txHashes?: string[];
   paymentMode?: string;   // "x402" | "session" | "dev" | "notary"
   sigTxHash?: string;
+  selfVerified?: boolean;
+  erc8004Id?: string | null;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────
 
 export function AgentCard({
   index, name, capability, status, wallet, spent, reputation, reputationOnChain,
-  color, isLast, txHashes, paymentMode, sigTxHash,
+  color, isLast, txHashes, paymentMode, sigTxHash, selfVerified, erc8004Id,
 }: AgentCardProps) {
   const repScore  = String(Math.round(reputation / 100)).padStart(3, "0");
   const spentCusd = (spent / 1e18).toFixed(4);
@@ -123,6 +125,18 @@ export function AgentCard({
         }}>
           {capability}
         </span>
+
+        {/* Verification badges */}
+        {selfVerified && (
+          <span className="infra-badge" data-tooltip="Verified via Self Protocol (sybil-resistant)" style={{ color: "#2a8a3a" }}>
+            Self
+          </span>
+        )}
+        {erc8004Id && (
+          <span className="infra-badge" data-tooltip={`ERC-8004 Agent NFT #${erc8004Id}`} style={{ color: "#5060d0" }}>
+            8004
+          </span>
+        )}
 
         {/* Status text */}
         <span style={{

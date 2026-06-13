@@ -97,6 +97,10 @@ export { IdentityRegistry } from "./contracts/registry.js";
 // Celo contract wrappers
 export { CeloIdentityRegistry } from "./contracts/celo-registry.js";
 export { CeloPolicyManager } from "./contracts/celo-policy.js";
+export { Erc8004Adapter } from "./contracts/erc8004-adapter.js";
+
+// Self Protocol
+export { isSelfVerified, selfEnforced, SELF_AGENT_REGISTRY } from "./self-protocol.js";
 
 // LLM Provider
 export {

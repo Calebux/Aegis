@@ -28,6 +28,7 @@
     "smoke:api": "node scripts/api-smoke-test.mjs",
     "publish:manifest-hashes": "npm run build --workspace=packages/agent-kit && node scripts/publish-manifest-hashes.mjs",
     "publish:celo-manifest-hashes": "npm run build --workspace=packages/calagent-chain-celo && node scripts/publish-celo-manifest-hashes.mjs",
+    "publish:erc8004": "node scripts/publish-erc8004-registrations.mjs",
     "deploy:celo-contracts": "cd contracts/celo && bash deploy.sh",
     "dev:horizon": "cd packages/orchestrator && tsx src/services/horizon-x402-server.ts",
     "dev:celo": "tsx packages/agents/src/celo-x402-server.ts",

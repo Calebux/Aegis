@@ -43,6 +43,7 @@ import {
   checkRateLimit,
   getClientIp,
 } from "@/lib/validation";
+import { isSelfVerified, selfEnforced } from "@calebux/agent-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -503,6 +504,20 @@ export async function POST(
         headers: { "Retry-After": String(Math.ceil(rateCheck.retryAfterMs / 1000)) },
       }
     );
+  }
+
+  // Self Protocol sybil check (optional, controlled by CALAGENT_SELF_ENFORCE)
+  if (selfEnforced() && agent.walletAddress) {
+    const verified = await isSelfVerified(agent.walletAddress);
+    if (!verified) {
+      return Response.json(
+        {
+          error: "Agent wallet is not Self Protocol verified",
+          selfRegistry: "0xaC3DF9ABf80d0F5c020C06B04Cced27763355944",
+        },
+        { status: 403 },
+      );
+    }
   }
 
   const isCeloAgent = agent.chain === CELO_CHAIN;

@@ -89,6 +89,40 @@ else
 fi
 echo "$POLICY_OUTPUT"
 POLICY_ADDRESS="$(echo "$POLICY_OUTPUT" | awk '/Deployed to:/ { print $3 }')"
+POLICY_NONCE="$(cast nonce "$DEPLOYER_ADDRESS" --rpc-url "$RPC_URL")"
+wait_for_nonce "$POLICY_NONCE"
+
+# ── ERC-8004 Adapter ──────────────────────────────────────────────────────────
+ERC8004_IDENTITY="${ERC8004_IDENTITY_REGISTRY:-0x8004A169FB4a3325136EB29fA0ceB6D2e539a432}"
+ERC8004_REPUTATION="${ERC8004_REPUTATION_REGISTRY:-0x8004BAa17C55a88189AE136b182e5fdA19dE9b63}"
+
+echo "Deploying Erc8004Adapter..."
+echo "ERC-8004 Identity Registry: $ERC8004_IDENTITY"
+echo "ERC-8004 Reputation Registry: $ERC8004_REPUTATION"
+
+if [[ -n "$GAS_PRICE_WEI" ]]; then
+  ADAPTER_OUTPUT="$(
+    forge create \
+      --rpc-url "$RPC_URL" \
+      --private-key "$CELO_DEPLOYER_PRIVATE_KEY" \
+      --broadcast \
+      --legacy \
+      --gas-price "$GAS_PRICE_WEI" \
+      src/Erc8004Adapter.sol:Erc8004Adapter \
+      --constructor-args "$ADMIN_ADDRESS" "$ERC8004_IDENTITY" "$ERC8004_REPUTATION"
+  )"
+else
+  ADAPTER_OUTPUT="$(
+    forge create \
+      --rpc-url "$RPC_URL" \
+      --private-key "$CELO_DEPLOYER_PRIVATE_KEY" \
+      --broadcast \
+      src/Erc8004Adapter.sol:Erc8004Adapter \
+      --constructor-args "$ADMIN_ADDRESS" "$ERC8004_IDENTITY" "$ERC8004_REPUTATION"
+  )"
+fi
+echo "$ADAPTER_OUTPUT"
+ERC8004_ADAPTER_ADDRESS="$(echo "$ADAPTER_OUTPUT" | awk '/Deployed to:/ { print $3 }')"
 
 cat <<EOF
 
@@ -96,6 +130,7 @@ Add these to your environment:
 
 CELO_REGISTRY_ADDRESS=$REGISTRY_ADDRESS
 CELO_POLICY_ADDRESS=$POLICY_ADDRESS
+ERC8004_ADAPTER_ADDRESS=$ERC8004_ADAPTER_ADDRESS
 CELO_RPC_URL=$RPC_URL
 CALAGENT_CELO_NETWORK=$NETWORK
 EOF
