@@ -34,6 +34,11 @@ import {
   persistTasks,
 } from "@/lib/taskStore";
 import type { Task } from "@calagent/shared";
+import {
+  validateTaskInput,
+  checkRateLimit,
+  getClientIp,
+} from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // Vercel Pro: allow up to 5-min pipeline runs
@@ -53,6 +58,26 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: "task is required" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const validation = validateTaskInput(prompt);
+  if (!validation.valid) {
+    return new Response(JSON.stringify({ error: validation.error }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const ip = getClientIp(req);
+  const rateCheck = checkRateLimit(ip);
+  if (!rateCheck.allowed) {
+    return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again later." }), {
+      status: 429,
+      headers: {
+        "Content-Type": "application/json",
+        "Retry-After": String(Math.ceil(rateCheck.retryAfterMs / 1000)),
+      },
     });
   }
 
@@ -96,6 +121,7 @@ export async function POST(req: NextRequest) {
 
   tasks.set(taskId, task);
   emitters.set(taskId, emitter);
+  persistTasks(); // Persist running task so it survives restarts (marked failed on reload)
 
   // Update subtask statuses based on agent_status events
   emitter.on(
@@ -220,25 +246,50 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      emitter.on("log", (p) => emit("log", p));
-      emitter.on("agent_status", (p) => emit("agent_status", p));
-      emitter.on("wallets", (p) => emit("wallets", p));
-      emitter.on("task:graph", (p) => emit("task:graph", p));
-      emitter.on("receipt", (p) => emit("receipt", p));
+      // Store listener refs so we can clean them up on cancel
+      const onLog = (p: unknown) => emit("log", p);
+      const onAgentStatus = (p: unknown) => emit("agent_status", p);
+      const onWallets = (p: unknown) => emit("wallets", p);
+      const onTaskGraph = (p: unknown) => emit("task:graph", p);
+      const onReceipt = (p: unknown) => emit("receipt", p);
+
+      emitter.on("log", onLog);
+      emitter.on("agent_status", onAgentStatus);
+      emitter.on("wallets", onWallets);
+      emitter.on("task:graph", onTaskGraph);
+      emitter.on("receipt", onReceipt);
+
+      const cleanup = () => {
+        emitter.removeListener("log", onLog);
+        emitter.removeListener("agent_status", onAgentStatus);
+        emitter.removeListener("wallets", onWallets);
+        emitter.removeListener("task:graph", onTaskGraph);
+        emitter.removeListener("receipt", onReceipt);
+      };
 
       emitter.once("complete", (p) => {
         emit("complete", p);
+        cleanup();
         controller.close();
       });
 
       emitter.once("error", (p) => {
         emit("error", p);
+        cleanup();
         controller.close();
       });
+
+      // Expose cleanup for cancel()
+      (controller as unknown as { _sseCleanup: () => void })._sseCleanup = cleanup;
     },
     cancel() {
-      // Client disconnected — emitter listeners will leak until task finishes,
-      // but the task continues running in the background (fire-and-forget)
+      // Client disconnected — clean up SSE listeners to prevent leaks
+      // The pipeline continues running in the background (fire-and-forget)
+      emitter.removeAllListeners("log");
+      emitter.removeAllListeners("agent_status");
+      emitter.removeAllListeners("wallets");
+      emitter.removeAllListeners("task:graph");
+      emitter.removeAllListeners("receipt");
     },
   });
 

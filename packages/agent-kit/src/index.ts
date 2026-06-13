@@ -51,6 +51,39 @@ export {
 export { payAndFetch, submitXlmPayment, agentToAgentPayment } from "./payments.js";
 export { submitCusdPayment, payAndFetchCelo, celoAgentToAgentPayment } from "./payments-celo.js";
 
+// Federation (cross-instance agent routing)
+export {
+  PeerRegistry,
+  routeToPeer,
+  verifyPeerTrust,
+  getHopCount,
+  HOP_COUNT_HEADER,
+  MAX_HOP_COUNT,
+  MIN_PEER_REPUTATION,
+} from "./federation.js";
+export type {
+  PeerInstance,
+  FederatedRouteResult,
+  TrustVerification,
+} from "./federation.js";
+
+// Multi-chain settlement
+export {
+  selectChain,
+  getDefaultChainPreference,
+} from "./settlement.js";
+export type {
+  SettlementChain,
+  SettlementParams,
+  SettlementResult,
+  SettlementProvider,
+  CostEstimate,
+  ChainPreference,
+} from "./settlement.js";
+export { createStellarSettlement } from "./settlement-stellar.js";
+export { createCeloSettlement } from "./settlement-celo.js";
+export { createBaseSettlement, USDC_BASE_MAINNET, USDC_BASE_SEPOLIA } from "./settlement-base.js";
+
 // Soroban contract wrappers
 export { ShieldContract } from "./contracts/shield.js";
 export { IdentityRegistry } from "./contracts/registry.js";

@@ -49,12 +49,34 @@ interface PaymentRequired {
  * payment and retry with the payment receipt as headers.
  * Falls back transparently when the server returns 200 directly (dev mode).
  */
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+
+async function fetchWithRetryInternal(
+  url: string | URL | Request,
+  init?: RequestInit,
+  maxAttempts = 3
+): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const resp = await fetch(url, init);
+      if (resp.ok || !RETRYABLE_STATUS.has(resp.status) || attempt === maxAttempts) return resp;
+      lastError = new Error(`HTTP ${resp.status}`);
+    } catch (err) {
+      if (attempt === maxAttempts) throw err;
+      lastError = err;
+    }
+    await new Promise((r) => setTimeout(r, 200 * 2 ** (attempt - 1)));
+  }
+  throw lastError;
+}
+
 export async function payAndFetch<T = unknown>(
   url: string,
   keypair: Keypair,
   txHashes: string[]
 ): Promise<{ data: T; paymentMode: "x402" | "dev" }> {
-  const probe = await fetch(url);
+  const probe = await fetchWithRetryInternal(url);
 
   if (probe.ok) {
     return { data: (await probe.json()) as T, paymentMode: "dev" };
@@ -65,10 +87,11 @@ export async function payAndFetch<T = unknown>(
   }
 
   const { payTo, amount, nonce } = (await probe.json()) as PaymentRequired;
+  // NOT retried — submitTransaction is not idempotent
   const txHash = await submitXlmPayment(keypair, payTo, amount);
   txHashes.push(txHash);
 
-  const resp = await fetch(url, {
+  const resp = await fetchWithRetryInternal(url, {
     headers: { "x-payment-tx-hash": txHash, "x-payment-nonce": nonce },
   });
   if (!resp.ok) {

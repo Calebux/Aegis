@@ -26,6 +26,8 @@ import { getHorizonServer } from "@calagent/shared";
 import Anthropic from "@anthropic-ai/sdk";
 import { bus } from "../lib/bus.js";
 import { publishSigned } from "../lib/signer.js";
+import { withTimeout } from "../lib/timeout.js";
+import { withRetry } from "../lib/retry.js";
 
 // ---------------------------------------------------------------------------
 // x402 signer
@@ -248,18 +250,20 @@ export class ScoutAgent {
 
   private async decompose(task: string): Promise<string[]> {
     try {
-      const anthropic = new Anthropic();
-      const response = await anthropic.messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 512,
-        system: DECOMPOSE_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: task }],
-      });
-      const text =
-        response.content[0].type === "text" ? response.content[0].text : "[]";
-      const subtasks = JSON.parse(text) as unknown;
-      if (!Array.isArray(subtasks)) return [task];
-      return (subtasks as string[]).slice(0, 4);
+      return await withTimeout(async () => {
+        const anthropic = new Anthropic();
+        const response = await anthropic.messages.create({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 512,
+          system: DECOMPOSE_SYSTEM_PROMPT,
+          messages: [{ role: "user", content: task }],
+        });
+        const text =
+          response.content[0].type === "text" ? response.content[0].text : "[]";
+        const subtasks = JSON.parse(text) as unknown;
+        if (!Array.isArray(subtasks)) return [task];
+        return (subtasks as string[]).slice(0, 4);
+      }, 15_000, "scout:decompose");
     } catch {
       return [task];
     }
@@ -321,11 +325,14 @@ export class ScoutLiteAgent {
 
     try {
       const client = new LinkupClient({ apiKey });
-      const response = await client.search({
-        query,
-        depth: "standard",
-        outputType: "sourcedAnswer",
-      });
+      const response = await withTimeout(
+        () => withRetry(
+          () => client.search({ query, depth: "standard", outputType: "sourcedAnswer" }),
+          { maxAttempts: 3, label: `${this.id}:linkup` }
+        ),
+        30_000,
+        `${this.id}:search`
+      );
 
       return {
         items: [{ query, answer: response.answer }],
@@ -400,11 +407,14 @@ export async function runScout(
   let sources: { name: string; url: string }[];
 
   try {
-    const response = await client.search({
-      query,
-      depth: "deep",
-      outputType: "sourcedAnswer",
-    });
+    const response = await withTimeout(
+      () => withRetry(
+        () => client.search({ query, depth: "deep", outputType: "sourcedAnswer" }),
+        { maxAttempts: 3, label: "scout:linkup" }
+      ),
+      30_000,
+      "scout:search"
+    );
 
     answer = response.answer;
     sources = response.sources

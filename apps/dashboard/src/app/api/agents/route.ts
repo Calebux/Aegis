@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { AgentDiscoveryQuery } from "@calebux/agent-kit";
-import { queryAgentManifests } from "@/lib/agentRegistry";
+import { queryAgentManifests, buildFederatedManifests } from "@/lib/agentRegistry";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,14 @@ function parseQuery(req: NextRequest): AgentDiscoveryQuery {
 }
 
 export async function GET(req: NextRequest) {
-  const agents = queryAgentManifests(parseQuery(req));
+  const includeFederated = req.nextUrl.searchParams.get("federated") === "true";
+
+  let agents;
+  if (includeFederated) {
+    agents = await buildFederatedManifests();
+  } else {
+    agents = queryAgentManifests(parseQuery(req));
+  }
 
   return NextResponse.json({
     count: agents.length,

@@ -23,8 +23,15 @@ import * as path from "path";
 import { EventEmitter } from "events";
 import { Keypair, SorobanRpc } from "@stellar/stellar-sdk";
 import { fundTestnetAccount } from "@calagent/shared";
-import { ShieldContract, IdentityRegistry } from "@calebux/agent-kit";
-import type { OrchestratorReport } from "@calebux/agent-kit";
+import {
+  ShieldContract,
+  IdentityRegistry,
+  createStellarSettlement,
+  createCeloSettlement,
+  createBaseSettlement,
+  getDefaultChainPreference,
+} from "@calebux/agent-kit";
+import type { OrchestratorReport, SettlementProvider } from "@calebux/agent-kit";
 
 import { bus, type AgentMessage, type AgentTopic } from "./lib/bus.js";
 import { generateTaskGraph, graphHasAgent, type TaskGraph } from "./orchestrator/planner.js";
@@ -361,6 +368,24 @@ export async function runTask(
   emit("log", { message: "   Scribe wired (waiting for consensus)", level: "info" });
 
   const executorAgent = new ExecutorAgent();
+
+  // Wire multi-chain settlement provider if SETTLEMENT_CHAIN is configured
+  const chainPref = getDefaultChainPreference();
+  let settlementProvider: SettlementProvider | undefined;
+  if (chainPref === "celo" && process.env.CELO_DEPLOYER_PRIVATE_KEY) {
+    settlementProvider = createCeloSettlement(process.env.CELO_DEPLOYER_PRIVATE_KEY as `0x${string}`);
+    emit("log", { message: "   Settlement: Celo (cUSD)", level: "info" });
+  } else if (chainPref === "base" && process.env.BASE_DEPLOYER_PRIVATE_KEY) {
+    settlementProvider = createBaseSettlement(process.env.BASE_DEPLOYER_PRIVATE_KEY as `0x${string}`);
+    emit("log", { message: "   Settlement: Base (USDC)", level: "info" });
+  } else {
+    settlementProvider = createStellarSettlement(executorKp);
+    emit("log", { message: "   Settlement: Stellar (XLM)", level: "info" });
+  }
+  if (settlementProvider) {
+    executorAgent.setSettlementProvider(settlementProvider);
+  }
+
   executorAgent.wire(runId, executorKp);
   emit("agent_status", { agent: "executor", status: "running" });
   emit("log", { message: "   Executor wired (waiting for consensus — will execute treasury action)", level: "info" });

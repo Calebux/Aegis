@@ -12,7 +12,8 @@ import {
   type OrchestratorReport,
   type RunReceipt,
 } from "@calebux/agent-kit";
-import { buildAgentManifests } from "@/lib/agentRegistry";
+import { buildAgentManifests, findPeerForAgent } from "@/lib/agentRegistry";
+import { routeToPeer, getHopCount } from "@calebux/agent-kit";
 import {
   buildStellarX402Requirement,
   facilitatorUrl,
@@ -37,6 +38,11 @@ import {
   receiptOutputs,
   receipts,
 } from "@/lib/taskStore";
+import {
+  validateTaskInput,
+  checkRateLimit,
+  getClientIp,
+} from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 
@@ -433,6 +439,40 @@ export async function POST(
   const agent = buildAgentManifests().find((candidate) => candidate.id === id);
 
   if (!agent) {
+    // Federation fallback: check if a peer instance hosts this agent
+    const peerUrl = await findPeerForAgent(id);
+    if (peerUrl) {
+      const hopCount = getHopCount(Object.fromEntries(req.headers.entries()));
+      const forwardHeaders: Record<string, string> = {};
+      const paymentSig =
+        req.headers.get("PAYMENT-SIGNATURE") ??
+        req.headers.get("x-payment-signature") ??
+        req.headers.get("x-payment");
+      if (paymentSig) forwardHeaders["PAYMENT-SIGNATURE"] = paymentSig;
+
+      let proxyBody: RunBody;
+      try {
+        proxyBody = (await req.json()) as RunBody;
+      } catch {
+        return Response.json({ error: "Invalid JSON" }, { status: 400 });
+      }
+
+      const result = await routeToPeer({
+        peerUrl,
+        agentId: id,
+        task: (proxyBody.task ?? "").trim(),
+        currentHopCount: hopCount,
+        forwardHeaders,
+      });
+
+      if (result.proxied && result.response) {
+        return Response.json(result.response);
+      }
+      return Response.json(
+        { error: result.error ?? `Agent not found: ${id}` },
+        { status: 404 }
+      );
+    }
     return Response.json({ error: `Agent not found: ${id}` }, { status: 404 });
   }
 
@@ -446,6 +486,23 @@ export async function POST(
   const task = (body.task ?? "").trim();
   if (!task) {
     return Response.json({ error: "task is required" }, { status: 400 });
+  }
+
+  const validation = validateTaskInput(task);
+  if (!validation.valid) {
+    return Response.json({ error: validation.error }, { status: 400 });
+  }
+
+  const ip = getClientIp(req);
+  const rateCheck = checkRateLimit(ip);
+  if (!rateCheck.allowed) {
+    return Response.json(
+      { error: "Rate limit exceeded. Try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.ceil(rateCheck.retryAfterMs / 1000)) },
+      }
+    );
   }
 
   const isCeloAgent = agent.chain === CELO_CHAIN;

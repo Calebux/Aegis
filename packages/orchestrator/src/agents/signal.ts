@@ -29,6 +29,8 @@ import {
 import { keypairFromSecret, getHorizonServer } from "@calagent/shared";
 import { bus, type AgentMessage } from "../lib/bus.js";
 import { publishSigned } from "../lib/signer.js";
+import { withTimeout } from "../lib/timeout.js";
+import { fetchWithRetry } from "../lib/retry.js";
 
 // ── Network helper ────────────────────────────────────────────────────────────
 
@@ -159,68 +161,70 @@ export class SignalAgent {
       process.env.HORIZON_X402_SERVER_URL ?? "http://localhost:3001";
 
     try {
-      // Get payee from manifest
-      const payee = await this.getPayee(serverUrl);
+      return await withTimeout(async () => {
+        // Get payee from manifest
+        const payee = await this.getPayee(serverUrl);
 
-      if (!payee || payee === "not-configured") {
-        // Dev mode — open a free session
-        return this.openDevSession(serverUrl);
-      }
-
-      // Pay for 3 queries upfront
-      const sessionTxHash = await this.submitPayment(
-        payee,
-        (Number(PAYMENT_XLM_PER_QUERY) * 3).toFixed(7)
-      );
-      console.log(
-        `   [signal] 💸 Session payment: ${(Number(PAYMENT_XLM_PER_QUERY) * 3).toFixed(3)} XLM → ${payee.slice(0, 8)}… tx:${sessionTxHash.slice(0, 12)}…`
-      );
-
-      // Open session
-      const openResp = await fetch(`${serverUrl}/session/open`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ txHash: sessionTxHash, queries: 3 }),
-      });
-
-      if (!openResp.ok) {
-        throw new Error(
-          `[signal] Session open failed: ${openResp.status}`
-        );
-      }
-
-      const { sessionToken } = (await openResp.json()) as {
-        sessionToken: string;
-      };
-      console.log(
-        `   [signal] 💳 Payment channel opened — 3 queries prepaid (session:${sessionToken.slice(0, 8)}…)`
-      );
-
-      // Fetch 3 market snapshots with the session token
-      const snapshots: MarketData[] = [];
-      for (let i = 0; i < 3; i++) {
-        try {
-          const resp = await fetch(`${serverUrl}/market-data`, {
-            headers: { "x-session-token": sessionToken },
-          });
-          if (resp.ok) {
-            snapshots.push((await resp.json()) as MarketData);
-          }
-        } catch {
-          // Skip failed snapshot
+        if (!payee || payee === "not-configured") {
+          // Dev mode — open a free session
+          return this.openDevSession(serverUrl);
         }
-      }
 
-      const marketData =
-        snapshots.length > 0 ? this.averageSnapshots(snapshots) : this.emptyMarketData();
+        // Pay for 3 queries upfront — NOT retried (not idempotent)
+        const sessionTxHash = await this.submitPayment(
+          payee,
+          (Number(PAYMENT_XLM_PER_QUERY) * 3).toFixed(7)
+        );
+        console.log(
+          `   [signal] 💸 Session payment: ${(Number(PAYMENT_XLM_PER_QUERY) * 3).toFixed(3)} XLM → ${payee.slice(0, 8)}… tx:${sessionTxHash.slice(0, 12)}…`
+        );
 
-      return {
-        marketData,
-        txHash: sessionTxHash,
-        txHashes: [sessionTxHash],
-        vouchers: snapshots.length,
-        paymentMode: "session",
-      };
+        // Open session
+        const openResp = await fetchWithRetry(`${serverUrl}/session/open`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ txHash: sessionTxHash, queries: 3 }),
+        }, { label: "signal:session-open" });
+
+        if (!openResp.ok) {
+          throw new Error(
+            `[signal] Session open failed: ${openResp.status}`
+          );
+        }
+
+        const { sessionToken } = (await openResp.json()) as {
+          sessionToken: string;
+        };
+        console.log(
+          `   [signal] 💳 Payment channel opened — 3 queries prepaid (session:${sessionToken.slice(0, 8)}…)`
+        );
+
+        // Fetch 3 market snapshots with the session token
+        const snapshots: MarketData[] = [];
+        for (let i = 0; i < 3; i++) {
+          try {
+            const resp = await fetchWithRetry(`${serverUrl}/market-data`, {
+              headers: { "x-session-token": sessionToken },
+            }, { label: `signal:snapshot-${i}` });
+            if (resp.ok) {
+              snapshots.push((await resp.json()) as MarketData);
+            }
+          } catch {
+            // Skip failed snapshot
+          }
+        }
+
+        const marketData =
+          snapshots.length > 0 ? this.averageSnapshots(snapshots) : this.emptyMarketData();
+
+        return {
+          marketData,
+          txHash: sessionTxHash,
+          txHashes: [sessionTxHash],
+          vouchers: snapshots.length,
+          paymentMode: "session" as const,
+        };
+      }, 45_000, "signal:paymentChannel");
     } catch (err) {
       console.warn(
         "[signal] Payment channel failed, trying x402:",
@@ -239,11 +243,11 @@ export class SignalAgent {
     paymentMode: "dev";
   }> {
     try {
-      const openResp = await fetch(`${serverUrl}/session/open`, {
+      const openResp = await fetchWithRetry(`${serverUrl}/session/open`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ queries: 3 }),
-      });
+      }, { label: "signal:dev-session-open" });
 
       if (!openResp.ok) throw new Error("session/open failed");
 
@@ -255,9 +259,9 @@ export class SignalAgent {
       const snapshots: MarketData[] = [];
       for (let i = 0; i < 3; i++) {
         try {
-          const resp = await fetch(`${serverUrl}/market-data`, {
+          const resp = await fetchWithRetry(`${serverUrl}/market-data`, {
             headers: { "x-session-token": sessionToken },
-          });
+          }, { label: `signal:dev-snapshot-${i}` });
           if (resp.ok) snapshots.push((await resp.json()) as MarketData);
         } catch { /* ignore */ }
       }
@@ -284,7 +288,7 @@ export class SignalAgent {
     paymentMode: "x402" | "dev" | "direct";
   }> {
     try {
-      const probe = await fetch(`${serverUrl}/market-data`);
+      const probe = await fetchWithRetry(`${serverUrl}/market-data`, undefined, { label: "signal:x402-probe" });
 
       if (probe.status === 402) {
         const payReq = (await probe.json()) as {
@@ -293,15 +297,16 @@ export class SignalAgent {
           nonce: string;
         };
 
+        // NOT retried (not idempotent)
         const txHash = await this.submitPayment(payReq.payTo, payReq.amount);
         console.log("💳 x402 payment authorized");
 
-        const dataResp = await fetch(`${serverUrl}/market-data`, {
+        const dataResp = await fetchWithRetry(`${serverUrl}/market-data`, {
           headers: {
             "x-payment-tx-hash": txHash,
             "x-payment-nonce": payReq.nonce,
           },
-        });
+        }, { label: "signal:x402-data" });
 
         if (!dataResp.ok) {
           throw new Error(`[signal] x402 retry failed: ${dataResp.status}`);
@@ -312,7 +317,7 @@ export class SignalAgent {
           txHash,
           txHashes: [txHash],
           vouchers: 1,
-          paymentMode: "x402",
+          paymentMode: "x402" as const,
         };
       }
 
@@ -323,7 +328,7 @@ export class SignalAgent {
           txHash: "dev-no-payment",
           txHashes: [],
           vouchers: 1,
-          paymentMode: "dev",
+          paymentMode: "dev" as const,
         };
       }
 
@@ -540,8 +545,29 @@ export class SignalAgent {
       this.keypair = keypair;
     }
 
+    // 90s accumulator timeout — don't wait forever for scout/ledger
+    const accumulatorTimeout = setTimeout(() => {
+      if (!required.every((t) => received.has(t))) {
+        const missing = required.filter((t) => !received.has(t)).join(", ");
+        console.warn(`[signal] Accumulator timed out waiting for: ${missing}`);
+        bus.publish({
+          topic: "signal:complete",
+          agentId: "signal",
+          runId,
+          payload: {
+            analysis: `Signal timed out waiting for upstream agents: ${missing}`,
+            confidence: 0.2,
+            conflictDetected: false,
+          },
+          confidence: 0.2,
+          timestamp: Date.now(),
+        });
+      }
+    }, 90_000);
+
     const tryRun = async () => {
       if (!required.every((t) => received.has(t))) return;
+      clearTimeout(accumulatorTimeout);
       const scoutMsg = received.get("scout:complete")!;
       const ledgerMsg = received.get("ledger:complete")!;
       await this.runBus({ runId, scoutPayload: scoutMsg.payload, ledgerPayload: ledgerMsg.payload, taskPrompt });

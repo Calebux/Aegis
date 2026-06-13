@@ -1,6 +1,7 @@
 import {
   createAgentManifest,
   discoverAgents,
+  PeerRegistry,
   type AgentDefinition,
   type AgentDiscoveryQuery,
   type AgentManifest,
@@ -128,4 +129,32 @@ export function queryAgentManifests(query: AgentDiscoveryQuery = {}): AgentManif
     query,
     Object.fromEntries(lastReputation.entries())
   );
+}
+
+// ── Peer Registry (Federation) ───────────────────────────────────────────────
+
+/** Singleton peer registry — loaded from CALAGENT_PEERS env var */
+export const peerRegistry = new PeerRegistry();
+peerRegistry.loadFromEnv();
+
+/**
+ * Get all manifests including federated peers.
+ * Returns local manifests first, then peer manifests.
+ */
+export async function buildFederatedManifests(): Promise<AgentManifest[]> {
+  return peerRegistry.discoverAll(buildAgentManifests());
+}
+
+/**
+ * Find which peer hosts a given agent ID.
+ * Returns undefined if the agent is local or not found.
+ */
+export async function findPeerForAgent(
+  agentId: string
+): Promise<string | undefined> {
+  const all = await peerRegistry.discoverAll(buildAgentManifests());
+  const match = all.find(
+    (m) => m.id === agentId && (m as { _peerUrl?: string })._peerUrl
+  );
+  return (match as { _peerUrl?: string } | undefined)?._peerUrl;
 }

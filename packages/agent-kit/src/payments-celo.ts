@@ -108,13 +108,35 @@ interface CeloPaymentRequired {
  * Falls back transparently when the server returns 200 directly (dev mode)
  * or when CALAGENT_CELO_X402_RECEIVER is not set.
  */
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+
+async function fetchWithRetryInternal(
+  url: string | URL | Request,
+  init?: RequestInit,
+  maxAttempts = 3
+): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const resp = await fetch(url, init);
+      if (resp.ok || !RETRYABLE_STATUS.has(resp.status) || attempt === maxAttempts) return resp;
+      lastError = new Error(`HTTP ${resp.status}`);
+    } catch (err) {
+      if (attempt === maxAttempts) throw err;
+      lastError = err;
+    }
+    await new Promise((r) => setTimeout(r, 200 * 2 ** (attempt - 1)));
+  }
+  throw lastError;
+}
+
 export async function payAndFetchCelo<T = unknown>(
   url: string,
   account: Account,
   txHashesArr: string[],
   rpcUrl?: string
 ): Promise<{ data: T; paymentMode: "x402" | "dev" }> {
-  const probe = await fetch(url);
+  const probe = await fetchWithRetryInternal(url);
 
   // Dev mode: server skipped the payment gate
   if (probe.ok) {
@@ -130,7 +152,7 @@ export async function payAndFetchCelo<T = unknown>(
 
   // Dev mode: no receiver configured → pass through
   if (!receiver) {
-    const retryResp = await fetch(url, {
+    const retryResp = await fetchWithRetryInternal(url, {
       headers: { "x-payment-tx-hash": "dev-no-payment" },
     });
     if (!retryResp.ok) throw new Error(`Data fetch failed: ${retryResp.status}`);
@@ -148,10 +170,11 @@ export async function payAndFetchCelo<T = unknown>(
     amountCusd = payReq.amount ?? "0.001";
   }
 
+  // NOT retried — submitCusdPayment is not idempotent
   const txHash = await submitCusdPayment(account, payTo, amountCusd, rpcUrl);
   txHashesArr.push(txHash);
 
-  const resp = await fetch(url, {
+  const resp = await fetchWithRetryInternal(url, {
     headers: {
       "x-payment-tx-hash": txHash,
       "x-payment-nonce": payReq.nonce ?? "",

@@ -77,12 +77,12 @@ function reviver(_key: string, value: unknown): unknown {
   return value;
 }
 
-/** Write completed/failed tasks to disk. */
+/** Write completed/failed/running tasks to disk. */
 export function persistTasks(): void {
   try {
     ensureStorageDir();
     const toSave = Array.from(tasks.values()).filter(
-      (t) => t.status === "completed" || t.status === "failed"
+      (t) => t.status === "completed" || t.status === "failed" || t.status === "running"
     );
     fs.writeFileSync(PERSIST_PATH, JSON.stringify(toSave, replacer), "utf8");
   } catch (err) {
@@ -117,15 +117,22 @@ export function persistReceiptOutputs(): void {
 }
 
 // Load persisted tasks on startup (runs once when module is first imported).
+// Mark stale "running" tasks as "failed" — the pipeline was interrupted.
 (function loadTasks(): void {
   try {
     if (!fs.existsSync(PERSIST_PATH)) return;
     const raw = fs.readFileSync(PERSIST_PATH, "utf8");
     const arr = JSON.parse(raw, reviver) as Task[];
+    let staleCount = 0;
     for (const t of arr) {
+      if (t.status === "running") {
+        t.status = "failed";
+        t.completedAt = new Date();
+        staleCount++;
+      }
       tasks.set(t.id, t);
     }
-    console.log(`[taskStore] Loaded ${arr.length} persisted task(s)`);
+    console.log(`[taskStore] Loaded ${arr.length} persisted task(s)${staleCount > 0 ? ` (${staleCount} stale running → failed)` : ""}`);
   } catch (err) {
     console.warn("[taskStore] Could not load persisted tasks:", err);
   }
