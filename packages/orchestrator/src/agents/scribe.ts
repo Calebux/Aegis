@@ -11,6 +11,7 @@ import { keypairFromSecret } from "@calagent/shared";
 import { Keypair } from "@stellar/stellar-sdk";
 import { bus } from "../lib/bus.js";
 import { agentToAgentPayment } from "@calebux/agent-kit";
+import type { LLMProvider } from "@calebux/agent-kit";
 import { publishSigned } from "../lib/signer.js";
 
 interface AgentContribution {
@@ -22,9 +23,11 @@ interface AgentContribution {
 export class ScribeAgent {
   private readonly anthropic: Anthropic;
   private readonly keypair: ReturnType<typeof keypairFromSecret> | null;
+  private readonly llm?: LLMProvider;
 
-  constructor() {
+  constructor(llm?: LLMProvider) {
     this.anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    this.llm = llm;
     const secret = process.env.SCRIBE_SECRET_KEY;
     this.keypair = secret ? keypairFromSecret(secret) : null;
   }
@@ -49,13 +52,7 @@ export class ScribeAgent {
       .map((c) => `- ${c.agentId}: ${(Number(c.spentStroops) / 1e7).toFixed(4)} XLM`)
       .join("\n");
 
-    const response = await this.anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1800,
-      messages: [
-        {
-          role: "user",
-          content: `You are Scribe, the report-writing agent in the Cal-AgentKit multi-agent system.
+    const userContent = `You are Scribe, the report-writing agent in the Cal-AgentKit multi-agent system.
 Given the following research contributions from specialised sub-agents,
 write a concise, well-structured report that addresses the original task.
 Include key findings, data points, and actionable insights.
@@ -74,13 +71,24 @@ ${context}
 ${spendSummary}
 Total: ${totalXlm.toFixed(4)} XLM paid for data access
 
-## Report`,
-        },
-      ],
-    });
+## Report`;
 
-    const text =
-      response.content[0].type === "text" ? response.content[0].text : "";
+    let text: string;
+
+    if (this.llm) {
+      const result = await this.llm.chat(
+        [{ role: "user", content: userContent }],
+        { model: "claude-sonnet-4-6", maxTokens: 1800 }
+      );
+      text = result.text;
+    } else {
+      const response = await this.anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1800,
+        messages: [{ role: "user", content: userContent }],
+      });
+      text = response.content[0].type === "text" ? response.content[0].text : "";
+    }
     console.log("[scribe] Report synthesised successfully");
     return text;
   }

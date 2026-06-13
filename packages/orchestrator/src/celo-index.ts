@@ -24,7 +24,7 @@ import { EventEmitter } from "events";
 import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
 import type { Account, Address } from "viem";
 import { CeloIdentityRegistry } from "@calebux/agent-kit";
-import type { OrchestratorReport } from "@calebux/agent-kit";
+import type { OrchestratorReport, LLMProvider } from "@calebux/agent-kit";
 
 import { bus, type AgentMessage, type AgentTopic } from "./lib/bus.js";
 import { ConsensusManager } from "./agents/consensus.js";
@@ -144,7 +144,8 @@ function bridgeBusToEmitter(msg: AgentMessage, emit: EmitFn): void {
 
 export async function runCeloTask(
   prompt: string,
-  emitter?: EventEmitter
+  emitter?: EventEmitter,
+  llmProvider?: LLMProvider
 ): Promise<OrchestratorReport> {
   const emit = makeEmit(emitter);
 
@@ -263,10 +264,10 @@ export async function runCeloTask(
   signalAgent.wire(runId, signalAccount, prompt);
   emit("log", { message: "   Celo Signal wired (waiting for Scout + Ledger)", level: "info" });
 
-  const consensusManager = new ConsensusManager();
+  const consensusManager = new ConsensusManager(llmProvider);
   consensusManager.wire(runId, undefined, undefined, false);
 
-  const scribeAgent = new CeloScribeAgent();
+  const scribeAgent = new CeloScribeAgent(llmProvider);
   scribeAgent.wire(runId, scribeAccount, scoutAccount.address as Address);
   emit("log", { message: "   Celo Scribe wired (waiting for consensus)", level: "info" });
 
@@ -287,7 +288,7 @@ export async function runCeloTask(
   emit("agent_status", { agent: "celo-signal", status: "running", timestamp: Date.now() });
   emit("agent_status", { agent: "celo-scribe", status: "running", timestamp: Date.now() });
 
-  const scoutAgent  = new CeloScoutAgent();
+  const scoutAgent  = new CeloScoutAgent(llmProvider);
   const ledgerAgent = new CeloLedgerAgent();
 
   await Promise.all([

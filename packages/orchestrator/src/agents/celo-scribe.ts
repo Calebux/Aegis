@@ -9,6 +9,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Account, Address } from "viem";
 import { celoAgentToAgentPayment } from "@calebux/agent-kit";
+import type { LLMProvider } from "@calebux/agent-kit";
 import { bus } from "../lib/bus.js";
 
 // ── CeloScribeAgent ───────────────────────────────────────────────────────────
@@ -17,23 +18,19 @@ export class CeloScribeAgent {
   private account: Account | null = null;
   private scoutAddress: Address | null = null;
   private readonly anthropic: Anthropic;
+  private readonly llm?: LLMProvider;
 
-  constructor() {
+  constructor(llm?: LLMProvider) {
     this.anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    this.llm = llm;
   }
 
   private async synthesise(
     agreedOutput: string
   ): Promise<string> {
     console.log("[celo-scribe] Synthesising report via Claude…");
-    try {
-      const response = await this.anthropic.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1800,
-        messages: [
-          {
-            role: "user",
-            content: `You are Scribe, the report-writing agent in the Cal-AgentKit multi-agent system running on Celo.
+
+    const userContent = `You are Scribe, the report-writing agent in the Cal-AgentKit multi-agent system running on Celo.
 Given the following multi-agent consensus output, write a concise, well-structured report.
 Include key findings, data points, and actionable insights relevant to the Celo/stablecoin ecosystem.
 
@@ -42,13 +39,26 @@ At the end, include a brief "## Settlement" section noting that all agent paymen
 ## Consensus Output
 ${agreedOutput}
 
-## Report`,
-          },
-        ],
-      });
+## Report`;
 
-      const text =
-        response.content[0].type === "text" ? response.content[0].text : agreedOutput;
+    try {
+      let text: string;
+
+      if (this.llm) {
+        const result = await this.llm.chat(
+          [{ role: "user", content: userContent }],
+          { model: "claude-sonnet-4-6", maxTokens: 1800 }
+        );
+        text = result.text;
+      } else {
+        const response = await this.anthropic.messages.create({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1800,
+          messages: [{ role: "user", content: userContent }],
+        });
+        text = response.content[0].type === "text" ? response.content[0].text : agreedOutput;
+      }
+
       console.log("[celo-scribe] ✅ Report synthesised");
       return text;
     } catch (err) {

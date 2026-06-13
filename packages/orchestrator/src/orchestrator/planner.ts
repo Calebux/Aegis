@@ -8,6 +8,7 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import type { LLMProvider } from "@calebux/agent-kit";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -82,27 +83,36 @@ const DEFAULT_GRAPH: TaskNode[] = [
  * Generate a task graph for the given prompt.
  * Uses claude-haiku for speed. Falls back to a 4-node default on any error.
  */
-export async function generateTaskGraph(prompt: string): Promise<TaskGraph> {
+export async function generateTaskGraph(prompt: string, llm?: LLMProvider): Promise<TaskGraph> {
   const runId = crypto.randomUUID();
-  const client = new Anthropic();
 
   let nodes: TaskNode[] = DEFAULT_GRAPH;
 
   try {
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1024,
-      system: PLANNER_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: `Generate a task graph for this request: "${prompt}"`,
-        },
-      ],
-    });
+    let raw: string;
 
-    const raw =
-      response.content[0].type === "text" ? response.content[0].text.trim() : "";
+    if (llm) {
+      const result = await llm.chat(
+        [{ role: "user", content: `Generate a task graph for this request: "${prompt}"` }],
+        { model: "claude-haiku-4-5-20251001", maxTokens: 1024, system: PLANNER_SYSTEM_PROMPT }
+      );
+      raw = result.text.trim();
+    } else {
+      const client = new Anthropic();
+      const response = await client.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 1024,
+        system: PLANNER_SYSTEM_PROMPT,
+        messages: [
+          {
+            role: "user",
+            content: `Generate a task graph for this request: "${prompt}"`,
+          },
+        ],
+      });
+      raw = response.content[0].type === "text" ? response.content[0].text.trim() : "";
+    }
+
     // Strip optional ```json ... ``` fences that some models add despite the prompt
     const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
 

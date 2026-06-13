@@ -31,7 +31,7 @@ import {
   createBaseSettlement,
   getDefaultChainPreference,
 } from "@calebux/agent-kit";
-import type { OrchestratorReport, SettlementProvider } from "@calebux/agent-kit";
+import type { OrchestratorReport, SettlementProvider, LLMProvider } from "@calebux/agent-kit";
 
 import { bus, type AgentMessage, type AgentTopic } from "./lib/bus.js";
 import { generateTaskGraph, graphHasAgent, type TaskGraph } from "./orchestrator/planner.js";
@@ -175,7 +175,8 @@ let horizonServerStarted = false;
 
 export async function runTask(
   prompt: string,
-  emitter?: EventEmitter
+  emitter?: EventEmitter,
+  llmProvider?: LLMProvider
 ): Promise<OrchestratorReport> {
   // Skip port-binding on Vercel serverless (VERCEL env is set automatically)
   if (!horizonServerStarted && !process.env.VERCEL) {
@@ -201,7 +202,7 @@ export async function runTask(
   });
   emit("log", { message: "🗺️  Generating task graph…", level: "info" });
 
-  const graph: TaskGraph = await generateTaskGraph(prompt);
+  const graph: TaskGraph = await generateTaskGraph(prompt, llmProvider);
   const runId = graph.runId;
 
   // Emit graph to dashboard (new SSE event type for TaskGraph visual)
@@ -351,7 +352,7 @@ export async function runTask(
   signalAgent.wire(runId, signalKp, prompt);
   emit("log", { message: "   Signal wired (waiting for Scout + Ledger)", level: "info" });
 
-  const consensusManager = new ConsensusManager();
+  const consensusManager = new ConsensusManager(llmProvider);
   const consensusKeypairs = new Map<string, Keypair>([
     ["signal",    signalKp],
     ["validator", Keypair.random()],   // placeholder — validator uses its own ephemeral kp
@@ -363,7 +364,7 @@ export async function runTask(
     needsValidator   // reputation-gated: probation tier forces Validator regardless of confidence
   );
 
-  const scribeAgent = new ScribeAgent();
+  const scribeAgent = new ScribeAgent(llmProvider);
   scribeAgent.wire(runId, scribeKp, scoutKp.publicKey());
   emit("log", { message: "   Scribe wired (waiting for consensus)", level: "info" });
 
@@ -401,7 +402,7 @@ export async function runTask(
   emit("agent_status", { agent: "signal", status: "running" });
   emit("agent_status", { agent: "scribe", status: "running" });
 
-  const scoutAgent  = new ScoutAgent();
+  const scoutAgent  = new ScoutAgent(undefined, llmProvider);
   const ledgerAgent = new LedgerAgent();
 
   await Promise.all([

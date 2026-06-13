@@ -24,6 +24,7 @@ import {
 import { LinkupClient } from "linkup-sdk";
 import { getHorizonServer } from "@calagent/shared";
 import Anthropic from "@anthropic-ai/sdk";
+import type { LLMProvider } from "@calebux/agent-kit";
 import { bus } from "../lib/bus.js";
 import { publishSigned } from "../lib/signer.js";
 import { withTimeout } from "../lib/timeout.js";
@@ -136,8 +137,10 @@ export class ScoutAgent {
   private readonly keypair: Keypair | null;
   private readonly shieldContractId: string | undefined;
   private readonly registryContractId: string | undefined;
+  private readonly llm?: LLMProvider;
 
-  constructor(config?: ScoutAgentConfig) {
+  constructor(config?: ScoutAgentConfig, llm?: LLMProvider) {
+    this.llm = llm;
     if (config) {
       this.keypair = config.keypair;
       this.shieldContractId = config.shieldContractId;
@@ -251,15 +254,23 @@ export class ScoutAgent {
   private async decompose(task: string): Promise<string[]> {
     try {
       return await withTimeout(async () => {
-        const anthropic = new Anthropic();
-        const response = await anthropic.messages.create({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 512,
-          system: DECOMPOSE_SYSTEM_PROMPT,
-          messages: [{ role: "user", content: task }],
-        });
-        const text =
-          response.content[0].type === "text" ? response.content[0].text : "[]";
+        let text: string;
+        if (this.llm) {
+          const result = await this.llm.chat(
+            [{ role: "user", content: task }],
+            { model: "claude-haiku-4-5-20251001", maxTokens: 512, system: DECOMPOSE_SYSTEM_PROMPT }
+          );
+          text = result.text;
+        } else {
+          const anthropic = new Anthropic();
+          const response = await anthropic.messages.create({
+            model: "claude-haiku-4-5-20251001",
+            max_tokens: 512,
+            system: DECOMPOSE_SYSTEM_PROMPT,
+            messages: [{ role: "user", content: task }],
+          });
+          text = response.content[0].type === "text" ? response.content[0].text : "[]";
+        }
         const subtasks = JSON.parse(text) as unknown;
         if (!Array.isArray(subtasks)) return [task];
         return (subtasks as string[]).slice(0, 4);

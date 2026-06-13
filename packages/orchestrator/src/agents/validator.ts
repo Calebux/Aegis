@@ -9,6 +9,7 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import type { LLMProvider } from "@calebux/agent-kit";
 import { bus } from "../lib/bus.js";
 
 // ── System prompt ─────────────────────────────────────────────────────────────
@@ -35,10 +36,12 @@ original analysis — do not fabricate a conflict.
 export class ValidatorAgent {
   readonly id: string;
   private client: Anthropic;
+  private readonly llm?: LLMProvider;
 
-  constructor() {
+  constructor(llm?: LLMProvider) {
     this.id = `validator-${crypto.randomUUID().slice(0, 8)}`;
     this.client = new Anthropic();
+    this.llm = llm;
   }
 
   async run(params: {
@@ -63,15 +66,23 @@ export class ValidatorAgent {
     ].join("\n");
 
     try {
-      const response = await this.client.messages.create({
-        model: "claude-opus-4-6",
-        max_tokens: 2048,
-        system: VALIDATOR_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userMessage }],
-      });
+      let text: string;
 
-      const text =
-        response.content[0].type === "text" ? response.content[0].text : "";
+      if (this.llm) {
+        const result = await this.llm.chat(
+          [{ role: "user", content: userMessage }],
+          { model: "claude-opus-4-6", maxTokens: 2048, system: VALIDATOR_SYSTEM_PROMPT }
+        );
+        text = result.text;
+      } else {
+        const response = await this.client.messages.create({
+          model: "claude-opus-4-6",
+          max_tokens: 2048,
+          system: VALIDATOR_SYSTEM_PROMPT,
+          messages: [{ role: "user", content: userMessage }],
+        });
+        text = response.content[0].type === "text" ? response.content[0].text : "";
+      }
       const validationPassed = text.startsWith("[VALID]");
       const revisedAnalysis = validationPassed
         ? undefined

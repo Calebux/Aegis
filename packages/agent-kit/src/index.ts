@@ -32,6 +32,12 @@
 // Core API
 export { defineAgent } from "./agent.js";
 export { createOrchestrator } from "./orchestrator.js";
+export { createAutomation } from "./automation.js";
+export type {
+  AutomationOptions,
+  AutomationRunResult,
+  Automation,
+} from "./automation.js";
 export {
   computeAgentManifestHash,
   createAgentManifest,
@@ -91,6 +97,20 @@ export { IdentityRegistry } from "./contracts/registry.js";
 // Celo contract wrappers
 export { CeloIdentityRegistry } from "./contracts/celo-registry.js";
 export { CeloPolicyManager } from "./contracts/celo-policy.js";
+
+// LLM Provider
+export {
+  AnthropicProvider,
+  OpenRouterProvider,
+  createLLMProvider,
+} from "./llm.js";
+export type {
+  LLMProvider,
+  LLMProviderConfig,
+  ChatMessage,
+  LLMChatOptions,
+  LLMChatResult,
+} from "./llm.js";
 
 // Types
 export type {

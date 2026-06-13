@@ -19,8 +19,11 @@ import { Keypair } from "@stellar/stellar-sdk";
 import {
   createRunReceipt,
   signRunReceipt,
+  createLLMProvider,
   type OrchestratorReport,
   type RunReceipt,
+  type LLMProvider,
+  type LLMProviderConfig,
 } from "@calebux/agent-kit";
 import {
   tasks,
@@ -44,7 +47,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300; // Vercel Pro: allow up to 5-min pipeline runs
 
 export async function POST(req: NextRequest) {
-  let body: { task?: string; chain?: string };
+  let body: { task?: string; chain?: string; llm?: LLMProviderConfig };
   try {
     body = await req.json();
   } catch {
@@ -54,6 +57,19 @@ export async function POST(req: NextRequest) {
   }
 
   const prompt = (body?.task ?? "").trim();
+
+  // Build LLM provider from request config (key used for this request only)
+  let llmProvider: LLMProvider | undefined;
+  if (body?.llm && body.llm.provider !== "anthropic") {
+    try {
+      llmProvider = createLLMProvider(body.llm);
+    } catch (err) {
+      return new Response(JSON.stringify({ error: `Invalid LLM config: ${String(err)}` }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
   if (!prompt) {
     return new Response(JSON.stringify({ error: "task is required" }), {
       status: 400,
@@ -150,7 +166,7 @@ export async function POST(req: NextRequest) {
   );
 
   // Fire-and-forget: run the Celo orchestrator pipeline
-  void runCeloTask(prompt, emitter)
+  void runCeloTask(prompt, emitter, llmProvider)
     .then((report) => {
       const t = tasks.get(taskId);
       if (t) {

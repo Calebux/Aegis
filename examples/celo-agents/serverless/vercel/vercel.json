@@ -1,0 +1,24 @@
+{
+  "crons": [
+    {
+      "path": "/api/run?agent=gas-tracker",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/run?agent=usdm-yield-monitor",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/run?agent=whale-watcher",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/run?agent=governance-voter",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/run?agent=balance-sentinel",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}
