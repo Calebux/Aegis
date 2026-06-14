@@ -963,10 +963,10 @@ body:has(.landing) {
   border-color: rgba(252, 255, 82, 0.3);
   box-shadow: 0 4px 24px rgba(252, 255, 82, 0.04);
 }
-.landing-section-alt .landing-card--dark h3 {
+.landing-section-alt .landing-card.landing-card--dark h3 {
   color: #ffffff;
 }
-.landing-section-alt .landing-card--dark p {
+.landing-section-alt .landing-card.landing-card--dark p {
   color: #8b949e;
 }
 
@@ -979,13 +979,13 @@ body:has(.landing) {
   border-color: rgba(252, 255, 82, 0.3);
   box-shadow: 0 4px 24px rgba(252, 255, 82, 0.04);
 }
-.landing-card--dark h3 {
+.landing-card.landing-card--dark h3 {
   color: #ffffff;
 }
-.landing-card--dark p {
+.landing-card.landing-card--dark p {
   color: #8b949e;
 }
-.landing-card--dark .landing-card-icon {
+.landing-card.landing-card--dark .landing-card-icon {
   background: #21262d;
   color: #FCFF52;
 }
