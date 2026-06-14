@@ -46,6 +46,21 @@ const FEATURES = [
     desc: "Sybil-resistant agent verification via Self Protocol. Gate agent runs behind human-verified wallet identity.",
     icon: "\u2694",
   },
+  {
+    title: "Agent Staking",
+    desc: "Stake USDm as collateral for agent behavior. Admin can slash misbehaving agents or reward good actors.",
+    icon: "\u26D3",
+  },
+  {
+    title: "Consensus Voting",
+    desc: "On-chain voting rounds for multi-agent consensus. Agents submit output hashes and the majority wins.",
+    icon: "\u2696",
+  },
+  {
+    title: "Agent Delegation",
+    desc: "Parent agents delegate tasks to child agents with linked receipt chains and inherited spend budgets.",
+    icon: "\u21B3",
+  },
 ];
 
 const USE_CASES = [
@@ -80,6 +95,18 @@ const USE_CASES = [
   {
     title: "Sybil-Resistant Agents",
     desc: "Verify agent wallets via Self Protocol. Enforce human-verified identity before agents can execute tasks.",
+  },
+  {
+    title: "Staked Agent Collateral",
+    desc: "Require agents to stake USDm as skin-in-the-game. Slash stakes for misbehavior, reward for reliability.",
+  },
+  {
+    title: "On-Chain Consensus",
+    desc: "Record multi-agent consensus votes on-chain. Each agent submits its output hash — majority result is finalized immutably.",
+  },
+  {
+    title: "Agent Delegation",
+    desc: "Compose agent hierarchies. Parent agents delegate tasks to specialists with linked receipt chains for full traceability.",
   },
 ];
 

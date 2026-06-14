@@ -23,6 +23,8 @@ Cal-AgentKit deploys a full agent infrastructure on Celo: identity registry, pol
 | **AegisCeloRegistry** | [`0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C`](https://celoscan.io/address/0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C) | Agent identity, manifest hashes, on-chain reputation |
 | **AegisCeloPolicy** | [`0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c`](https://celoscan.io/address/0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c) | Per-agent spend caps and session management |
 | **Erc8004Adapter** | _(deployed via `deploy.sh`)_ | Bridge to canonical ERC-8004 Identity and Reputation registries |
+| **AgentStaking** | _(deployed via `deploy.sh`)_ | USDm staking, slashing, and rewards for agents |
+| **ConsensusVoting** | _(deployed via `deploy.sh`)_ | On-chain consensus voting for multi-agent pipelines |
 
 ### ERC-8004 Compliance
 
@@ -39,6 +41,67 @@ The adapter provides:
 - `updateAgentURI(calagentId, newURI)` — updates agent metadata on-chain
 - Bidirectional mapping between Cal-AgentKit agent IDs and ERC-8004 NFT token IDs
 
+### Agent Staking
+
+The `AgentStaking` contract lets agents stake USDm as collateral. Admins can slash misbehaving agents or reward reliable ones:
+
+```ts
+import { AgentStakingManager } from '@calebux/agent-kit'
+
+const staking = new AgentStakingManager(
+  process.env.CELO_STAKING_ADDRESS!,
+  process.env.CELO_DEPLOYER_PRIVATE_KEY!,
+  'https://forno.celo.org',
+  'mainnet'
+)
+
+await staking.stake('my-agent', 100_000000000000000000n) // 100 USDm
+const stake = await staking.getStake('my-agent')
+const isStaked = await staking.isStaked('my-agent', 50_000000000000000000n)
+```
+
+### Consensus Voting
+
+The `ConsensusVoting` contract records multi-agent consensus on-chain:
+
+```ts
+import { ConsensusVotingManager } from '@calebux/agent-kit'
+
+const voting = new ConsensusVotingManager(
+  process.env.CELO_CONSENSUS_VOTING_ADDRESS!,
+  process.env.CELO_DEPLOYER_PRIVATE_KEY!,
+  'https://forno.celo.org',
+  'mainnet'
+)
+
+const roundId = await voting.openRound(taskHash)
+await voting.submitVote(roundId, 'scout', outputHash, 9000)
+await voting.submitVote(roundId, 'ledger', outputHash, 8500)
+await voting.finalizeRound(roundId)
+const result = await voting.getRoundResult(roundId)
+```
+
+### Agent Delegation
+
+Parent agents can delegate tasks to child agents with linked receipt chains:
+
+```ts
+import { delegateTask, createSubOrchestrator } from '@calebux/agent-kit'
+
+// Simple delegation
+const delegation = delegateTask('parent-agent', 'child-agent', 'research task', parentRunId)
+
+// Sub-orchestrator with inherited budget
+const sub = createSubOrchestrator(['scout', 'ledger'], {
+  parentRunId,
+  parentAgentId: 'orchestrator',
+  maxSpend: 1_000000n,
+})
+const d = sub.delegate('scout', 'web research on Celo DeFi')
+```
+
+API endpoint: `POST /api/agents/:id/delegate` with `{ childAgentId, task }`.
+
 ### Self Protocol Integration
 
 [Self Protocol](https://self.xyz) provides sybil-resistant agent identity. The Self Agent Registry on Celo mainnet (`0xaC3DF9ABf80d0F5c020C06B04Cced27763355944`) verifies that agent wallets belong to authenticated humans.
@@ -53,7 +116,7 @@ The adapter provides:
 |---|---|---|
 | **celo-ledger** | `celo`, `onchain-data`, `stablecoins`, `rpc` | Live Celo RPC reads — block height, gas price, chain ID |
 | **celo-notary** | `celo`, `attestation`, `execution`, `proof` | On-chain attestation writes to AegisCeloRegistry |
-| **celo-defi** | `celo`, `defi`, `stablecoins`, `mento`, `oracles` | Mento SortedOracles: live USDm/cEUR/cREAL exchange rates |
+| **celo-defi** | `celo`, `defi`, `stablecoins`, `mento`, `oracles`, `yield`, `reserves`, `liquidity` | Mento oracles, reserve data, Ubeswap pools, Moola rates |
 | **celo-price** | `celo`, `price`, `market-data` | CELO token price via CoinGecko in a verifiable receipt |
 
 ### Celo Pipeline
@@ -146,6 +209,9 @@ const verified = await isSelfVerified('0xAgentWallet...')
 | `CALAGENT_CELO_X402_FACILITATOR_URL` | Celo/EVM x402 facilitator |
 | `ERC8004_ADAPTER_ADDRESS` | Erc8004Adapter bridge contract address |
 | `CALAGENT_SELF_ENFORCE` | `true` to gate agent runs behind Self Protocol verification |
+| `CELO_STAKING_ADDRESS` | AgentStaking contract address |
+| `CELO_CONSENSUS_VOTING_ADDRESS` | ConsensusVoting contract address |
+| `CALAGENT_PEERS` | Comma-separated peer instance URLs for auto-federation |
 
 ### Celo Contracts (Foundry)
 
@@ -225,6 +291,9 @@ Agent-to-agent payments: Scribe pays Scout 0.001 XLM per synthesis (`calagent:sc
 8. **Cross-chain federation** — `PeerRegistry` + `routeToPeer()` let independent Cal-AgentKit instances discover and delegate tasks across chains and organizations
 9. **ERC-8004 compliant** — bridge adapter registers agents on canonical ERC-8004 Identity and Reputation registries with NFT-based identity
 10. **Sybil-resistant identity** — Self Protocol integration verifies agent wallets belong to authenticated humans, optional enforcement gate on agent runs
+11. **Agent staking** — USDm staking contract with slash/reward mechanics for agent accountability
+12. **On-chain consensus voting** — multi-agent consensus recorded immutably on-chain with majority finalization
+13. **Agent delegation** — parent agents delegate to child agents with linked receipt chains and inherited spend budgets
 
 ---
 
@@ -294,7 +363,7 @@ calagent/
 ├── contracts/
 │   ├── identity-registry/       Soroban — agent identity + reputation (Rust)
 │   ├── shield-contract/         Soroban — per-agent spend cap enforcement (Rust)
-│   └── celo/                    Foundry — AegisCeloRegistry + AegisCeloPolicy + Erc8004Adapter (Solidity)
+│   └── celo/                    Foundry — AegisCeloRegistry + AegisCeloPolicy + Erc8004Adapter + AgentStaking + ConsensusVoting
 └── scripts/                     Manifest publishing, smoke tests, demos
 ```
 
@@ -324,7 +393,8 @@ npm run dev    # Dashboard on :3000
 | `GET /api/health` | Deployment readiness, x402 config, contract pointers |
 | `GET /api/agents` | Machine-readable agent manifests |
 | `GET /api/agents?chain=celo` | Celo agent manifests |
-| `POST /api/agents/:id/run` | Call a single agent (x402 gated, optional Self Protocol gate) |
+| `POST /api/agents/:id/run` | Call a single agent (x402 gated, optional Self Protocol gate, CeloPolicy spend caps) |
+| `POST /api/agents/:id/delegate` | Delegate a task from parent to child agent (linked receipt chains) |
 | `GET /api/agents/:id/uri` | ERC-8004-compatible agent metadata JSON |
 | `GET /api/agents/:id/verify` | Self Protocol + ERC-8004 verification status |
 | `POST /api/run` | Full pipeline orchestration (add `chain: "celo"` for Celo) |

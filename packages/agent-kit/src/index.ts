@@ -98,9 +98,22 @@ export { IdentityRegistry } from "./contracts/registry.js";
 export { CeloIdentityRegistry } from "./contracts/celo-registry.js";
 export { CeloPolicyManager } from "./contracts/celo-policy.js";
 export { Erc8004Adapter } from "./contracts/erc8004-adapter.js";
+export { AgentStakingManager } from "./contracts/agent-staking.js";
+export { ConsensusVotingManager } from "./contracts/consensus-voting.js";
 
 // Self Protocol
 export { isSelfVerified, selfEnforced, SELF_AGENT_REGISTRY } from "./self-protocol.js";
+
+// Delegation / Sub-Orchestration
+export {
+  delegateTask,
+  createSubOrchestrator,
+} from "./delegation.js";
+export type {
+  DelegationOptions,
+  DelegationResult,
+  SubOrchestratorOptions,
+} from "./delegation.js";
 
 // LLM Provider
 export {

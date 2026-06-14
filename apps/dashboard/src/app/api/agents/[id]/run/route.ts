@@ -43,12 +43,19 @@ import {
   checkRateLimit,
   getClientIp,
 } from "@/lib/validation";
-import { isSelfVerified, selfEnforced } from "@calebux/agent-kit";
+import {
+  isSelfVerified,
+  selfEnforced,
+  Erc8004Adapter,
+  CeloPolicyManager,
+  CeloIdentityRegistry,
+} from "@calebux/agent-kit";
 
 export const dynamic = "force-dynamic";
 
 type RunBody = {
   task?: string;
+  callerAddress?: string;
 };
 
 function agentOutput(agentId: string, task: string): string {
@@ -506,13 +513,24 @@ export async function POST(
     );
   }
 
-  // Self Protocol sybil check (optional, controlled by CALAGENT_SELF_ENFORCE)
-  if (selfEnforced() && agent.walletAddress) {
-    const verified = await isSelfVerified(agent.walletAddress);
+  // Self Protocol sybil check — verify the *caller's* wallet, not the agent's
+  const callerAddress = body.callerAddress?.trim();
+  if (selfEnforced()) {
+    if (!callerAddress) {
+      return Response.json(
+        {
+          error: "callerAddress is required when Self Protocol enforcement is enabled",
+          selfRegistry: "0xaC3DF9ABf80d0F5c020C06B04Cced27763355944",
+        },
+        { status: 400 },
+      );
+    }
+    const verified = await isSelfVerified(callerAddress);
     if (!verified) {
       return Response.json(
         {
-          error: "Agent wallet is not Self Protocol verified",
+          error: "Caller wallet is not Self Protocol verified",
+          callerAddress,
           selfRegistry: "0xaC3DF9ABf80d0F5c020C06B04Cced27763355944",
         },
         { status: 403 },
@@ -574,6 +592,36 @@ export async function POST(
       },
       { status: (requirement.facilitatorUrl ?? facilitatorUrl()) ? 402 : 501 }
     );
+  }
+
+  // CeloPolicy spend cap enforcement (Item 5)
+  const celoPolicyAddr = process.env.CELO_POLICY_ADDRESS;
+  const celoDeployerKey = process.env.CELO_DEPLOYER_PRIVATE_KEY;
+  if (isCeloAgent && celoPolicyAddr && celoDeployerKey) {
+    try {
+      const policyMgr = new CeloPolicyManager(
+        celoPolicyAddr,
+        celoDeployerKey,
+        CELO_RPC_URL,
+        CELO_NETWORK_ID
+      );
+      const costInBaseUnits = BigInt(requirement.amount || "0");
+      if (costInBaseUnits > 0n) {
+        const authorized = await policyMgr.authorizeSpend(
+          id,
+          costInBaseUnits,
+          CELO_STABLE_ASSET_CONTRACT
+        );
+        if (!authorized) {
+          return Response.json(
+            { error: "Agent spend cap exceeded — CeloPolicy rejected the transaction" },
+            { status: 429 }
+          );
+        }
+      }
+    } catch (err) {
+      console.warn("[api/agents/:id/run] CeloPolicy check failed (non-fatal):", err);
+    }
   }
 
   const runId = crypto.randomUUID();
@@ -689,6 +737,42 @@ export async function POST(
   receiptOutputs.set(runId, output);
   persistReceipts();
   persistReceiptOutputs();
+
+  // Item 2: Auto-sync ERC-8004 reputation after successful run
+  const erc8004AdapterAddr = process.env.ERC8004_ADAPTER_ADDRESS;
+  if (erc8004AdapterAddr && celoDeployerKey) {
+    try {
+      const adapter = new Erc8004Adapter(
+        erc8004AdapterAddr,
+        celoDeployerKey,
+        CELO_RPC_URL,
+        CELO_NETWORK_ID
+      );
+      void adapter.syncReputation(id, 1, "task-success").catch((err: unknown) => {
+        console.warn(`[api/agents/:id/run] ERC-8004 syncReputation failed for ${id}:`, err);
+      });
+    } catch (err) {
+      console.warn("[api/agents/:id/run] ERC-8004 adapter init failed (non-fatal):", err);
+    }
+  }
+
+  // Item 8: On-chain receipt anchoring on AegisCeloRegistry
+  const celoRegistryAddr = process.env.CELO_REGISTRY_ADDRESS;
+  if (celoRegistryAddr && celoDeployerKey && receipt.receiptHash) {
+    try {
+      const celoRegistry = new CeloIdentityRegistry(
+        celoRegistryAddr,
+        celoDeployerKey,
+        CELO_RPC_URL,
+        CELO_NETWORK_ID
+      );
+      void celoRegistry.setManifestHash(id, receipt.receiptHash).catch((err: unknown) => {
+        console.warn(`[api/agents/:id/run] Receipt anchoring failed for ${id}:`, err);
+      });
+    } catch (err) {
+      console.warn("[api/agents/:id/run] Receipt anchoring init failed (non-fatal):", err);
+    }
+  }
 
   return Response.json({
     agent,

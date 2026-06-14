@@ -21,7 +21,14 @@ function parseQuery(req: NextRequest): AgentDiscoveryQuery {
 }
 
 export async function GET(req: NextRequest) {
-  const includeFederated = req.nextUrl.searchParams.get("federated") === "true";
+  const federatedParam = req.nextUrl.searchParams.get("federated");
+
+  // Auto-federation: when CALAGENT_PEERS is set, include federated by default
+  // unless explicitly disabled with ?federated=false
+  const peersConfigured = Boolean(process.env.CALAGENT_PEERS);
+  const includeFederated =
+    federatedParam === "true" ||
+    (peersConfigured && federatedParam !== "false");
 
   let agents;
   if (includeFederated) {

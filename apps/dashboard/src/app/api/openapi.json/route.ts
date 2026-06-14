@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
     openapi: "3.1.0",
     info: {
       title: "Cal-AgentKit Agent API (Stellar + Celo)",
-      version: "0.1.0",
+      version: "0.2.0",
       description:
         "Discover, call, and verify Cal-AgentKit agents on Stellar and Celo using x402 payments and signed run receipts.",
     },
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
                   required: ["task"],
                   properties: {
                     task: { type: "string", description: "The prompt to run through the agent pipeline" },
-                    chain: { type: "string", enum: ["stellar", "celo"], default: "stellar" },
+                    chain: { type: "string", enum: ["stellar", "celo"], default: "stellar", description: "Target chain for pipeline execution" },
                   },
                 },
               },
@@ -59,6 +59,12 @@ export async function GET(req: NextRequest) {
             { name: "asset", in: "query", schema: { type: "string" } },
             { name: "network", in: "query", schema: { type: "string" } },
             { name: "minReputation", in: "query", schema: { type: "number" } },
+            {
+              name: "federated",
+              in: "query",
+              schema: { type: "string", enum: ["true", "false"] },
+              description: "Include federated peer agents. Auto-enabled when CALAGENT_PEERS is set. Use ?federated=false to disable.",
+            },
           ],
           responses: {
             "200": {
@@ -96,7 +102,10 @@ export async function GET(req: NextRequest) {
                 schema: {
                   type: "object",
                   required: ["task"],
-                  properties: { task: { type: "string" } },
+                  properties: {
+                    task: { type: "string", description: "The task to run" },
+                    callerAddress: { type: "string", description: "Caller wallet address for Self Protocol verification (required when CALAGENT_SELF_ENFORCE=true)" },
+                  },
                 },
               },
             },
@@ -120,6 +129,65 @@ export async function GET(req: NextRequest) {
                 },
               },
             },
+            "403": {
+              description: "Caller not Self Protocol verified",
+            },
+            "429": {
+              description: "Rate limit exceeded or CeloPolicy spend cap reached",
+            },
+          },
+        },
+      },
+      "/api/agents/{id}/uri": {
+        get: {
+          summary: "ERC-8004 compatible agent metadata JSON",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "Agent metadata URI (ERC-8004 format)" },
+            "404": { description: "Agent not found" },
+          },
+        },
+      },
+      "/api/agents/{id}/verify": {
+        get: {
+          summary: "Self Protocol + ERC-8004 verification status",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "Verification status for Self Protocol and ERC-8004" },
+            "404": { description: "Agent not found" },
+          },
+        },
+      },
+      "/api/agents/{id}/delegate": {
+        post: {
+          summary: "Delegate a task from a parent agent to a child agent",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" }, description: "Parent agent ID" },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["childAgentId", "task"],
+                  properties: {
+                    childAgentId: { type: "string", description: "ID of the child agent to delegate to" },
+                    task: { type: "string", description: "The task to delegate" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Delegation result with linked child receipt",
+            },
+            "404": { description: "Parent or child agent not found" },
           },
         },
       },

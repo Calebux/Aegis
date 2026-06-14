@@ -114,6 +114,80 @@ const enforce = selfEnforced() // checks CALAGENT_SELF_ENFORCE env var
 
 ---
 
+## Agent Staking (Celo)
+
+```ts
+import { AgentStakingManager } from '@calebux/agent-kit'
+
+const staking = new AgentStakingManager(
+  process.env.CELO_STAKING_ADDRESS!,
+  process.env.CELO_DEPLOYER_PRIVATE_KEY!,
+  'https://forno.celo.org',
+  'mainnet'
+)
+
+// Stake USDm as collateral (must approve token first)
+await staking.stake('my-agent', 100_000000000000000000n)
+
+// Check stake
+const stake = await staking.getStake('my-agent')
+const isStaked = await staking.isStaked('my-agent', 50_000000000000000000n)
+
+// Unstake with cooldown
+await staking.requestUnstake('my-agent', 50_000000000000000000n)
+// ... wait 24h ...
+await staking.unstake('my-agent')
+```
+
+---
+
+## Consensus Voting (Celo)
+
+```ts
+import { ConsensusVotingManager } from '@calebux/agent-kit'
+
+const voting = new ConsensusVotingManager(
+  process.env.CELO_CONSENSUS_VOTING_ADDRESS!,
+  process.env.CELO_DEPLOYER_PRIVATE_KEY!,
+  'https://forno.celo.org',
+  'mainnet'
+)
+
+// Open a round, submit votes, finalize
+const roundId = await voting.openRound(taskHash)
+await voting.submitVote(roundId, 'scout', outputHash, 9000)
+await voting.submitVote(roundId, 'ledger', outputHash, 8500)
+await voting.submitVote(roundId, 'signal', otherHash, 7000)
+await voting.finalizeRound(roundId)
+
+const { outputHash, voteCount, finalized } = await voting.getRoundResult(roundId)
+```
+
+---
+
+## Agent Delegation
+
+```ts
+import { delegateTask, createSubOrchestrator } from '@calebux/agent-kit'
+
+// Simple delegation with receipt chain linking
+const delegation = delegateTask('parent-agent', 'child-agent', 'research task', parentRunId)
+// delegation.childRunId, delegation.receiptHash — linked to parentRunId
+
+// Sub-orchestrator with inherited budget
+const sub = createSubOrchestrator(['scout', 'ledger', 'signal'], {
+  parentRunId,
+  parentAgentId: 'orchestrator',
+  maxSpend: 1_000000n,
+})
+
+const d = sub.delegate('scout', 'web research on Celo DeFi')
+sub.recordSpend(500000n)  // track spend against budget
+console.log(sub.remaining) // 500000n
+```
+
+---
+
 ## Stellar support
 
 Full Stellar/Soroban support with x402 payments in XLM:
@@ -328,6 +402,8 @@ const result = await routeToPeer(peers, {
 | AegisCeloRegistry | `0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C` |
 | AegisCeloPolicy | `0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c` |
 | Erc8004Adapter | _(deployed via `deploy.sh`)_ |
+| AgentStaking | _(deployed via `deploy.sh`)_ |
+| ConsensusVoting | _(deployed via `deploy.sh`)_ |
 | ERC-8004 Identity Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
 | ERC-8004 Reputation Registry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
 | Self Agent Registry | `0xaC3DF9ABf80d0F5c020C06B04Cced27763355944` |
@@ -351,6 +427,9 @@ const result = await routeToPeer(peers, {
 | `CALAGENT_CELO_NETWORK` | Celo | `mainnet` or `alfajores` |
 | `ERC8004_ADAPTER_ADDRESS` | Celo | Erc8004Adapter bridge contract address |
 | `CALAGENT_SELF_ENFORCE` | Celo | `true` to gate agent runs behind Self Protocol verification |
+| `CELO_STAKING_ADDRESS` | Celo | AgentStaking contract address |
+| `CELO_CONSENSUS_VOTING_ADDRESS` | Celo | ConsensusVoting contract address |
+| `CALAGENT_PEERS` | Any | Comma-separated peer instance URLs for auto-federation |
 
 All contract options are optional — omit them to run in dev mode with no on-chain enforcement.
 

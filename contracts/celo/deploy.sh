@@ -124,6 +124,68 @@ fi
 echo "$ADAPTER_OUTPUT"
 ERC8004_ADAPTER_ADDRESS="$(echo "$ADAPTER_OUTPUT" | awk '/Deployed to:/ { print $3 }')"
 
+# ── Agent Staking ────────────────────────────────────────────────────────────
+USDM_TOKEN="${CELO_USDM_TOKEN:-0x765DE816845861e75A25fCA122bb6898B8B1282a}"
+COOLDOWN_SECONDS="${CELO_STAKING_COOLDOWN:-86400}"
+
+echo "Deploying AgentStaking..."
+echo "USDm token: $USDM_TOKEN"
+echo "Cooldown: ${COOLDOWN_SECONDS}s"
+
+STAKING_NONCE="$(cast nonce "$DEPLOYER_ADDRESS" --rpc-url "$RPC_URL")"
+if [[ -n "$GAS_PRICE_WEI" ]]; then
+  STAKING_OUTPUT="$(
+    forge create \
+      --rpc-url "$RPC_URL" \
+      --private-key "$CELO_DEPLOYER_PRIVATE_KEY" \
+      --broadcast \
+      --legacy \
+      --gas-price "$GAS_PRICE_WEI" \
+      src/AgentStaking.sol:AgentStaking \
+      --constructor-args "$ADMIN_ADDRESS" "$USDM_TOKEN" "$COOLDOWN_SECONDS"
+  )"
+else
+  STAKING_OUTPUT="$(
+    forge create \
+      --rpc-url "$RPC_URL" \
+      --private-key "$CELO_DEPLOYER_PRIVATE_KEY" \
+      --broadcast \
+      src/AgentStaking.sol:AgentStaking \
+      --constructor-args "$ADMIN_ADDRESS" "$USDM_TOKEN" "$COOLDOWN_SECONDS"
+  )"
+fi
+echo "$STAKING_OUTPUT"
+STAKING_ADDRESS="$(echo "$STAKING_OUTPUT" | awk '/Deployed to:/ { print $3 }')"
+wait_for_nonce "$((STAKING_NONCE + 1))"
+
+# ── Consensus Voting ─────────────────────────────────────────────────────────
+echo "Deploying ConsensusVoting..."
+
+VOTING_NONCE="$(cast nonce "$DEPLOYER_ADDRESS" --rpc-url "$RPC_URL")"
+if [[ -n "$GAS_PRICE_WEI" ]]; then
+  VOTING_OUTPUT="$(
+    forge create \
+      --rpc-url "$RPC_URL" \
+      --private-key "$CELO_DEPLOYER_PRIVATE_KEY" \
+      --broadcast \
+      --legacy \
+      --gas-price "$GAS_PRICE_WEI" \
+      src/ConsensusVoting.sol:ConsensusVoting \
+      --constructor-args "$ADMIN_ADDRESS"
+  )"
+else
+  VOTING_OUTPUT="$(
+    forge create \
+      --rpc-url "$RPC_URL" \
+      --private-key "$CELO_DEPLOYER_PRIVATE_KEY" \
+      --broadcast \
+      src/ConsensusVoting.sol:ConsensusVoting \
+      --constructor-args "$ADMIN_ADDRESS"
+  )"
+fi
+echo "$VOTING_OUTPUT"
+VOTING_ADDRESS="$(echo "$VOTING_OUTPUT" | awk '/Deployed to:/ { print $3 }')"
+
 cat <<EOF
 
 Add these to your environment:
@@ -131,6 +193,8 @@ Add these to your environment:
 CELO_REGISTRY_ADDRESS=$REGISTRY_ADDRESS
 CELO_POLICY_ADDRESS=$POLICY_ADDRESS
 ERC8004_ADAPTER_ADDRESS=$ERC8004_ADAPTER_ADDRESS
+CELO_STAKING_ADDRESS=$STAKING_ADDRESS
+CELO_CONSENSUS_VOTING_ADDRESS=$VOTING_ADDRESS
 CELO_RPC_URL=$RPC_URL
 CALAGENT_CELO_NETWORK=$NETWORK
 EOF
