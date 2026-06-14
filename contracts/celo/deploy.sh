@@ -186,6 +186,35 @@ fi
 echo "$VOTING_OUTPUT"
 VOTING_ADDRESS="$(echo "$VOTING_OUTPUT" | awk '/Deployed to:/ { print $3 }')"
 
+# ── Task Escrow ──────────────────────────────────────────────────────────────
+echo "Deploying TaskEscrow..."
+echo "USDm token: $USDM_TOKEN"
+
+ESCROW_NONCE="$(cast nonce "$DEPLOYER_ADDRESS" --rpc-url "$RPC_URL")"
+if [[ -n "$GAS_PRICE_WEI" ]]; then
+  ESCROW_OUTPUT="$(
+    forge create \
+      --rpc-url "$RPC_URL" \
+      --private-key "$CELO_DEPLOYER_PRIVATE_KEY" \
+      --broadcast \
+      --legacy \
+      --gas-price "$GAS_PRICE_WEI" \
+      src/TaskEscrow.sol:TaskEscrow \
+      --constructor-args "$ADMIN_ADDRESS" "$USDM_TOKEN"
+  )"
+else
+  ESCROW_OUTPUT="$(
+    forge create \
+      --rpc-url "$RPC_URL" \
+      --private-key "$CELO_DEPLOYER_PRIVATE_KEY" \
+      --broadcast \
+      src/TaskEscrow.sol:TaskEscrow \
+      --constructor-args "$ADMIN_ADDRESS" "$USDM_TOKEN"
+  )"
+fi
+echo "$ESCROW_OUTPUT"
+ESCROW_ADDRESS="$(echo "$ESCROW_OUTPUT" | awk '/Deployed to:/ { print $3 }')"
+
 cat <<EOF
 
 Add these to your environment:
@@ -195,6 +224,7 @@ CELO_POLICY_ADDRESS=$POLICY_ADDRESS
 ERC8004_ADAPTER_ADDRESS=$ERC8004_ADAPTER_ADDRESS
 CELO_STAKING_ADDRESS=$STAKING_ADDRESS
 CELO_CONSENSUS_VOTING_ADDRESS=$VOTING_ADDRESS
+CELO_TASK_ESCROW_ADDRESS=$ESCROW_ADDRESS
 CELO_RPC_URL=$RPC_URL
 CALAGENT_CELO_NETWORK=$NETWORK
 EOF

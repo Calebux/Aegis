@@ -100,6 +100,8 @@ export { CeloPolicyManager } from "./contracts/celo-policy.js";
 export { Erc8004Adapter } from "./contracts/erc8004-adapter.js";
 export { AgentStakingManager } from "./contracts/agent-staking.js";
 export { ConsensusVotingManager } from "./contracts/consensus-voting.js";
+export { TaskEscrowManager } from "./contracts/task-escrow.js";
+export type { EscrowInfo } from "./contracts/task-escrow.js";
 
 // Self Protocol
 export { isSelfVerified, selfEnforced, SELF_AGENT_REGISTRY } from "./self-protocol.js";

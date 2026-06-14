@@ -25,6 +25,7 @@ Cal-AgentKit deploys a full agent infrastructure on Celo: identity registry, pol
 | **Erc8004Adapter** | _(deployed via `deploy.sh`)_ | Bridge to canonical ERC-8004 Identity and Reputation registries |
 | **AgentStaking** | _(deployed via `deploy.sh`)_ | USDm staking, slashing, and rewards for agents |
 | **ConsensusVoting** | _(deployed via `deploy.sh`)_ | On-chain consensus voting for multi-agent pipelines |
+| **TaskEscrow** | _(deployed via `deploy.sh`)_ | USDm escrow with conditional release on verified receipt |
 
 ### ERC-8004 Compliance
 
@@ -79,6 +80,30 @@ await voting.submitVote(roundId, 'scout', outputHash, 9000)
 await voting.submitVote(roundId, 'ledger', outputHash, 8500)
 await voting.finalizeRound(roundId)
 const result = await voting.getRoundResult(roundId)
+```
+
+### Task Escrow
+
+The `TaskEscrow` contract holds USDm in escrow for agent tasks. Funds are released when a verified receipt is provided, or refunded to the depositor after a deadline:
+
+```ts
+import { TaskEscrowManager } from '@calebux/agent-kit'
+
+const escrow = new TaskEscrowManager(
+  process.env.CELO_TASK_ESCROW_ADDRESS!,
+  process.env.CELO_DEPLOYER_PRIVATE_KEY!,
+  'https://forno.celo.org',
+  'mainnet'
+)
+
+// Deposit USDm into escrow for a task
+const { escrowId } = await escrow.createEscrow(taskHash, 'my-agent', 50_000000000000000000n, deadlineTimestamp)
+
+// Release after verifying the agent's receipt
+await escrow.releaseEscrow(escrowId, receiptHash)
+
+// Or refund if deadline passed without completion
+await escrow.refundEscrow(escrowId)
 ```
 
 ### Agent Delegation

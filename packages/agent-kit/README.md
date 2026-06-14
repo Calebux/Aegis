@@ -165,6 +165,39 @@ const { outputHash, voteCount, finalized } = await voting.getRoundResult(roundId
 
 ---
 
+## Task Escrow (Celo)
+
+```ts
+import { TaskEscrowManager } from '@calebux/agent-kit'
+
+const escrow = new TaskEscrowManager(
+  process.env.CELO_TASK_ESCROW_ADDRESS!,
+  process.env.CELO_DEPLOYER_PRIVATE_KEY!,
+  'https://forno.celo.org',
+  'mainnet'
+)
+
+// Create escrow — deposit USDm for a task with a deadline
+const { txHash, escrowId } = await escrow.createEscrow(
+  taskHash,           // bytes32 task hash
+  'my-agent',         // agent ID
+  50_000000000000000000n, // 50 USDm
+  BigInt(Math.floor(Date.now() / 1000) + 3600) // 1 hour deadline
+)
+
+// Release funds to agent after verifying receipt
+await escrow.releaseEscrow(escrowId, receiptHash)
+
+// Or refund depositor if deadline passed
+await escrow.refundEscrow(escrowId)
+
+// Read escrow details
+const info = await escrow.getEscrow(escrowId)
+// info.depositor, info.agentId, info.amount, info.taskHash, info.released, info.deadline
+```
+
+---
+
 ## Agent Delegation
 
 ```ts

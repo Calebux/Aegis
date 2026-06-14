@@ -57,6 +57,11 @@ const FEATURES = [
     icon: "\u2696",
   },
   {
+    title: "Task Escrow",
+    desc: "Deposit USDm into escrow for agent tasks. Funds release on verified receipt or refund after deadline.",
+    icon: "\u2747",
+  },
+  {
     title: "Agent Delegation",
     desc: "Parent agents delegate tasks to child agents with linked receipt chains and inherited spend budgets.",
     icon: "\u21B3",
@@ -103,6 +108,10 @@ const USE_CASES = [
   {
     title: "On-Chain Consensus",
     desc: "Record multi-agent consensus votes on-chain. Each agent submits its output hash — majority result is finalized immutably.",
+  },
+  {
+    title: "Task Escrow",
+    desc: "Hold USDm in escrow for agent tasks. Release on verified receipt or auto-refund after deadline — trustless task payment.",
   },
   {
     title: "Agent Delegation",
