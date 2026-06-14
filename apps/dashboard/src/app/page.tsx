@@ -199,7 +199,7 @@ export default function LandingPage() {
       <section className="landing-hero">
         <div className="landing-container">
           <h1 className="landing-hero-title">
-            Where agents own identities, earn reputation, and pay each other
+            The economic layer for autonomous agents
           </h1>
           <p className="landing-hero-subtitle">
             Open-source economic infrastructure for autonomous agents on <span className="landing-celo-yellow">Celo</span> — identity,
