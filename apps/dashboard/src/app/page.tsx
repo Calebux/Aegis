@@ -268,33 +268,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Memory ──────────────────────────────────────────────── */}
-      <section className="landing-section landing-section-dark">
-        <div className="landing-container">
-          <h2 className="landing-section-title landing-section-title--light">Agents that remember</h2>
-          <p className="landing-section-subtitle landing-section-subtitle--light">
-            Persistent memory turns stateless agents into learning systems. Every run builds on the last.
-          </p>
-          <div className="landing-grid">
-            <div className="landing-card landing-card--dark">
-              <span className="landing-card-icon">{"\u2B53"}</span>
-              <h3>Knowledge Graph</h3>
-              <p>Agent memory stored as a self-wiring knowledge graph. Search past runs, patterns, and domain knowledge.</p>
-            </div>
-            <div className="landing-card landing-card--dark">
-              <span className="landing-card-icon">{"\u21BA"}</span>
-              <h3>Learn From Runs</h3>
-              <p>After every pipeline, agents store results, decisions, and outcomes. Context compounds over time.</p>
-            </div>
-            <div className="landing-card landing-card--dark">
-              <span className="landing-card-icon">{"\u2B21"}</span>
-              <h3>gBrain Integration</h3>
-              <p>Powered by gBrain — 30+ MCP tools for read, write, search, and graph traversal across agent memory.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ── Features ─────────────────────────────────────────────── */}
       <section className="landing-section landing-section-alt">
         <div className="landing-container">
