@@ -87,6 +87,16 @@ const FEATURES = [
     desc: "Human-in-the-loop approval for high-value operations. Configurable thresholds enforce oversight before spend.",
     icon: "\u270B",
   },
+  {
+    title: "Agent Memory",
+    desc: "Persistent knowledge graph memory via gBrain. Agents search past runs, store learned patterns, and build context over time.",
+    icon: "\uD83E\uDDE0",
+  },
+  {
+    title: "Hermes Agent",
+    desc: "Nous Research's autonomous agent with skill-learning loop. Grows more capable with every task \u2014 plugs directly into pipelines.",
+    icon: "\u26A1",
+  },
 ];
 
 const USE_CASES = [
@@ -154,6 +164,14 @@ const USE_CASES = [
     title: "Federated Agent Discovery",
     desc: "Discover agents across multiple Cal-AgentKit instances. Capability routing + trust scores enable secure cross-org agent collaboration.",
   },
+  {
+    title: "Memory-Augmented Research",
+    desc: "Agents recall past research before starting new tasks. Each run is informed by everything that came before.",
+  },
+  {
+    title: "Hermes Skill Learning",
+    desc: "Hermes agents write reusable skills after completing tasks. Plug them into Cal-AgentKit pipelines for compounding capability.",
+  },
 ];
 
 const FOOTER_LINKS = {
@@ -204,7 +222,7 @@ export default function LandingPage() {
           </h1>
           <p className="landing-hero-subtitle">
             Open-source economic infrastructure for autonomous agents on <span className="landing-celo-yellow">Celo</span> — identity,
-            reputation, payments, governance, discovery, coordination, and audit. All on-chain.
+            reputation, payments, governance, discovery, coordination, memory, and audit. All on-chain.
           </p>
           <div className="landing-hero-ctas">
             <a
@@ -226,7 +244,7 @@ export default function LandingPage() {
       {/* ── Layers ──────────────────────────────────────────────── */}
       <section className="landing-section landing-section-alt">
         <div className="landing-container">
-          <h2 className="landing-section-title">Seven infrastructure layers</h2>
+          <h2 className="landing-section-title">Eight infrastructure layers</h2>
           <p className="landing-section-subtitle">
             Everything agents need to operate as autonomous, accountable participants in a multi-agent economy.
           </p>
@@ -238,6 +256,7 @@ export default function LandingPage() {
               { layer: "Governance", desc: "Spend caps, session policies, human approval gates, scoped credentials" },
               { layer: "Discovery", desc: "Capability-based routing, federated peer registry, trust-ranked agent DNS" },
               { layer: "Coordination", desc: "Task orchestration, delegation with linked receipts, consensus voting" },
+              { layer: "Memory", desc: "Persistent knowledge graph via gBrain. Agents recall past runs, store patterns, and build compounding context" },
               { layer: "Audit", desc: "SHA-256 hashed receipts, Ed25519 signatures, on-chain attestation, escrow with conditional release" },
             ].map((l) => (
               <div key={l.layer} className="landing-card">
@@ -249,8 +268,35 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Features ─────────────────────────────────────────────── */}
+      {/* ── Memory ──────────────────────────────────────────────── */}
       <section className="landing-section">
+        <div className="landing-container">
+          <h2 className="landing-section-title">Agents that remember</h2>
+          <p className="landing-section-subtitle">
+            Persistent memory turns stateless agents into learning systems. Every run builds on the last.
+          </p>
+          <div className="landing-grid">
+            <div className="landing-card">
+              <span className="landing-card-icon">{"\uD83D\uDD78\uFE0F"}</span>
+              <h3>Knowledge Graph</h3>
+              <p>Agent memory stored as a self-wiring knowledge graph. Search past runs, patterns, and domain knowledge.</p>
+            </div>
+            <div className="landing-card">
+              <span className="landing-card-icon">{"\uD83D\uDCC8"}</span>
+              <h3>Learn From Runs</h3>
+              <p>After every pipeline, agents store results, decisions, and outcomes. Context compounds over time.</p>
+            </div>
+            <div className="landing-card">
+              <span className="landing-card-icon">{"\uD83E\uDDE0"}</span>
+              <h3>gBrain Integration</h3>
+              <p>Powered by gBrain — 30+ MCP tools for read, write, search, and graph traversal across agent memory.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Features ─────────────────────────────────────────────── */}
+      <section className="landing-section landing-section-alt">
         <div className="landing-container">
           <h2 className="landing-section-title">What&apos;s inside</h2>
           <p className="landing-section-subtitle">

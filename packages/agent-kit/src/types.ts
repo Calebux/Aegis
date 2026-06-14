@@ -1,5 +1,6 @@
 import type { EventEmitter } from "events";
 import type { Keypair } from "@stellar/stellar-sdk";
+import type { MemoryProvider } from "./memory.js";
 
 // ── Agent definition ──────────────────────────────────────────────────────────
 
@@ -13,6 +14,8 @@ export interface AgentContext {
   pay: <T = unknown>(url: string) => Promise<T>;
   /** Accumulates real Stellar tx hashes produced during this run */
   txHashes: string[];
+  /** Optional persistent memory provider for cross-run context */
+  memory?: MemoryProvider;
 }
 
 // ── Agent infrastructure metadata ────────────────────────────────────────────
@@ -124,6 +127,8 @@ export interface OrchestratorOptions {
   shieldContractId?: string;
   /** Soroban Identity Registry Contract ID — tracks agent reputation on-chain */
   registryContractId?: string;
+  /** Optional memory provider — injected into each agent's context and auto-stores run results */
+  memory?: MemoryProvider;
   /**
    * Optional task decomposer. Receives the raw task and a list of agent IDs;
    * returns a map of agentId → subtask string.

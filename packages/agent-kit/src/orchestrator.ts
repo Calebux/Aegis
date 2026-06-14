@@ -47,6 +47,7 @@ export function createOrchestrator(
     decompose,
     synthesize,
     onWalletsProvisioned,
+    memory,
   } = options;
 
   // Per-orchestrator reputation cache (persists across runs in the same process)
@@ -188,6 +189,7 @@ export function createOrchestrator(
         const ctx: AgentContext = {
           wallet: keypair,
           txHashes,
+          memory,
           pay: async <T = unknown>(url: string): Promise<T> => {
             const probe = await fetch(url);
             if (probe.ok) return probe.json() as Promise<T>;
@@ -324,6 +326,15 @@ export function createOrchestrator(
       txHashes: txHashMap,
       timestamp: new Date().toISOString(),
     };
+
+    // ── 7. Auto-store run results in memory ─────────────────────────────
+    if (memory) {
+      const runKey = `run/${finalReport.timestamp}`;
+      const summary = agentResults
+        .map((r) => `${r.agentId}: ${r.result.slice(0, 200)}`)
+        .join("\n");
+      memory.store(runKey, summary, { task, timestamp: finalReport.timestamp }).catch(() => {});
+    }
 
     emit("complete", {
       report,

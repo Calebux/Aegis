@@ -169,6 +169,23 @@ export type {
   LLMChatResult,
 } from "./llm.js";
 
+// Memory (gBrain integration)
+export {
+  GBrainMemory,
+  InMemoryProvider,
+  createMemoryProvider,
+} from "./memory.js";
+export type {
+  MemoryProvider,
+  MemoryResult,
+  GBrainMemoryConfig,
+  MemoryProviderConfig,
+} from "./memory.js";
+
+// Hermes Agent (Nous Research)
+export { createHermesAgent, getHermesMcpConfig } from "./hermes.js";
+export type { HermesAgentConfig } from "./hermes.js";
+
 // Types
 export type {
   AgentDefinition,
