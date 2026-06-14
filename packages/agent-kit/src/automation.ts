@@ -3,7 +3,7 @@
  * webhook handling, retries, and optional receipt generation.
  */
 import { Keypair } from "@stellar/stellar-sdk";
-import { fundTestnetAccount } from "@calagent/shared";
+import { fundTestnetAccount } from "./stellar-helpers.js";
 import { payAndFetch } from "./payments.js";
 import { createRunReceipt, signRunReceipt, sha256Hex } from "./receipts.js";
 import type {

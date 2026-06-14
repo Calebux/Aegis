@@ -8,7 +8,7 @@ import {
   nativeToScVal,
   Address,
 } from "@stellar/stellar-sdk";
-import { getHorizonServer } from "@calagent/shared";
+import { getHorizonServer } from "../stellar-helpers.js";
 import { sorobanInvoke } from "./utils.js";
 
 function networkPassphrase(): string {
