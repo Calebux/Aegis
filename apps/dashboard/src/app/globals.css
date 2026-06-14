@@ -899,13 +899,25 @@ body:has(.landing) {
   background: #f6f8fa;
 }
 
+.landing-section-dark {
+  background: #0d1117;
+}
+
+.landing-section-title--light {
+  color: #e6edf3;
+}
+
+.landing-section-subtitle--light {
+  color: #8b949e;
+}
+
 .landing-section-title {
   font-size: 2rem;
-  font-weight: 800;
+  font-weight: 700;
   text-align: center;
   margin-bottom: 0.75rem;
   color: #1a1a2e;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .landing-section-subtitle {
@@ -928,8 +940,8 @@ body:has(.landing) {
 .landing-card {
   background: #ffffff;
   border: 1px solid #e8e8ec;
-  border-radius: 12px;
-  padding: 2rem;
+  border-radius: 16px;
+  padding: 1.75rem;
   transition: box-shadow 0.2s, border-color 0.2s;
 }
 
@@ -939,7 +951,43 @@ body:has(.landing) {
 
 .landing-card:hover {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-  border-color: #d0d0d8;
+  border-color: rgba(252, 255, 82, 0.4);
+}
+
+/* Dark cards for Layers section */
+.landing-section-alt .landing-card--dark {
+  background: #161b22;
+  border-color: #30363d;
+}
+.landing-section-alt .landing-card--dark:hover {
+  border-color: rgba(252, 255, 82, 0.3);
+  box-shadow: 0 4px 24px rgba(252, 255, 82, 0.04);
+}
+.landing-section-alt .landing-card--dark h3 {
+  color: #e6edf3;
+}
+.landing-section-alt .landing-card--dark p {
+  color: #8b949e;
+}
+
+/* Dark cards for Memory section */
+.landing-card--dark {
+  background: #161b22;
+  border-color: #30363d;
+}
+.landing-card--dark:hover {
+  border-color: rgba(252, 255, 82, 0.3);
+  box-shadow: 0 4px 24px rgba(252, 255, 82, 0.04);
+}
+.landing-card--dark h3 {
+  color: #e6edf3;
+}
+.landing-card--dark p {
+  color: #8b949e;
+}
+.landing-card--dark .landing-card-icon {
+  background: #21262d;
+  color: #FCFF52;
 }
 
 .landing-card-icon {
@@ -957,7 +1005,7 @@ body:has(.landing) {
 
 .landing-card h3 {
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: 600;
   margin-bottom: 0.5rem;
   color: #1a1a2e;
 }

@@ -90,7 +90,7 @@ const FEATURES = [
   {
     title: "Agent Memory",
     desc: "Persistent knowledge graph memory via gBrain. Agents search past runs, store learned patterns, and build context over time.",
-    icon: "\uD83E\uDDE0",
+    icon: "\u29BB",
   },
   {
     title: "Hermes Agent",
@@ -259,7 +259,7 @@ export default function LandingPage() {
               { layer: "Memory", desc: "Persistent knowledge graph via gBrain. Agents recall past runs, store patterns, and build compounding context" },
               { layer: "Audit", desc: "SHA-256 hashed receipts, Ed25519 signatures, on-chain attestation, escrow with conditional release" },
             ].map((l) => (
-              <div key={l.layer} className="landing-card">
+              <div key={l.layer} className="landing-card landing-card--dark">
                 <h3>{l.layer}</h3>
                 <p>{l.desc}</p>
               </div>
@@ -269,25 +269,25 @@ export default function LandingPage() {
       </section>
 
       {/* ── Memory ──────────────────────────────────────────────── */}
-      <section className="landing-section">
+      <section className="landing-section landing-section-dark">
         <div className="landing-container">
-          <h2 className="landing-section-title">Agents that remember</h2>
-          <p className="landing-section-subtitle">
+          <h2 className="landing-section-title landing-section-title--light">Agents that remember</h2>
+          <p className="landing-section-subtitle landing-section-subtitle--light">
             Persistent memory turns stateless agents into learning systems. Every run builds on the last.
           </p>
           <div className="landing-grid">
-            <div className="landing-card">
-              <span className="landing-card-icon">{"\uD83D\uDD78\uFE0F"}</span>
+            <div className="landing-card landing-card--dark">
+              <span className="landing-card-icon">{"\u2B53"}</span>
               <h3>Knowledge Graph</h3>
               <p>Agent memory stored as a self-wiring knowledge graph. Search past runs, patterns, and domain knowledge.</p>
             </div>
-            <div className="landing-card">
-              <span className="landing-card-icon">{"\uD83D\uDCC8"}</span>
+            <div className="landing-card landing-card--dark">
+              <span className="landing-card-icon">{"\u21BA"}</span>
               <h3>Learn From Runs</h3>
               <p>After every pipeline, agents store results, decisions, and outcomes. Context compounds over time.</p>
             </div>
-            <div className="landing-card">
-              <span className="landing-card-icon">{"\uD83E\uDDE0"}</span>
+            <div className="landing-card landing-card--dark">
+              <span className="landing-card-icon">{"\u2B21"}</span>
               <h3>gBrain Integration</h3>
               <p>Powered by gBrain — 30+ MCP tools for read, write, search, and graph traversal across agent memory.</p>
             </div>
