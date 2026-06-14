@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CopyTerminal from "./CopyTerminal";
 
 const FEATURES = [
   {
@@ -218,12 +219,7 @@ export default function LandingPage() {
               Try Demo
             </Link>
           </div>
-          <div className="landing-terminal">
-            <div className="landing-terminal-dots">
-              <span /><span /><span />
-            </div>
-            <code>$ npm install @calebux/agent-kit</code>
-          </div>
+          <CopyTerminal command="npm install @calebux/agent-kit" />
         </div>
       </section>
 
@@ -344,12 +340,7 @@ export default function LandingPage() {
       {/* ── CTA Section ──────────────────────────────────────────── */}
       <section className="landing-cta-section">
         <div className="landing-container" style={{ textAlign: "center" }}>
-          <div className="landing-terminal" style={{ maxWidth: 480, margin: "0 auto 2rem" }}>
-            <div className="landing-terminal-dots">
-              <span /><span /><span />
-            </div>
-            <code>$ npm install @calebux/agent-kit</code>
-          </div>
+          <CopyTerminal command="npm install @calebux/agent-kit" />
           <Link href="/dashboard" className="landing-btn landing-btn-dark">
             Try the live demo
           </Link>
