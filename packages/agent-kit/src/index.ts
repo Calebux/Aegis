@@ -1,10 +1,9 @@
 /**
  * @calebux/agent-kit
  *
- * Governed multi-agent orchestration on Stellar.
- * Handles wallet provisioning, Soroban spend-cap enforcement,
- * on-chain reputation tracking, and x402 payment flows —
- * so you can focus on writing agent logic.
+ * Infrastructure for autonomous agent economies on Celo and Stellar.
+ * Identity, reputation, payments, governance, discovery, coordination,
+ * and audit — so you can focus on writing agent logic.
  *
  * @example
  * ```ts
@@ -102,6 +101,45 @@ export { AgentStakingManager } from "./contracts/agent-staking.js";
 export { ConsensusVotingManager } from "./contracts/consensus-voting.js";
 export { TaskEscrowManager } from "./contracts/task-escrow.js";
 export type { EscrowInfo } from "./contracts/task-escrow.js";
+
+// Agent Credentials
+export { AgentCredentialManager } from "./contracts/agent-credentials.js";
+export type { CredentialInfo } from "./contracts/agent-credentials.js";
+
+// Trust Scores
+export {
+  calculateTrustScore,
+  createDefaultTrustProviders,
+  ReputationProvider,
+  StakeProvider,
+  TaskCompletionProvider,
+  EscrowCompletionProvider,
+} from "./trust-score.js";
+export type {
+  TrustScoreProvider,
+  TrustScoreBreakdown,
+  TrustScoreResult,
+  DefaultTrustProviderConfig,
+} from "./trust-score.js";
+
+// Capability-Based Routing (Agent DNS)
+export { AgentRouter } from "./routing.js";
+export type {
+  RankedAgent,
+  RouteResult,
+  AgentRouterOptions,
+} from "./routing.js";
+
+// Human Approval Gateway
+export {
+  ApprovalGateway,
+  ApprovalRequiredError,
+  approvalMiddleware,
+} from "./approval.js";
+export type {
+  ApprovalRequest,
+  ApprovalStatus,
+} from "./approval.js";
 
 // Self Protocol
 export { isSelfVerified, selfEnforced, SELF_AGENT_REGISTRY } from "./self-protocol.js";

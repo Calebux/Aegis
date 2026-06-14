@@ -1,8 +1,8 @@
 # @calebux/agent-kit
 
-**Governed multi-agent orchestration on Celo and Stellar.**
+**Infrastructure for autonomous agent economies on Celo and Stellar.**
 
-Build AI agents that pay for data, enforce on-chain spend limits, earn verifiable reputation, and produce cryptographically signed run receipts — without writing any infrastructure code.
+Build agents that own identities, hold reputation, pay each other, escrow funds, delegate work, vote on outcomes, and generate verifiable receipts — all on-chain, without writing infrastructure code.
 
 ```bash
 npm install @calebux/agent-kit
@@ -217,6 +217,93 @@ const sub = createSubOrchestrator(['scout', 'ledger', 'signal'], {
 const d = sub.delegate('scout', 'web research on Celo DeFi')
 sub.recordSpend(500000n)  // track spend against budget
 console.log(sub.remaining) // 500000n
+```
+
+---
+
+## Agent Credentials (Celo)
+
+```ts
+import { AgentCredentialManager } from '@calebux/agent-kit'
+
+const creds = new AgentCredentialManager(
+  process.env.CELO_CREDENTIALS_ADDRESS!,
+  process.env.CELO_DEPLOYER_PRIVATE_KEY!,
+  'https://forno.celo.org',
+  'mainnet'
+)
+
+// Grant scoped, time-limited credential
+const oneYear = BigInt(Math.floor(Date.now() / 1000) + 365 * 86400)
+await creds.grantCredential('scout', 'web-search', 'read', oneYear)
+
+// Check and read
+const has = await creds.hasCredential('scout', 'web-search')
+const info = await creds.getCredential('scout', 'web-search')
+
+// Revoke
+await creds.revokeCredential('scout', 'web-search')
+```
+
+---
+
+## Trust Scores
+
+```ts
+import {
+  calculateTrustScore,
+  createDefaultTrustProviders,
+  CeloIdentityRegistry,
+  AgentStakingManager,
+} from '@calebux/agent-kit'
+
+const registry = new CeloIdentityRegistry(/* ... */)
+const staking = new AgentStakingManager(/* ... */)
+
+const providers = createDefaultTrustProviders({ registry, staking })
+const result = await calculateTrustScore('scout', providers)
+// result.score: 0–1000
+// result.breakdown: [{ provider: 'reputation', weight: 0.3, rawScore: 700, weightedScore: 210 }, ...]
+```
+
+---
+
+## Capability Routing (Agent DNS)
+
+```ts
+import { AgentRouter } from '@calebux/agent-kit'
+
+const router = new AgentRouter({
+  localManifests: manifests,
+  trustProviders: providers,
+  peerRegistry: peers,
+})
+
+// Discover agents by capability, ranked by trust
+const ranked = await router.findAgent({ capability: 'web-research', minTrustScore: 300 })
+
+// Route a task to the best agent
+const { agent, response } = await router.routeByCapability('web-research', 'Celo DeFi data')
+```
+
+---
+
+## Human Approval Gateway
+
+```ts
+import { ApprovalGateway, approvalMiddleware, ApprovalRequiredError } from '@calebux/agent-kit'
+
+const gateway = new ApprovalGateway()
+const check = approvalMiddleware(gateway, 1_000000n) // threshold
+
+try {
+  check('my-agent', 'expensive task', 5_000000n) // exceeds threshold
+} catch (err) {
+  if (err instanceof ApprovalRequiredError) {
+    console.log('Pending:', gateway.getPendingApprovals())
+    gateway.approveRequest(err.approvalId)
+  }
+}
 ```
 
 ---
@@ -462,6 +549,7 @@ const result = await routeToPeer(peers, {
 | `CALAGENT_SELF_ENFORCE` | Celo | `true` to gate agent runs behind Self Protocol verification |
 | `CELO_STAKING_ADDRESS` | Celo | AgentStaking contract address |
 | `CELO_CONSENSUS_VOTING_ADDRESS` | Celo | ConsensusVoting contract address |
+| `CELO_CREDENTIALS_ADDRESS` | Celo | AgentCredentials contract address |
 | `CALAGENT_PEERS` | Any | Comma-separated peer instance URLs for auto-federation |
 
 All contract options are optional — omit them to run in dev mode with no on-chain enforcement.

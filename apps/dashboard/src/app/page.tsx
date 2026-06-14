@@ -66,6 +66,26 @@ const FEATURES = [
     desc: "Parent agents delegate tasks to child agents with linked receipt chains and inherited spend budgets.",
     icon: "\u21B3",
   },
+  {
+    title: "Trust Scores",
+    desc: "Composite 0\u20131000 trust scores from on-chain reputation, staking, task completion, and escrow history.",
+    icon: "\u2261",
+  },
+  {
+    title: "Agent Credentials",
+    desc: "Scoped, time-limited on-chain credentials gate which services an agent can access. Grant, revoke, verify.",
+    icon: "\u229A",
+  },
+  {
+    title: "Capability Routing",
+    desc: "Agent DNS: discover agents by capability across local and federated peers, ranked by trust score.",
+    icon: "\u2B95",
+  },
+  {
+    title: "Approval Gateway",
+    desc: "Human-in-the-loop approval for high-value operations. Configurable thresholds enforce oversight before spend.",
+    icon: "\u270B",
+  },
 ];
 
 const USE_CASES = [
@@ -117,6 +137,22 @@ const USE_CASES = [
     title: "Agent Delegation",
     desc: "Compose agent hierarchies. Parent agents delegate tasks to specialists with linked receipt chains for full traceability.",
   },
+  {
+    title: "Trust-Scored Routing",
+    desc: "Query agents by capability and get back trust-ranked results. Routes to the highest-scored agent automatically.",
+  },
+  {
+    title: "Credentialed Services",
+    desc: "Grant agents scoped credentials for DeFi, oracles, or LLM services. Credentials expire and can be revoked on-chain.",
+  },
+  {
+    title: "Human Approval Workflows",
+    desc: "High-value agent operations pause for human approval. Configurable thresholds per agent, with pending/approved/denied lifecycle.",
+  },
+  {
+    title: "Federated Agent Discovery",
+    desc: "Discover agents across multiple Cal-AgentKit instances. Capability routing + trust scores enable secure cross-org agent collaboration.",
+  },
 ];
 
 const FOOTER_LINKS = {
@@ -163,11 +199,11 @@ export default function LandingPage() {
       <section className="landing-hero">
         <div className="landing-container">
           <h1 className="landing-hero-title">
-            Agent infrastructure for <span className="landing-celo-yellow">Celo</span>
+            Agent economy infrastructure for <span className="landing-celo-yellow">Celo</span>
           </h1>
           <p className="landing-hero-subtitle">
-            Open-source SDK for building governed, verifiable, multi-agent systems with x402 payments,
-            on-chain reputation, and spend policies.
+            Open-source SDK for building autonomous agent economies — identity, reputation,
+            payments, governance, discovery, coordination, and audit. All on-chain.
           </p>
           <div className="landing-hero-ctas">
             <a
@@ -191,12 +227,38 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Layers ──────────────────────────────────────────────── */}
+      <section className="landing-section landing-section-alt">
+        <div className="landing-container">
+          <h2 className="landing-section-title">Seven infrastructure layers</h2>
+          <p className="landing-section-subtitle">
+            Everything agents need to operate as autonomous, accountable participants in a multi-agent economy.
+          </p>
+          <div className="landing-grid">
+            {[
+              { layer: "Identity", desc: "On-chain agent registration, manifest hashes, ERC-8004 NFTs, Self Protocol verification" },
+              { layer: "Reputation", desc: "Live trust scores from task completion, staking, and consensus — updated after every run" },
+              { layer: "Payments", desc: "x402 micropayments, agent-to-agent USDm/XLM transfers, multi-chain settlement" },
+              { layer: "Governance", desc: "Spend caps, session policies, human approval gates, scoped credentials" },
+              { layer: "Discovery", desc: "Capability-based routing, federated peer registry, trust-ranked agent DNS" },
+              { layer: "Coordination", desc: "Task orchestration, delegation with linked receipts, consensus voting" },
+              { layer: "Audit", desc: "SHA-256 hashed receipts, Ed25519 signatures, on-chain attestation, escrow with conditional release" },
+            ].map((l) => (
+              <div key={l.layer} className="landing-card">
+                <h3>{l.layer}</h3>
+                <p>{l.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── Features ─────────────────────────────────────────────── */}
       <section className="landing-section">
         <div className="landing-container">
           <h2 className="landing-section-title">What&apos;s inside</h2>
           <p className="landing-section-subtitle">
-            Everything you need to build trustworthy AI agents on Celo.
+            The building blocks behind each layer.
           </p>
           <div className="landing-grid">
             {FEATURES.map((f) => (
@@ -300,7 +362,7 @@ export default function LandingPage() {
           <div className="landing-footer-grid">
             <div className="landing-footer-brand">
               <span className="landing-logo">CAL-AGENTKIT</span>
-              <p>Open-source agent infrastructure for Celo.</p>
+              <p>Infrastructure for autonomous agent economies.</p>
             </div>
             {Object.entries(FOOTER_LINKS).map(([title, links]) => (
               <div key={title} className="landing-footer-col">
@@ -318,7 +380,7 @@ export default function LandingPage() {
             ))}
           </div>
           <div className="landing-footer-bottom">
-            <span>Open-source agent infrastructure</span>
+            <span>Open-source infrastructure for autonomous agent economies</span>
           </div>
         </div>
       </footer>

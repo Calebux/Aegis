@@ -1,8 +1,20 @@
 # Cal-AgentKit
 
-**Multi-chain agent execution and trust infrastructure**
+**Infrastructure for autonomous agent economies**
 
-Cal-AgentKit is a multi-agent orchestration framework where a master orchestrator decomposes tasks into specialized sub-agents — each with its own wallet, on-chain spend caps, verifiable reputation, and x402 payment gating. Agents pay for external services, settle micropayments with each other, and produce cryptographically signed run receipts.
+Cal-AgentKit lets developers build agent economies — networks of AI agents that own identities, hold reputation, pay each other, escrow funds, delegate work, vote on outcomes, and generate verifiable receipts. All on-chain, across Celo and Stellar.
+
+Seven infrastructure layers in one SDK:
+
+| Layer | What it does |
+|-------|-------------|
+| **Identity** | On-chain agent registration, manifest hashes, ERC-8004 NFTs, Self Protocol verification |
+| **Reputation** | Live trust scores from task completion, staking, and consensus — updated after every run |
+| **Payments** | x402 micropayments, agent-to-agent USDm/XLM transfers, multi-chain settlement |
+| **Governance** | Spend caps, session policies, human approval gates, scoped credentials |
+| **Discovery** | Capability-based routing, federated peer registry, trust-ranked agent DNS |
+| **Coordination** | Task orchestration, delegation with linked receipts, consensus voting |
+| **Audit** | SHA-256 hashed receipts, Ed25519 signatures, on-chain attestation, escrow with conditional release |
 
 Currently live on **Celo mainnet** and **Stellar testnet**.
 
@@ -104,6 +116,96 @@ await escrow.releaseEscrow(escrowId, receiptHash)
 
 // Or refund if deadline passed without completion
 await escrow.refundEscrow(escrowId)
+```
+
+### Agent Credentials
+
+The `AgentCredentials` contract manages scoped, time-limited credentials that gate agent access to services:
+
+```ts
+import { AgentCredentialManager } from '@calebux/agent-kit'
+
+const creds = new AgentCredentialManager(
+  process.env.CELO_CREDENTIALS_ADDRESS!,
+  process.env.CELO_DEPLOYER_PRIVATE_KEY!,
+  'https://forno.celo.org',
+  'mainnet'
+)
+
+// Grant a credential (expires in 1 year)
+const oneYear = BigInt(Math.floor(Date.now() / 1000) + 365 * 86400)
+await creds.grantCredential('scout', 'web-search', 'read', oneYear)
+
+// Check and read
+const has = await creds.hasCredential('scout', 'web-search') // true
+const info = await creds.getCredential('scout', 'web-search')
+// info.scope, info.grantedAt, info.expiresAt, info.active
+
+// Revoke
+await creds.revokeCredential('scout', 'web-search')
+```
+
+### Trust Scores
+
+Composable trust scoring aggregates on-chain reputation, staking, task completion, and escrow history:
+
+```ts
+import {
+  calculateTrustScore,
+  createDefaultTrustProviders,
+  CeloIdentityRegistry,
+  AgentStakingManager,
+} from '@calebux/agent-kit'
+
+const registry = new CeloIdentityRegistry(/* ... */)
+const staking = new AgentStakingManager(/* ... */)
+
+const providers = createDefaultTrustProviders({ registry, staking })
+const result = await calculateTrustScore('scout', providers)
+// result.score: 0–1000, result.breakdown: per-provider details
+```
+
+### Capability-Based Routing (Agent DNS)
+
+Discover and route to agents by capability, ranked by trust score:
+
+```ts
+import { AgentRouter } from '@calebux/agent-kit'
+
+const router = new AgentRouter({
+  localManifests: manifests,
+  trustProviders: providers,
+  peerRegistry: peers, // optional — enables cross-instance discovery
+})
+
+// Find all agents with a capability, sorted by trust
+const ranked = await router.findAgent({ capability: 'web-research', minTrustScore: 300 })
+
+// Route a task to the best match
+const result = await router.routeByCapability('web-research', 'Search for Celo DeFi data')
+```
+
+### Human Approval Gateway
+
+Enforce human-in-the-loop approval for high-value agent operations:
+
+```ts
+import { ApprovalGateway, approvalMiddleware, ApprovalRequiredError } from '@calebux/agent-kit'
+
+const gateway = new ApprovalGateway()
+
+// Middleware that throws when amount exceeds threshold
+const check = approvalMiddleware(gateway, 1_000000n)
+
+try {
+  check('my-agent', 'expensive task', 5_000000n)
+} catch (err) {
+  if (err instanceof ApprovalRequiredError) {
+    // Present to human for review
+    console.log('Needs approval:', err.approvalId)
+    gateway.approveRequest(err.approvalId) // or gateway.denyRequest(...)
+  }
+}
 ```
 
 ### Agent Delegation
@@ -236,6 +338,7 @@ const verified = await isSelfVerified('0xAgentWallet...')
 | `CALAGENT_SELF_ENFORCE` | `true` to gate agent runs behind Self Protocol verification |
 | `CELO_STAKING_ADDRESS` | AgentStaking contract address |
 | `CELO_CONSENSUS_VOTING_ADDRESS` | ConsensusVoting contract address |
+| `CELO_CREDENTIALS_ADDRESS` | AgentCredentials contract address |
 | `CALAGENT_PEERS` | Comma-separated peer instance URLs for auto-federation |
 
 ### Celo Contracts (Foundry)
@@ -304,27 +407,24 @@ Agent-to-agent payments: Scribe pays Scout 0.001 XLM per synthesis (`calagent:sc
 
 ---
 
-## What Makes Cal-AgentKit Different
+## Why Cal-AgentKit
 
-1. **Multi-chain from day one** — same agent architecture on Celo (EVM/USDm) and Stellar (Soroban/XLM)
-2. **Full-stack x402** — simultaneously an x402 provider and consumer on both chains
-3. **On-chain spend governance** — Shield Contract (Stellar) and AegisCeloPolicy (Celo) enforce caps before transactions hit the network
-4. **Agent-to-agent payments** — agents have financial relationships with each other, settled on-chain
-5. **Live reputation** — Identity Registry increments scores on-chain after every task
-6. **Verifiable run receipts** — every run produces `calagent.receipt.v1` with task/output hashes, payment txs, Ed25519 signature
-7. **Discoverable manifests** — agents declare capabilities, endpoints, payment terms via portable SDK manifests
-8. **Cross-chain federation** — `PeerRegistry` + `routeToPeer()` let independent Cal-AgentKit instances discover and delegate tasks across chains and organizations
-9. **ERC-8004 compliant** — bridge adapter registers agents on canonical ERC-8004 Identity and Reputation registries with NFT-based identity
-10. **Sybil-resistant identity** — Self Protocol integration verifies agent wallets belong to authenticated humans, optional enforcement gate on agent runs
-11. **Agent staking** — USDm staking contract with slash/reward mechanics for agent accountability
-12. **On-chain consensus voting** — multi-agent consensus recorded immutably on-chain with majority finalization
-13. **Agent delegation** — parent agents delegate to child agents with linked receipt chains and inherited spend budgets
+Most agent frameworks give you orchestration. Cal-AgentKit gives you the full economic infrastructure — everything agents need to operate as autonomous, accountable participants in a multi-agent economy.
+
+1. **Identity** — agents register on-chain with manifest hashes, ERC-8004 NFTs, and Self Protocol sybil resistance
+2. **Reputation** — trust scores update after every task; composable from completion ratio, staking, escrow, and on-chain history
+3. **Payments** — full-stack x402 (provider + consumer), agent-to-agent USDm/XLM transfers, multi-chain settlement
+4. **Governance** — spend caps, session policies, scoped credentials, human approval gates for high-value operations
+5. **Discovery** — capability-based Agent DNS across local manifests and federated peers, ranked by trust score
+6. **Coordination** — task orchestration, delegation with linked receipt chains, on-chain consensus voting
+7. **Audit** — every run produces `calagent.receipt.v1` with SHA-256 hashes, Ed25519 signatures, payment proofs, and on-chain attestation
+8. **Multi-chain** — same architecture on Celo (EVM/USDm) and Stellar (Soroban/XLM), with cross-chain federation built in
 
 ---
 
 ## Interoperable by Design
 
-Cal-AgentKit is chain-agnostic infrastructure. The same agent definitions, manifests, receipts, and orchestration logic work across every supported chain — and across independently deployed instances.
+Cal-AgentKit is chain-agnostic agent economy infrastructure. The same agent definitions, manifests, receipts, and orchestration logic work across every supported chain — and across independently deployed instances.
 
 ### Multi-chain settlement
 
