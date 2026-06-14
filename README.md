@@ -23,9 +23,9 @@ Cal-AgentKit deploys a full agent infrastructure on Celo: identity registry, pol
 | **AegisCeloRegistry** | [`0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C`](https://celoscan.io/address/0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C) | Agent identity, manifest hashes, on-chain reputation |
 | **AegisCeloPolicy** | [`0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c`](https://celoscan.io/address/0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c) | Per-agent spend caps and session management |
 | **Erc8004Adapter** | _(deployed via `deploy.sh`)_ | Bridge to canonical ERC-8004 Identity and Reputation registries |
-| **AgentStaking** | _(deployed via `deploy.sh`)_ | USDm staking, slashing, and rewards for agents |
-| **ConsensusVoting** | _(deployed via `deploy.sh`)_ | On-chain consensus voting for multi-agent pipelines |
-| **TaskEscrow** | _(deployed via `deploy.sh`)_ | USDm escrow with conditional release on verified receipt |
+| **AgentStaking** | [`0xa852E09A72C5208Ac7c912393Bb7C93af206C3b7`](https://celoscan.io/address/0xa852E09A72C5208Ac7c912393Bb7C93af206C3b7) | USDm staking, slashing, and rewards for agents |
+| **ConsensusVoting** | [`0xcB0d228488046b97d77b029e5516c845Da19d976`](https://celoscan.io/address/0xcB0d228488046b97d77b029e5516c845Da19d976) | On-chain consensus voting for multi-agent pipelines |
+| **TaskEscrow** | [`0x7A0Cafa0CE71E3879aFac675eCe6E68aB32EFf70`](https://celoscan.io/address/0x7A0Cafa0CE71E3879aFac675eCe6E68aB32EFf70) | USDm escrow with conditional release on verified receipt |
 
 ### ERC-8004 Compliance
 
