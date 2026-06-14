@@ -22,6 +22,30 @@ Cal-AgentKit deploys a full agent infrastructure on Celo: identity registry, pol
 |---|---|---|
 | **AegisCeloRegistry** | [`0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C`](https://celoscan.io/address/0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C) | Agent identity, manifest hashes, on-chain reputation |
 | **AegisCeloPolicy** | [`0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c`](https://celoscan.io/address/0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c) | Per-agent spend caps and session management |
+| **Erc8004Adapter** | _(deployed via `deploy.sh`)_ | Bridge to canonical ERC-8004 Identity and Reputation registries |
+
+### ERC-8004 Compliance
+
+Cal-AgentKit bridges to the canonical [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) registries on Celo mainnet via the `Erc8004Adapter` contract:
+
+| Registry | Address | Purpose |
+|---|---|---|
+| **ERC-8004 Identity** | [`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`](https://celoscan.io/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432) | Canonical agent identity NFTs |
+| **ERC-8004 Reputation** | [`0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`](https://celoscan.io/address/0x8004BAa17C55a88189AE136b182e5fdA19dE9b63) | Canonical agent reputation feedback |
+
+The adapter provides:
+- `registerAgent(calagentId, agentURI)` — registers on ERC-8004 Identity Registry, returns NFT ID
+- `syncReputation(calagentId, value, tag)` — forwards reputation signals to ERC-8004 Reputation Registry
+- `updateAgentURI(calagentId, newURI)` — updates agent metadata on-chain
+- Bidirectional mapping between Cal-AgentKit agent IDs and ERC-8004 NFT token IDs
+
+### Self Protocol Integration
+
+[Self Protocol](https://self.xyz) provides sybil-resistant agent identity. The Self Agent Registry on Celo mainnet (`0xaC3DF9ABf80d0F5c020C06B04Cced27763355944`) verifies that agent wallets belong to authenticated humans.
+
+- `isSelfVerified(agentAddress)` — check if an agent wallet is Self-verified (read-only, no gas)
+- Set `CALAGENT_SELF_ENFORCE=true` to gate agent runs behind Self verification (returns 403 if unverified)
+- Dashboard shows "Self" and "8004" badges on verified agents
 
 ### Celo Agents
 
@@ -73,6 +97,8 @@ curl -X POST http://localhost:3000/api/agents/celo-defi/run \
 import {
   CeloIdentityRegistry,
   CeloPolicyManager,
+  Erc8004Adapter,
+  isSelfVerified,
   payAndFetchCelo,
   submitCusdPayment,
   celoAgentToAgentPayment,
@@ -88,6 +114,23 @@ const registry = new CeloIdentityRegistry(
 await registry.registerAgent('my-agent', 'My Agent', 'research')
 await registry.recordSuccess('my-agent')
 const rep = await registry.getReputation('my-agent')
+
+// ERC-8004 adapter — bridge to canonical registries
+const adapter = new Erc8004Adapter(
+  process.env.ERC8004_ADAPTER_ADDRESS!,
+  process.env.CELO_DEPLOYER_PRIVATE_KEY!,
+  'https://forno.celo.org',
+  'mainnet'
+)
+
+const { txHash, erc8004Id } = await adapter.registerOnErc8004(
+  'my-agent',
+  'https://myapp.com/api/agents/my-agent/uri'
+)
+await adapter.syncReputation('my-agent', 10, 'task-success')
+
+// Self Protocol — sybil-resistant identity check
+const verified = await isSelfVerified('0xAgentWallet...')
 ```
 
 ### Celo Environment
@@ -101,6 +144,8 @@ const rep = await registry.getReputation('my-agent')
 | `CELO_DEPLOYER_PRIVATE_KEY` | Admin key for registry/policy writes |
 | `CALAGENT_CELO_X402_RECEIVER` | Celo address receiving x402 USDm payments |
 | `CALAGENT_CELO_X402_FACILITATOR_URL` | Celo/EVM x402 facilitator |
+| `ERC8004_ADAPTER_ADDRESS` | Erc8004Adapter bridge contract address |
+| `CALAGENT_SELF_ENFORCE` | `true` to gate agent runs behind Self Protocol verification |
 
 ### Celo Contracts (Foundry)
 
@@ -113,6 +158,9 @@ cd contracts/celo && forge test
 
 # Publish manifest hashes (dashboard must be running)
 npm run publish:celo-manifest-hashes
+
+# Register agents on ERC-8004 (dashboard must be running)
+npm run publish:erc8004
 ```
 
 ---
@@ -175,6 +223,8 @@ Agent-to-agent payments: Scribe pays Scout 0.001 XLM per synthesis (`calagent:sc
 6. **Verifiable run receipts** — every run produces `calagent.receipt.v1` with task/output hashes, payment txs, Ed25519 signature
 7. **Discoverable manifests** — agents declare capabilities, endpoints, payment terms via portable SDK manifests
 8. **Cross-chain federation** — `PeerRegistry` + `routeToPeer()` let independent Cal-AgentKit instances discover and delegate tasks across chains and organizations
+9. **ERC-8004 compliant** — bridge adapter registers agents on canonical ERC-8004 Identity and Reputation registries with NFT-based identity
+10. **Sybil-resistant identity** — Self Protocol integration verifies agent wallets belong to authenticated humans, optional enforcement gate on agent runs
 
 ---
 
@@ -244,7 +294,7 @@ calagent/
 ├── contracts/
 │   ├── identity-registry/       Soroban — agent identity + reputation (Rust)
 │   ├── shield-contract/         Soroban — per-agent spend cap enforcement (Rust)
-│   └── celo/                    Foundry — AegisCeloRegistry + AegisCeloPolicy (Solidity)
+│   └── celo/                    Foundry — AegisCeloRegistry + AegisCeloPolicy + Erc8004Adapter (Solidity)
 └── scripts/                     Manifest publishing, smoke tests, demos
 ```
 
@@ -274,7 +324,9 @@ npm run dev    # Dashboard on :3000
 | `GET /api/health` | Deployment readiness, x402 config, contract pointers |
 | `GET /api/agents` | Machine-readable agent manifests |
 | `GET /api/agents?chain=celo` | Celo agent manifests |
-| `POST /api/agents/:id/run` | Call a single agent (x402 gated) |
+| `POST /api/agents/:id/run` | Call a single agent (x402 gated, optional Self Protocol gate) |
+| `GET /api/agents/:id/uri` | ERC-8004-compatible agent metadata JSON |
+| `GET /api/agents/:id/verify` | Self Protocol + ERC-8004 verification status |
 | `POST /api/run` | Full pipeline orchestration (add `chain: "celo"` for Celo) |
 | `GET /api/receipts` | List run receipts |
 | `GET /api/receipts/:id` | Fetch receipt with verification |
@@ -288,6 +340,9 @@ npm run publish:manifest-hashes
 
 # Celo
 npm run publish:celo-manifest-hashes
+
+# ERC-8004
+npm run publish:erc8004
 ```
 
 ### MCP Setup

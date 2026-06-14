@@ -36,6 +36,16 @@ const FEATURES = [
     desc: "Swap the underlying model via OpenRouter. Use Claude, Llama, Mistral, or 200+ models with one API key.",
     icon: "\u2699",
   },
+  {
+    title: "ERC-8004 Compliant",
+    desc: "Bridge adapter registers agents on canonical ERC-8004 Identity and Reputation registries with NFT-based identity.",
+    icon: "\u29C9",
+  },
+  {
+    title: "Self Protocol Identity",
+    desc: "Sybil-resistant agent verification via Self Protocol. Gate agent runs behind human-verified wallet identity.",
+    icon: "\u2694",
+  },
 ];
 
 const USE_CASES = [
@@ -62,6 +72,14 @@ const USE_CASES = [
   {
     title: "Cross-Chain Interoperability",
     desc: "Route tasks across Celo, Stellar, and Base via selectChain() and PeerRegistry. Unified receipts and reputation travel with agents.",
+  },
+  {
+    title: "ERC-8004 Agent Registry",
+    desc: "Register agents as ERC-8004 NFTs on the canonical Celo registry. Sync reputation and metadata via the bridge adapter.",
+  },
+  {
+    title: "Sybil-Resistant Agents",
+    desc: "Verify agent wallets via Self Protocol. Enforce human-verified identity before agents can execute tasks.",
   },
 ];
 

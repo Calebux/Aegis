@@ -21,6 +21,8 @@ npm install @calebux/agent-kit
 | **Agent-to-agent payments** | USDm ERC-20 transfers | XLM with on-chain memos |
 | **Run receipts** | SHA-256 hashed, Ed25519 signed | SHA-256 hashed, Ed25519 signed |
 | **Agent manifests** | Same shape, `chain: "celo"` | Capabilities, endpoints, payment terms, policies |
+| **ERC-8004 compliance** | Erc8004Adapter bridge to canonical registries | N/A |
+| **Self Protocol identity** | Sybil-resistant agent verification | N/A |
 
 ---
 
@@ -67,6 +69,47 @@ const txHash = await submitCusdPayment(account, '0xDEST...', '0.5')
 
 // Agent-to-agent USDm payment
 const hash = await celoAgentToAgentPayment(fromAccount, toAddress, '0.001')
+```
+
+---
+
+## ERC-8004 and Self Protocol (Celo)
+
+```ts
+import {
+  Erc8004Adapter,
+  isSelfVerified,
+  selfEnforced,
+  SELF_AGENT_REGISTRY,
+} from '@calebux/agent-kit'
+
+// ERC-8004 adapter — bridge to canonical Identity + Reputation registries
+const adapter = new Erc8004Adapter(
+  process.env.ERC8004_ADAPTER_ADDRESS!,
+  process.env.CELO_DEPLOYER_PRIVATE_KEY!,
+  'https://forno.celo.org',
+  'mainnet'
+)
+
+// Register an agent → gets an ERC-8004 NFT ID
+const { txHash, erc8004Id } = await adapter.registerOnErc8004(
+  'my-agent',
+  'https://myapp.com/api/agents/my-agent/uri'
+)
+
+// Sync reputation to the canonical ERC-8004 Reputation Registry
+await adapter.syncReputation('my-agent', 10, 'task-success')
+
+// Update agent metadata URI
+await adapter.updateAgentURI('my-agent', 'https://myapp.com/api/agents/my-agent/uri')
+
+// Check registration
+const registered = await adapter.isRegistered('my-agent')
+const nftId = await adapter.getErc8004AgentId('my-agent')
+
+// Self Protocol — sybil-resistant identity
+const verified = await isSelfVerified('0xAgentWalletAddress')
+const enforce = selfEnforced() // checks CALAGENT_SELF_ENFORCE env var
 ```
 
 ---
@@ -284,6 +327,10 @@ const result = await routeToPeer(peers, {
 |---|---|
 | AegisCeloRegistry | `0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C` |
 | AegisCeloPolicy | `0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c` |
+| Erc8004Adapter | _(deployed via `deploy.sh`)_ |
+| ERC-8004 Identity Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
+| ERC-8004 Reputation Registry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
+| Self Agent Registry | `0xaC3DF9ABf80d0F5c020C06B04Cced27763355944` |
 
 ---
 
@@ -302,6 +349,8 @@ const result = await routeToPeer(peers, {
 | `CELO_POLICY_ADDRESS` | Celo | AegisCeloPolicy contract address |
 | `CELO_DEPLOYER_PRIVATE_KEY` | Celo | Admin key for registry/policy writes |
 | `CALAGENT_CELO_NETWORK` | Celo | `mainnet` or `alfajores` |
+| `ERC8004_ADAPTER_ADDRESS` | Celo | Erc8004Adapter bridge contract address |
+| `CALAGENT_SELF_ENFORCE` | Celo | `true` to gate agent runs behind Self Protocol verification |
 
 All contract options are optional — omit them to run in dev mode with no on-chain enforcement.
 
