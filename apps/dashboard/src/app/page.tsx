@@ -163,9 +163,9 @@ const FOOTER_LINKS = {
     { label: "Receipts", href: "/receipts" },
   ],
   Developers: [
-    { label: "GitHub", href: "https://github.com/calebcauthon/agent-kit" },
+    { label: "GitHub", href: "https://github.com/Calebux/CAL-AGENTKIT" },
     { label: "npm", href: "https://www.npmjs.com/package/@calebux/agent-kit" },
-    { label: "Documentation", href: "https://github.com/calebcauthon/agent-kit#readme" },
+    { label: "Documentation", href: "https://github.com/Calebux/CAL-AGENTKIT#readme" },
   ],
   Ecosystem: [
     { label: "Celo", href: "https://celo.org" },
@@ -182,7 +182,7 @@ export default function LandingPage() {
         <div className="landing-nav-inner">
           <span className="landing-logo">CAL-AGENTKIT</span>
           <div className="landing-nav-links">
-            <a href="https://github.com/calebcauthon/agent-kit" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/Calebux/CAL-AGENTKIT" target="_blank" rel="noopener noreferrer">
               GitHub
             </a>
             <a href="https://www.npmjs.com/package/@calebux/agent-kit" target="_blank" rel="noopener noreferrer">
@@ -208,7 +208,7 @@ export default function LandingPage() {
           </p>
           <div className="landing-hero-ctas">
             <a
-              href="https://github.com/calebcauthon/agent-kit"
+              href="https://github.com/Calebux/CAL-AGENTKIT"
               target="_blank"
               rel="noopener noreferrer"
               className="landing-btn landing-btn-outline"

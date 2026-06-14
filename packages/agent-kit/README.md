@@ -558,7 +558,7 @@ All contract options are optional — omit them to run in dev mode with no on-ch
 
 ## Reference implementation
 
-[Aegis](https://github.com/Calebux/Aegis) is the full reference implementation: five specialized agents per chain (Scout, Ledger, Signal, Scribe, Notary), live x402 payment servers, agent-to-agent payments, verifiable run receipts, and a Next.js dashboard — all built on `@calebux/agent-kit`.
+[CAL-AGENTKIT](https://github.com/Calebux/CAL-AGENTKIT) is the full reference implementation: five specialized agents per chain (Scout, Ledger, Signal, Scribe, Notary), live x402 payment servers, agent-to-agent payments, verifiable run receipts, and a Next.js dashboard — all built on `@calebux/agent-kit`.
 
 ---
 
