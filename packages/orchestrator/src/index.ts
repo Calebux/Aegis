@@ -1,5 +1,5 @@
 /**
- * Aegis Master Orchestrator — Bus-Based Pipeline (Upgrades 1–7)
+ * Cal-AgentKit Master Orchestrator — Bus-Based Pipeline (Upgrades 1–7)
  *
  * Pipeline flow:
  *   1. Generate task graph via Planner (Upgrade 6)
@@ -22,9 +22,16 @@ import * as fs from "fs";
 import * as path from "path";
 import { EventEmitter } from "events";
 import { Keypair, SorobanRpc } from "@stellar/stellar-sdk";
-import { fundTestnetAccount } from "@aegis/shared";
-import { ShieldContract, IdentityRegistry } from "@calebux/agent-kit";
-import type { OrchestratorReport } from "@calebux/agent-kit";
+import { fundTestnetAccount } from "@calagent/shared";
+import {
+  ShieldContract,
+  IdentityRegistry,
+  createStellarSettlement,
+  createCeloSettlement,
+  createBaseSettlement,
+  getDefaultChainPreference,
+} from "@calebux/agent-kit";
+import type { OrchestratorReport, SettlementProvider, LLMProvider } from "@calebux/agent-kit";
 
 import { bus, type AgentMessage, type AgentTopic } from "./lib/bus.js";
 import { generateTaskGraph, graphHasAgent, type TaskGraph } from "./orchestrator/planner.js";
@@ -37,7 +44,7 @@ import { ScribeAgent } from "./agents/scribe.js";
 import { ExecutorAgent } from "./agents/executor.js";
 import { startHorizonX402Server } from "./services/horizon-x402-server.js";
 
-export type { OrchestratorReport as AegisReport };
+export type { OrchestratorReport as CalagentReport };
 
 // Celo pipeline entry point (re-exported for dashboard compatibility)
 export { runCeloTask } from "./celo-index.js";
@@ -168,7 +175,8 @@ let horizonServerStarted = false;
 
 export async function runTask(
   prompt: string,
-  emitter?: EventEmitter
+  emitter?: EventEmitter,
+  llmProvider?: LLMProvider
 ): Promise<OrchestratorReport> {
   // Skip port-binding on Vercel serverless (VERCEL env is set automatically)
   if (!horizonServerStarted && !process.env.VERCEL) {
@@ -187,14 +195,14 @@ export async function runTask(
   const emit = makeEmit(emitter);
 
   // ── 1. Generate task graph ─────────────────────────────────────────────────
-  emit("log", { message: "🔮 Aegis pipeline initialising…", level: "info" });
+  emit("log", { message: "🔮 Cal-AgentKit pipeline initialising…", level: "info" });
   emit("log", {
     message: `📋 Task: "${prompt.slice(0, 90)}${prompt.length > 90 ? "…" : ""}"`,
     level: "info",
   });
   emit("log", { message: "🗺️  Generating task graph…", level: "info" });
 
-  const graph: TaskGraph = await generateTaskGraph(prompt);
+  const graph: TaskGraph = await generateTaskGraph(prompt, llmProvider);
   const runId = graph.runId;
 
   // Emit graph to dashboard (new SSE event type for TaskGraph visual)
@@ -344,7 +352,7 @@ export async function runTask(
   signalAgent.wire(runId, signalKp, prompt);
   emit("log", { message: "   Signal wired (waiting for Scout + Ledger)", level: "info" });
 
-  const consensusManager = new ConsensusManager();
+  const consensusManager = new ConsensusManager(llmProvider);
   const consensusKeypairs = new Map<string, Keypair>([
     ["signal",    signalKp],
     ["validator", Keypair.random()],   // placeholder — validator uses its own ephemeral kp
@@ -356,11 +364,29 @@ export async function runTask(
     needsValidator   // reputation-gated: probation tier forces Validator regardless of confidence
   );
 
-  const scribeAgent = new ScribeAgent();
+  const scribeAgent = new ScribeAgent(llmProvider);
   scribeAgent.wire(runId, scribeKp, scoutKp.publicKey());
   emit("log", { message: "   Scribe wired (waiting for consensus)", level: "info" });
 
   const executorAgent = new ExecutorAgent();
+
+  // Wire multi-chain settlement provider if SETTLEMENT_CHAIN is configured
+  const chainPref = getDefaultChainPreference();
+  let settlementProvider: SettlementProvider | undefined;
+  if (chainPref === "celo" && process.env.CELO_DEPLOYER_PRIVATE_KEY) {
+    settlementProvider = createCeloSettlement(process.env.CELO_DEPLOYER_PRIVATE_KEY as `0x${string}`);
+    emit("log", { message: "   Settlement: Celo (cUSD)", level: "info" });
+  } else if (chainPref === "base" && process.env.BASE_DEPLOYER_PRIVATE_KEY) {
+    settlementProvider = createBaseSettlement(process.env.BASE_DEPLOYER_PRIVATE_KEY as `0x${string}`);
+    emit("log", { message: "   Settlement: Base (USDC)", level: "info" });
+  } else {
+    settlementProvider = createStellarSettlement(executorKp);
+    emit("log", { message: "   Settlement: Stellar (XLM)", level: "info" });
+  }
+  if (settlementProvider) {
+    executorAgent.setSettlementProvider(settlementProvider);
+  }
+
   executorAgent.wire(runId, executorKp);
   emit("agent_status", { agent: "executor", status: "running" });
   emit("log", { message: "   Executor wired (waiting for consensus — will execute treasury action)", level: "info" });
@@ -376,7 +402,7 @@ export async function runTask(
   emit("agent_status", { agent: "signal", status: "running" });
   emit("agent_status", { agent: "scribe", status: "running" });
 
-  const scoutAgent  = new ScoutAgent();
+  const scoutAgent  = new ScoutAgent(undefined, llmProvider);
   const ledgerAgent = new LedgerAgent();
 
   await Promise.all([
@@ -449,7 +475,7 @@ async function main(): Promise<void> {
     console.log("   [main] Horizon x402 server already running on :3001 — continuing");
   }
 
-  console.log("\n🔮 Aegis starting…");
+  console.log("\n🔮 Cal-AgentKit starting…");
   console.log(`   Task: "${TASK}"`);
 
   const report = await runTask(TASK);
@@ -461,7 +487,7 @@ async function main(): Promise<void> {
 
   const sep = "━".repeat(60);
   console.log(`\n${sep}`);
-  console.log("✅  AEGIS REPORT");
+  console.log("✅  CAL-AGENTKIT REPORT");
   console.log(sep);
   console.log(`\n📋  TASK\n${report.task}`);
   console.log(`\n✍️   FINAL REPORT\n${report.report}`);
@@ -472,7 +498,7 @@ async function main(): Promise<void> {
 const argv1 = process.argv[1] ?? "";
 if (argv1.endsWith("index.ts") || argv1.endsWith("index.js")) {
   void main().catch((err) => {
-    console.error("[aegis] Fatal error:", err);
+    console.error("[calagent] Fatal error:", err);
     process.exit(1);
   });
 }

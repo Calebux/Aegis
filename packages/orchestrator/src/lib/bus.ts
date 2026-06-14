@@ -1,5 +1,5 @@
 /**
- * Aegis Agent Event Bus
+ * Cal-AgentKit Agent Event Bus
  *
  * Pub/sub backbone for inter-agent communication.
  * Replaces direct orchestrator-mediated agent calls.
@@ -56,7 +56,7 @@ export type BusEventHandler = (msg: AgentMessage) => void;
 
 // ── Bus implementation ────────────────────────────────────────────────────────
 
-class AegisBus {
+class CalagentBus {
   private emitter = new EventEmitter();
   /** Track handlers per runId so we can clean up without leaking listeners */
   private runHandlers = new Map<
@@ -105,4 +105,4 @@ class AegisBus {
 }
 
 /** Singleton — the entire application shares one bus per process */
-export const bus = new AegisBus();
+export const bus = new CalagentBus();

@@ -1,18 +1,18 @@
 "use client";
 
 /**
- * WalletCard — displays XLM balance and spend info for a single agent.
+ * WalletCard — displays USDm balance and spend info for a single agent.
  */
 
 import useSWR from "swr";
-import type { AgentId } from "@aegis/shared";
+import type { AgentId } from "@calagent/shared";
 
 interface SerializedWalletBalance {
   agentId: AgentId;
   publicKey: string;
-  xlmBalance: string;
-  spentStroops: string;
-  capStroops: string;
+  balance: string;
+  spentWei: string;
+  capWei: string;
   reputationBps: number;
 }
 
@@ -27,8 +27,8 @@ function truncate(key: string) {
   return key.slice(0, 6) + "…" + key.slice(-4);
 }
 
-function stroopsToXlm(stroops: string): string {
-  return (Number(stroops) / 1e7).toFixed(4);
+function weiToCusd(wei: string): string {
+  return (Number(wei) / 1e18).toFixed(4);
 }
 
 export function WalletCard({ agentId }: Props) {
@@ -41,7 +41,7 @@ export function WalletCard({ agentId }: Props) {
   const balance = balances?.find((b) => b.agentId === agentId);
 
   const pct = balance
-    ? Math.min(100, (Number(balance.spentStroops) / Number(balance.capStroops)) * 100)
+    ? Math.min(100, (Number(balance.spentWei) / Number(balance.capWei)) * 100)
     : 0;
 
   return (
@@ -53,13 +53,13 @@ export function WalletCard({ agentId }: Props) {
         </span>
       </div>
       <div style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "0.5rem" }}>
-        {balance ? `${parseFloat(balance.xlmBalance).toFixed(2)} XLM` : "—"}
+        {balance ? `${parseFloat(balance.balance).toFixed(2)} USDm` : "—"}
       </div>
       {/* Spend bar */}
       <div style={{ marginBottom: "0.25rem", fontSize: "0.75rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
         <span>Spent</span>
         <span>
-          {balance ? `${stroopsToXlm(balance.spentStroops)} / ${stroopsToXlm(balance.capStroops)} XLM` : "—"}
+          {balance ? `${weiToCusd(balance.spentWei)} / ${weiToCusd(balance.capWei)} USDm` : "—"}
         </span>
       </div>
       <div style={{ height: "4px", borderRadius: "2px", background: "var(--border)", overflow: "hidden" }}>

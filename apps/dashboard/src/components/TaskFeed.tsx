@@ -6,7 +6,7 @@
  */
 
 import useSWR from "swr";
-import type { Task } from "@aegis/shared";
+import type { Task } from "@calagent/shared";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 

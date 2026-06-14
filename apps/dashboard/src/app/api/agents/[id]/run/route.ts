@@ -2,9 +2,9 @@ import { createHash } from "crypto";
 import { NextRequest } from "next/server";
 import { Keypair } from "@stellar/stellar-sdk";
 import {
-  AEGIS_CELO_REGISTRY_ABI,
+  CALAGENT_CELO_REGISTRY_ABI,
   createCeloClients,
-} from "@calebux/aegis-chain-celo";
+} from "@calebux/calagent-chain-celo";
 import {
   createRunReceipt,
   computeReceiptHash,
@@ -12,7 +12,8 @@ import {
   type OrchestratorReport,
   type RunReceipt,
 } from "@calebux/agent-kit";
-import { buildAgentManifests } from "@/lib/agentRegistry";
+import { buildAgentManifests, findPeerForAgent } from "@/lib/agentRegistry";
+import { routeToPeer, getHopCount } from "@calebux/agent-kit";
 import {
   buildStellarX402Requirement,
   facilitatorUrl,
@@ -37,20 +38,33 @@ import {
   receiptOutputs,
   receipts,
 } from "@/lib/taskStore";
+import {
+  validateTaskInput,
+  checkRateLimit,
+  getClientIp,
+} from "@/lib/validation";
+import {
+  isSelfVerified,
+  selfEnforced,
+  Erc8004Adapter,
+  CeloPolicyManager,
+  CeloIdentityRegistry,
+} from "@calebux/agent-kit";
 
 export const dynamic = "force-dynamic";
 
 type RunBody = {
   task?: string;
+  callerAddress?: string;
 };
 
 function agentOutput(agentId: string, task: string): string {
   return [
-    `Aegis external agent "${agentId}" accepted the task.`,
+    `Cal-AgentKit external agent "${agentId}" accepted the task.`,
     "",
     `Task: ${task}`,
     "",
-    "This response is wrapped in an Aegis run receipt so callers can verify the task hash, output hash, and optional Stellar Ed25519 signature.",
+    "This response is wrapped in an Cal-AgentKit run receipt so callers can verify the task hash, output hash, and optional Stellar Ed25519 signature.",
   ].join("\n");
 }
 
@@ -109,7 +123,7 @@ async function ledgerOutput(task: string, walletAddress: string): Promise<string
     : latestLedger;
 
   const lines = [
-    "Aegis Ledger agent completed a live Stellar network read.",
+    "Cal-AgentKit Ledger agent completed a live Stellar network read.",
     "",
     `Task: ${task}`,
   ];
@@ -142,7 +156,7 @@ async function ledgerOutput(task: string, walletAddress: string): Promise<string
 
   lines.push(
     "",
-    "The output is wrapped in an Aegis receipt so callers can verify task hash, output hash, payment settlement, and optional Stellar Ed25519 signature."
+    "The output is wrapped in a Cal-AgentKit receipt so callers can verify task hash, output hash, payment settlement, and optional Stellar Ed25519 signature."
   );
 
   return lines.join("\n");
@@ -190,7 +204,7 @@ async function celoNotaryRun(task: string, runId: string): Promise<NotaryResult>
   if (!registryAddress) {
     return {
       output: [
-        "Aegis Celo Notary agent: CELO_REGISTRY_ADDRESS not configured.",
+        "Cal-AgentKit Celo Notary agent: CELO_REGISTRY_ADDRESS not configured.",
         "",
         `Task: ${task}`,
       ].join("\n"),
@@ -227,7 +241,7 @@ async function celoNotaryRun(task: string, runId: string): Promise<NotaryResult>
       });
       const txHash = await walletClient.writeContract({
         address: registryAddress as `0x${string}`,
-        abi: AEGIS_CELO_REGISTRY_ABI,
+        abi: CALAGENT_CELO_REGISTRY_ABI,
         functionName: "setManifestHash",
         args: ["celo-notary", payloadHash],
         account,
@@ -238,7 +252,7 @@ async function celoNotaryRun(task: string, runId: string): Promise<NotaryResult>
       // Record the successful run in the registry (reputation +10, non-fatal)
       walletClient.writeContract({
         address: registryAddress as `0x${string}`,
-        abi: AEGIS_CELO_REGISTRY_ABI,
+        abi: CALAGENT_CELO_REGISTRY_ABI,
         functionName: "recordSuccess",
         args: ["celo-notary"],
         account,
@@ -251,7 +265,7 @@ async function celoNotaryRun(task: string, runId: string): Promise<NotaryResult>
   }
 
   const output = [
-    "Aegis Celo Notary agent completed a live on-chain attestation.",
+    "Cal-AgentKit Celo Notary agent completed a live on-chain attestation.",
     "",
     `Task: ${task}`,
     "",
@@ -271,7 +285,7 @@ async function celoNotaryRun(task: string, runId: string): Promise<NotaryResult>
     `  celo-ledger:  ${ledgerHashHex ? decodeBytes32(ledgerHashHex) : "not registered"}`,
     `  celo-notary:  ${notaryHashHex ? decodeBytes32(notaryHashHex) : "not registered"}`,
     "",
-    "This proves the Aegis identity registry is live on Celo mainnet with permanently attested, updatable payload hashes.",
+    "This proves the Cal-AgentKit identity registry is live on Celo mainnet with permanently attested, updatable payload hashes.",
   ].join("\n");
 
   return { output, attestationTxHash };
@@ -300,7 +314,7 @@ async function celoPriceOutput(task: string): Promise<string> {
   }
 
   return [
-    "Aegis Celo Price agent fetched live CELO market data.",
+    "Cal-AgentKit Celo Price agent fetched live CELO market data.",
     "",
     `Task: ${task}`,
     "",
@@ -309,7 +323,7 @@ async function celoPriceOutput(task: string): Promise<string> {
     `Market cap: ${celoMarketCap > 0 ? `$${(celoMarketCap / 1e6).toFixed(2)}M` : "unavailable"}`,
     `24h volume: ${celoVol24h > 0 ? `$${(celoVol24h / 1e6).toFixed(2)}M` : "unavailable"}`,
     "",
-    "Price data sourced from CoinGecko public API. Wrapped in an Aegis receipt for verifiability.",
+    "Price data sourced from CoinGecko public API. Wrapped in a Cal-AgentKit receipt for verifiability.",
   ].join("\n");
 }
 
@@ -378,7 +392,7 @@ async function celoDefiOutput(task: string): Promise<string> {
   }
 
   return [
-    "Aegis Celo DeFi agent fetched live Mento oracle rates.",
+    "Cal-AgentKit Celo DeFi agent fetched live Mento oracle rates.",
     "",
     `Task: ${task}`,
     "",
@@ -394,7 +408,7 @@ async function celoDefiOutput(task: string): Promise<string> {
     "Settlement asset: cUSD (ERC-20 stablecoin on Celo)",
     `Settlement asset contract: ${CELO_STABLE_ASSET_CONTRACT}`,
     "",
-    "This output is wrapped in an Aegis receipt enabling verifiable on-chain attestation.",
+    "This output is wrapped in a Cal-AgentKit receipt enabling verifiable on-chain attestation.",
   ].join("\n");
 }
 
@@ -410,7 +424,7 @@ async function celoLedgerOutput(task: string): Promise<string> {
   const chainId = chainIdHex ? Number.parseInt(chainIdHex, 16) : null;
 
   return [
-    "Aegis Celo Ledger agent completed a live Celo RPC read.",
+    "Cal-AgentKit Celo Ledger agent completed a live Celo RPC read.",
     "",
     `Task: ${task}`,
     "",
@@ -421,7 +435,7 @@ async function celoLedgerOutput(task: string): Promise<string> {
     `Settlement asset: ${CELO_STABLE_ASSET}`,
     `Settlement asset contract: ${CELO_STABLE_ASSET_CONTRACT}`,
     "",
-    "This proves the same Aegis discovery, x402, receipt, and verification layer can target Celo's EVM stablecoin rail.",
+    "This proves the same Cal-AgentKit discovery, x402, receipt, and verification layer can target Celo's EVM stablecoin rail.",
   ].join("\n");
 }
 
@@ -433,6 +447,40 @@ export async function POST(
   const agent = buildAgentManifests().find((candidate) => candidate.id === id);
 
   if (!agent) {
+    // Federation fallback: check if a peer instance hosts this agent
+    const peerUrl = await findPeerForAgent(id);
+    if (peerUrl) {
+      const hopCount = getHopCount(Object.fromEntries(req.headers.entries()));
+      const forwardHeaders: Record<string, string> = {};
+      const paymentSig =
+        req.headers.get("PAYMENT-SIGNATURE") ??
+        req.headers.get("x-payment-signature") ??
+        req.headers.get("x-payment");
+      if (paymentSig) forwardHeaders["PAYMENT-SIGNATURE"] = paymentSig;
+
+      let proxyBody: RunBody;
+      try {
+        proxyBody = (await req.json()) as RunBody;
+      } catch {
+        return Response.json({ error: "Invalid JSON" }, { status: 400 });
+      }
+
+      const result = await routeToPeer({
+        peerUrl,
+        agentId: id,
+        task: (proxyBody.task ?? "").trim(),
+        currentHopCount: hopCount,
+        forwardHeaders,
+      });
+
+      if (result.proxied && result.response) {
+        return Response.json(result.response);
+      }
+      return Response.json(
+        { error: result.error ?? `Agent not found: ${id}` },
+        { status: 404 }
+      );
+    }
     return Response.json({ error: `Agent not found: ${id}` }, { status: 404 });
   }
 
@@ -448,6 +496,48 @@ export async function POST(
     return Response.json({ error: "task is required" }, { status: 400 });
   }
 
+  const validation = validateTaskInput(task);
+  if (!validation.valid) {
+    return Response.json({ error: validation.error }, { status: 400 });
+  }
+
+  const ip = getClientIp(req);
+  const rateCheck = checkRateLimit(ip);
+  if (!rateCheck.allowed) {
+    return Response.json(
+      { error: "Rate limit exceeded. Try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.ceil(rateCheck.retryAfterMs / 1000)) },
+      }
+    );
+  }
+
+  // Self Protocol sybil check — verify the *caller's* wallet, not the agent's
+  const callerAddress = body.callerAddress?.trim();
+  if (selfEnforced()) {
+    if (!callerAddress) {
+      return Response.json(
+        {
+          error: "callerAddress is required when Self Protocol enforcement is enabled",
+          selfRegistry: "0xaC3DF9ABf80d0F5c020C06B04Cced27763355944",
+        },
+        { status: 400 },
+      );
+    }
+    const verified = await isSelfVerified(callerAddress);
+    if (!verified) {
+      return Response.json(
+        {
+          error: "Caller wallet is not Self Protocol verified",
+          callerAddress,
+          selfRegistry: "0xaC3DF9ABf80d0F5c020C06B04Cced27763355944",
+        },
+        { status: 403 },
+      );
+    }
+  }
+
   const isCeloAgent = agent.chain === CELO_CHAIN;
 
   const paymentCapability = agent.payments.find(
@@ -455,7 +545,7 @@ export async function POST(
   );
   let requirement = buildStellarX402Requirement({
     resource: `${req.nextUrl.origin}/api/agents/${encodeURIComponent(id)}/run`,
-    description: `Run the Aegis ${agent.name} agent`,
+    description: `Run the Cal-AgentKit ${agent.name} agent`,
     amount: paymentCapability?.price?.replace(/\s+[A-Z0-9]+$/i, ""),
     payTo: paymentCapability?.payTo,
   });
@@ -473,7 +563,7 @@ export async function POST(
       displayAmount,
       amount: celoAmountToBaseUnits(displayAmount),
       payTo: paymentCapability?.payTo ?? celoPaymentReceiver(),
-      description: `Run the Aegis ${agent.name} Celo agent`,
+      description: `Run the Cal-AgentKit ${agent.name} Celo agent`,
       facilitatorUrl: celoFacilitatorUrl() ?? requirement.facilitatorUrl,
     };
   }
@@ -502,6 +592,36 @@ export async function POST(
       },
       { status: (requirement.facilitatorUrl ?? facilitatorUrl()) ? 402 : 501 }
     );
+  }
+
+  // CeloPolicy spend cap enforcement (Item 5)
+  const celoPolicyAddr = process.env.CELO_POLICY_ADDRESS;
+  const celoDeployerKey = process.env.CELO_DEPLOYER_PRIVATE_KEY;
+  if (isCeloAgent && celoPolicyAddr && celoDeployerKey) {
+    try {
+      const policyMgr = new CeloPolicyManager(
+        celoPolicyAddr,
+        celoDeployerKey,
+        CELO_RPC_URL,
+        CELO_NETWORK_ID
+      );
+      const costInBaseUnits = BigInt(requirement.amount || "0");
+      if (costInBaseUnits > 0n) {
+        const authorized = await policyMgr.authorizeSpend(
+          id,
+          costInBaseUnits,
+          CELO_STABLE_ASSET_CONTRACT
+        );
+        if (!authorized) {
+          return Response.json(
+            { error: "Agent spend cap exceeded — CeloPolicy rejected the transaction" },
+            { status: 429 }
+          );
+        }
+      }
+    } catch (err) {
+      console.warn("[api/agents/:id/run] CeloPolicy check failed (non-fatal):", err);
+    }
   }
 
   const runId = crypto.randomUUID();
@@ -617,6 +737,42 @@ export async function POST(
   receiptOutputs.set(runId, output);
   persistReceipts();
   persistReceiptOutputs();
+
+  // Item 2: Auto-sync ERC-8004 reputation after successful run
+  const erc8004AdapterAddr = process.env.ERC8004_ADAPTER_ADDRESS;
+  if (erc8004AdapterAddr && celoDeployerKey) {
+    try {
+      const adapter = new Erc8004Adapter(
+        erc8004AdapterAddr,
+        celoDeployerKey,
+        CELO_RPC_URL,
+        CELO_NETWORK_ID
+      );
+      void adapter.syncReputation(id, 1, "task-success").catch((err: unknown) => {
+        console.warn(`[api/agents/:id/run] ERC-8004 syncReputation failed for ${id}:`, err);
+      });
+    } catch (err) {
+      console.warn("[api/agents/:id/run] ERC-8004 adapter init failed (non-fatal):", err);
+    }
+  }
+
+  // Item 8: On-chain receipt anchoring on AegisCeloRegistry
+  const celoRegistryAddr = process.env.CELO_REGISTRY_ADDRESS;
+  if (celoRegistryAddr && celoDeployerKey && receipt.receiptHash) {
+    try {
+      const celoRegistry = new CeloIdentityRegistry(
+        celoRegistryAddr,
+        celoDeployerKey,
+        CELO_RPC_URL,
+        CELO_NETWORK_ID
+      );
+      void celoRegistry.setManifestHash(id, receipt.receiptHash).catch((err: unknown) => {
+        console.warn(`[api/agents/:id/run] Receipt anchoring failed for ${id}:`, err);
+      });
+    } catch (err) {
+      console.warn("[api/agents/:id/run] Receipt anchoring init failed (non-fatal):", err);
+    }
+  }
 
   return Response.json({
     agent,

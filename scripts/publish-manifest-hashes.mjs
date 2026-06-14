@@ -3,7 +3,7 @@
 import { Keypair, SorobanRpc } from "@stellar/stellar-sdk";
 import { IdentityRegistry } from "../packages/agent-kit/dist/index.js";
 
-const agentsUrl = process.env.AEGIS_AGENTS_URL ?? "http://localhost:3000/api/agents";
+const agentsUrl = process.env.CALAGENT_AGENTS_URL ?? "http://localhost:3000/api/agents";
 const registryId =
   process.env.REGISTRY_CONTRACT_ID ?? process.env.IDENTITY_REGISTRY_CONTRACT_ID;
 const adminSecret = process.env.ORCHESTRATOR_SECRET_KEY;

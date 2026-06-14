@@ -1,28 +1,15 @@
 "use client";
 
-/**
- * OnChainProofPanel
- *
- * Surfaces the full verifiability story for the Aegis infrastructure pitch:
- *   - Live Soroban contract links (Shield + Identity Registry)
- *   - Per-agent output signatures stored on-chain
- *   - Final consensus notarisation tx (from Notary/Executor agent)
- *
- * Every item is a direct link to stellar.expert so judges can verify
- * without trusting Aegis.
- */
-
-const EXPLORER    = "https://stellar.expert/explorer/testnet";
+const EXPLORER    = "https://celoscan.io";
 const TX_EXPLORER = `${EXPLORER}/tx`;
-const CT_EXPLORER = `${EXPLORER}/contract`;
+const CT_EXPLORER = `${EXPLORER}/address`;
 
-type AgentId = "scout" | "ledger" | "signal" | "scribe" | "executor";
+type AgentId = "celo-scout" | "celo-ledger" | "celo-signal" | "celo-scribe" | "celo-executor";
 
 interface Props {
   agentSigTxHashes:   Record<AgentId, string>;
-  dexSettleTxHash:    string;
-  shieldContractId:   string;
-  registryContractId: string;
+  registryAddress:    string;
+  policyAddress:      string;
 }
 
 function truncate(s: string, n = 10): string {
@@ -45,20 +32,20 @@ function Row({
     justifyContent: "space-between",
     alignItems:     "center",
     padding:        "0.35rem 0",
-    borderBottom:   "1px solid #1a1a1c",
+    borderBottom:   "1px solid #e8e8ec",
     fontSize:       "0.5rem",
     letterSpacing:  "0.06em",
-    fontFamily:     "var(--font)",
+    fontFamily:     "var(--font-mono)",
   };
 
   const labelStyle: React.CSSProperties = {
-    color:         "#484848",
+    color:         "#656d76",
     textTransform: "uppercase",
     flexShrink:    0,
   };
 
   const valueStyle: React.CSSProperties = {
-    color:      highlight ? "#48a858" : "#545458",
+    color:      highlight ? "#2a8a3a" : "#1a1a2e",
     fontWeight: highlight ? 700 : 400,
     textAlign:  "right",
   };
@@ -72,8 +59,8 @@ function Row({
           target="_blank"
           rel="noopener noreferrer"
           style={{ ...valueStyle, textDecoration: "none" }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = highlight ? "#6fd87f" : "#888"; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = highlight ? "#48a858" : "#545458"; }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = highlight ? "#3aaa4a" : "#4070b8"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = highlight ? "#2a8a3a" : "#1a1a2e"; }}
         >
           {value} ↗
         </a>
@@ -85,45 +72,48 @@ function Row({
 }
 
 const AGENT_LABELS: Record<AgentId, string> = {
-  scout:    "Scout   sig",
-  ledger:   "Ledger  sig",
-  signal:   "Signal  sig",
-  scribe:   "Scribe  sig",
-  executor: "Notary  sig",
+  "celo-scout":    "Scout   sig",
+  "celo-ledger":   "Ledger  sig",
+  "celo-signal":   "Signal  sig",
+  "celo-scribe":   "Scribe  sig",
+  "celo-executor": "Notary  sig",
 };
 
-export function OnChainProofPanel({ agentSigTxHashes, dexSettleTxHash, shieldContractId, registryContractId }: Props) {
+export function OnChainProofPanel({ agentSigTxHashes, registryAddress, policyAddress }: Props) {
   const sigs = Object.entries(agentSigTxHashes) as [AgentId, string][];
   const hasSig = sigs.some(([, h]) => !!h);
-  const notaryHash = agentSigTxHashes["executor"];
+  const notaryHash = agentSigTxHashes["celo-executor"];
 
   return (
     <div style={{ padding: "0.75rem 1.25rem" }}>
 
       {/* ── Contracts ── */}
       <div style={{ marginBottom: "0.5rem" }}>
-        <div style={{ fontSize: "0.42rem", letterSpacing: "0.12em", color: "#303034", textTransform: "uppercase", marginBottom: "0.4rem", fontFamily: "var(--font)" }}>
-          Soroban Contracts
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.42rem", letterSpacing: "0.12em", color: "#656d76", textTransform: "uppercase", marginBottom: "0.4rem", fontFamily: "var(--font)" }}>
+          Celo Contracts
+          <span className="infra-badge" data-tooltip="Agent identity + reputation contract">Registry</span>
+          <span className="infra-badge" data-tooltip="Per-agent spend cap enforcement">Policy</span>
         </div>
         <Row
-          label="Shield Contract"
-          value={truncate(shieldContractId, 12)}
-          href={shieldContractId ? `${CT_EXPLORER}/${shieldContractId}` : undefined}
+          label="AegisCeloRegistry"
+          value={truncate(registryAddress, 12)}
+          href={registryAddress ? `${CT_EXPLORER}/${registryAddress}` : undefined}
         />
         <Row
-          label="Identity Registry"
-          value={truncate(registryContractId, 12)}
-          href={registryContractId ? `${CT_EXPLORER}/${registryContractId}` : undefined}
+          label="AegisCeloPolicy"
+          value={truncate(policyAddress, 12)}
+          href={policyAddress ? `${CT_EXPLORER}/${policyAddress}` : undefined}
         />
       </div>
 
       {/* ── Agent signatures ── */}
       <div style={{ marginBottom: "0.5rem" }}>
-        <div style={{ fontSize: "0.42rem", letterSpacing: "0.12em", color: "#303034", textTransform: "uppercase", marginBottom: "0.4rem", fontFamily: "var(--font)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.42rem", letterSpacing: "0.12em", color: "#656d76", textTransform: "uppercase", marginBottom: "0.4rem", fontFamily: "var(--font)" }}>
           Agent Output Signatures
+          <span className="infra-badge" data-tooltip="Each agent's output is hashed and stored on-chain">Hash Proofs</span>
         </div>
         {!hasSig && (
-          <div style={{ fontSize: "0.48rem", color: "#2c2c2e", fontFamily: "var(--font)", padding: "0.25rem 0" }}>
+          <div style={{ fontSize: "0.48rem", color: "#b0b0b8", fontFamily: "var(--font-mono)", padding: "0.25rem 0" }}>
             — awaiting pipeline run —
           </div>
         )}
@@ -134,45 +124,31 @@ export function OnChainProofPanel({ agentSigTxHashes, dexSettleTxHash, shieldCon
               label={AGENT_LABELS[id]}
               value={truncate(hash, 14)}
               href={`${TX_EXPLORER}/${hash}`}
-              highlight={id === "executor"}
+              highlight={id === "celo-executor"}
             />
           ) : null
         )}
       </div>
-
-      {/* ── DEX settlement ── */}
-      {dexSettleTxHash && (
-        <div style={{ marginBottom: "0.5rem" }}>
-          <div style={{ fontSize: "0.42rem", letterSpacing: "0.12em", color: "#303034", textTransform: "uppercase", marginBottom: "0.4rem", fontFamily: "var(--font)" }}>
-            DEX Settlement
-          </div>
-          <Row
-            label="XLM → USDC swap"
-            value={truncate(dexSettleTxHash, 14)}
-            href={`${TX_EXPLORER}/${dexSettleTxHash}`}
-          />
-        </div>
-      )}
 
       {/* ── Final consensus proof ── */}
       {notaryHash && (
         <div style={{
           marginTop:    "0.75rem",
           padding:      "0.5rem 0.75rem",
-          border:       "1px solid #1e3a1e",
-          borderRadius: "2px",
-          background:   "rgba(40,80,40,0.06)",
+          border:       "1px solid #c8e6c9",
+          borderRadius: "6px",
+          background:   "#f0faf0",
         }}>
-          <div style={{ fontSize: "0.42rem", letterSpacing: "0.12em", color: "#2a5a2a", textTransform: "uppercase", marginBottom: "0.3rem", fontFamily: "var(--font)" }}>
-            ✓ Consensus Notarised
+          <div style={{ fontSize: "0.42rem", letterSpacing: "0.12em", color: "#2a8a3a", textTransform: "uppercase", marginBottom: "0.3rem", fontFamily: "var(--font)" }}>
+            Consensus Notarised
           </div>
           <a
             href={`${TX_EXPLORER}/${notaryHash}`}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ fontSize: "0.5rem", color: "#48a858", fontFamily: "var(--font)", textDecoration: "none", letterSpacing: "0.04em" }}
+            style={{ fontSize: "0.5rem", color: "#2a8a3a", fontFamily: "var(--font-mono)", textDecoration: "none", letterSpacing: "0.04em" }}
           >
-            View on Stellar Explorer ↗
+            View on Celoscan ↗
           </a>
         </div>
       )}

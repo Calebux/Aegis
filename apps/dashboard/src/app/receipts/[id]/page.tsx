@@ -7,8 +7,8 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-function xlm(stroops: number): string {
-  return `${(stroops / 1e7).toFixed(4)} XLM`;
+function cusd(wei: number): string {
+  return `${(wei / 1e18).toFixed(4)} USDm`;
 }
 
 function Row({ label, value }: { label: string; value: string | number | undefined }) {
@@ -35,8 +35,8 @@ export default async function ReceiptPage({ params }: PageProps) {
       <div className="module receipt-page-title">
         <h1>Run Receipt</h1>
         <p>
-          Verifiable Aegis agent execution receipt with task/output hashes,
-          Stellar payment traces, policy contracts, and signature status.
+          Verifiable Cal-AgentKit agent execution receipt with task/output hashes,
+          Celo payment traces, policy contracts, and signature status.
         </p>
       </div>
 
@@ -62,7 +62,7 @@ export default async function ReceiptPage({ params }: PageProps) {
             <Row label="Task Hash" value={receipt.taskHash} />
             <Row label="Output Hash" value={receipt.outputHash} />
             <Row label="Receipt Hash" value={receipt.receiptHash} />
-            <Row label="Total Spend" value={xlm(receipt.totalSpentStroops)} />
+            <Row label="Total Spend" value={cusd(receipt.totalSpentStroops)} />
             <Row label="Network" value={receipt.policy.network} />
             <Row label="Shield Contract" value={receipt.policy.shieldContractId} />
             <Row label="Registry Contract" value={receipt.policy.registryContractId} />
@@ -89,7 +89,7 @@ export default async function ReceiptPage({ params }: PageProps) {
               <tr key={agent.agentId}>
                 <td>{agent.agentId}</td>
                 <td>{agent.walletAddress || "-"}</td>
-                <td>{xlm(agent.spentStroops)}</td>
+                <td>{cusd(agent.spentStroops)}</td>
                 <td>{agent.reputation}</td>
                 <td>{agent.txHashes.length}</td>
               </tr>
@@ -110,6 +110,42 @@ export default async function ReceiptPage({ params }: PageProps) {
           </table>
         </div>
       )}
+
+      {/* Hash Chain Diagram */}
+      <div className="module">
+        <div className="mod-header">RECEIPT HASH CHAIN</div>
+        <div style={{ padding: "1.5rem" }}>
+          <div className="hash-chain">
+            <div className="hash-chain-row">
+              <div className="hash-chain-node hash-chain-node--input">TASK TEXT</div>
+              <div className="hash-chain-arrow">SHA-256 &rarr;</div>
+              <div className="hash-chain-node hash-chain-node--hash">
+                <span>TASK HASH</span>
+                <code>{receipt.taskHash ? `${receipt.taskHash.slice(0, 16)}…` : "—"}</code>
+              </div>
+            </div>
+            <div className="hash-chain-row">
+              <div className="hash-chain-node hash-chain-node--input">OUTPUT</div>
+              <div className="hash-chain-arrow">SHA-256 &rarr;</div>
+              <div className="hash-chain-node hash-chain-node--hash">
+                <span>OUTPUT HASH</span>
+                <code>{receipt.outputHash ? `${receipt.outputHash.slice(0, 16)}…` : "—"}</code>
+              </div>
+            </div>
+            <div className="hash-chain-merge">
+              <div className="hash-chain-merge-line" />
+              <div className="hash-chain-arrow">ALL FIELDS &rarr; SHA-256</div>
+              <div className="hash-chain-merge-line" />
+            </div>
+            <div className="hash-chain-row" style={{ justifyContent: "center" }}>
+              <div className="hash-chain-node hash-chain-node--final">
+                <span>RECEIPT HASH</span>
+                <code>{receipt.receiptHash ? `${receipt.receiptHash.slice(0, 24)}…` : "—"}</code>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

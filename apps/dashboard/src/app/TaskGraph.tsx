@@ -89,7 +89,7 @@ export function TaskGraphView({
                 style={{
                   width: "2rem",
                   height: "2px",
-                  background: "#2a2a2c",
+                  background: "#d0d0d8",
                   flexShrink: 0,
                   alignSelf: "center",
                 }}
@@ -122,7 +122,7 @@ export function TaskGraphView({
       <div
         style={{
           fontSize: "0.65rem",
-          color: "#505052",
+          color: "#656d76",
           marginTop: "0.5rem",
           fontFamily: "monospace",
         }}
@@ -150,12 +150,12 @@ function NodeCard({ node, status, confidence }: NodeCardProps) {
     status === "complete" ? color :
     status === "running"  ? "#5890d8" :
     status === "error"    ? "#d04040" :
-    "#2a2a2c";
+    "#e8e8ec";
 
   const bgColor =
-    status === "complete" ? `${color}18` :
-    status === "running"  ? "#5890d818" :
-    "transparent";
+    status === "complete" ? `${color}10` :
+    status === "running"  ? "#5890d810" :
+    "#ffffff";
 
   return (
     <div
@@ -183,13 +183,13 @@ function NodeCard({ node, status, confidence }: NodeCardProps) {
           }}
         />
       )}
-      <div style={{ fontSize: "0.7rem", color: "#888", fontFamily: "monospace" }}>
+      <div style={{ fontSize: "0.7rem", color: "#1a1a2e", fontFamily: "monospace" }}>
         {icon} {node.agentType.toUpperCase()}
       </div>
       <div
         style={{
           fontSize: "0.55rem",
-          color: "#505052",
+          color: "#656d76",
           fontFamily: "monospace",
           marginTop: "2px",
         }}
@@ -208,7 +208,7 @@ function NodeCard({ node, status, confidence }: NodeCardProps) {
             status === "complete" ? color :
             status === "running"  ? "#5890d8" :
             status === "error"    ? "#d04040" :
-            "#303032",
+            "#b0b0b8",
           fontFamily: "monospace",
           marginTop: "2px",
           textTransform: "uppercase",

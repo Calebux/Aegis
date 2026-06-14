@@ -1,0 +1,31 @@
+{
+  "name": "@calebux/calagent-chain-celo",
+  "version": "0.1.0",
+  "description": "Celo adapter constants and manifest helpers for Cal-AgentKit agent infrastructure",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@calebux/agent-kit": "*",
+    "viem": "^2.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

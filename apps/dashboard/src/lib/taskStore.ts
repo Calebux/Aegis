@@ -1,14 +1,14 @@
 /**
- * In-memory task store for the Aegis dashboard, with file-based persistence.
+ * In-memory task store for the Cal-AgentKit dashboard, with file-based persistence.
  *
- * Tasks are serialized to .aegis-tasks.json in the project root on each state
+ * Tasks are serialized to .calagent-tasks.json in the project root on each state
  * change and reloaded automatically when the module is first imported.
  */
 
 import { EventEmitter } from "events";
 import * as fs from "fs";
 import * as path from "path";
-import type { Task } from "@aegis/shared";
+import type { Task } from "@calagent/shared";
 import type { RunReceipt } from "@calebux/agent-kit";
 
 /** Active tasks keyed by taskId */
@@ -39,10 +39,10 @@ export const receiptOutputs = new Map<string, string>();
 // Persistence helpers
 // ---------------------------------------------------------------------------
 
-const STORAGE_DIR = process.env.AEGIS_STORAGE_DIR ?? process.cwd();
-const PERSIST_PATH = path.join(STORAGE_DIR, ".aegis-tasks.json");
-const RECEIPTS_PATH = path.join(STORAGE_DIR, ".aegis-receipts.json");
-const RECEIPT_OUTPUTS_PATH = path.join(STORAGE_DIR, ".aegis-receipt-outputs.json");
+const STORAGE_DIR = process.env.CALAGENT_STORAGE_DIR ?? process.cwd();
+const PERSIST_PATH = path.join(STORAGE_DIR, ".calagent-tasks.json");
+const RECEIPTS_PATH = path.join(STORAGE_DIR, ".calagent-receipts.json");
+const RECEIPT_OUTPUTS_PATH = path.join(STORAGE_DIR, ".calagent-receipt-outputs.json");
 
 export function storageInfo(): {
   mode: "file";
@@ -52,7 +52,7 @@ export function storageInfo(): {
   return {
     mode: "file",
     directory: STORAGE_DIR,
-    productionReady: Boolean(process.env.AEGIS_STORAGE_DIR),
+    productionReady: Boolean(process.env.CALAGENT_STORAGE_DIR),
   };
 }
 
@@ -77,12 +77,12 @@ function reviver(_key: string, value: unknown): unknown {
   return value;
 }
 
-/** Write completed/failed tasks to disk. */
+/** Write completed/failed/running tasks to disk. */
 export function persistTasks(): void {
   try {
     ensureStorageDir();
     const toSave = Array.from(tasks.values()).filter(
-      (t) => t.status === "completed" || t.status === "failed"
+      (t) => t.status === "completed" || t.status === "failed" || t.status === "running"
     );
     fs.writeFileSync(PERSIST_PATH, JSON.stringify(toSave, replacer), "utf8");
   } catch (err) {
@@ -117,15 +117,22 @@ export function persistReceiptOutputs(): void {
 }
 
 // Load persisted tasks on startup (runs once when module is first imported).
+// Mark stale "running" tasks as "failed" — the pipeline was interrupted.
 (function loadTasks(): void {
   try {
     if (!fs.existsSync(PERSIST_PATH)) return;
     const raw = fs.readFileSync(PERSIST_PATH, "utf8");
     const arr = JSON.parse(raw, reviver) as Task[];
+    let staleCount = 0;
     for (const t of arr) {
+      if (t.status === "running") {
+        t.status = "failed";
+        t.completedAt = new Date();
+        staleCount++;
+      }
       tasks.set(t.id, t);
     }
-    console.log(`[taskStore] Loaded ${arr.length} persisted task(s)`);
+    console.log(`[taskStore] Loaded ${arr.length} persisted task(s)${staleCount > 0 ? ` (${staleCount} stale running → failed)` : ""}`);
   } catch (err) {
     console.warn("[taskStore] Could not load persisted tasks:", err);
   }

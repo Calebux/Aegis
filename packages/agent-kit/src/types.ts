@@ -201,7 +201,7 @@ export interface RunReceiptSignature {
 }
 
 export interface RunReceipt {
-  version: "aegis.receipt.v1";
+  version: "calagent.receipt.v1";
   runId: string;
   taskId?: string;
   task: string;

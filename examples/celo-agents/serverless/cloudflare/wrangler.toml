@@ -1,0 +1,9 @@
+name = "celo-agents"
+main = "worker.ts"
+compatibility_date = "2024-12-01"
+
+[vars]
+CELO_RPC_URL = "https://forno.celo.org"
+
+[triggers]
+crons = ["*/5 * * * *"]

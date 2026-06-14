@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
-import { publishCeloManifestHash } from "../packages/aegis-chain-celo/dist/index.js";
+import { publishCeloManifestHash } from "../packages/calagent-chain-celo/dist/index.js";
 
-const agentsUrl = process.env.AEGIS_AGENTS_URL ?? "http://localhost:3000/api/agents?chain=celo";
+const agentsUrl = process.env.CALAGENT_AGENTS_URL ?? "http://localhost:3000/api/agents?chain=celo";
 const registryAddress = process.env.CELO_REGISTRY_ADDRESS;
 const privateKeyRaw = process.env.CELO_DEPLOYER_PRIVATE_KEY ?? process.env.EVM_PRIVATE_KEY;
 const rpcUrl = process.env.CELO_RPC_URL;
-const network = process.env.AEGIS_CELO_NETWORK === "mainnet" ? "eip155:42220" : "eip155:44787";
+const network = process.env.CALAGENT_CELO_NETWORK === "mainnet" ? "eip155:42220" : "eip155:44787";
 
 if (!registryAddress) {
   console.error("CELO_REGISTRY_ADDRESS is required");

@@ -1,490 +1,380 @@
-"use client";
+import Link from "next/link";
+import CopyTerminal from "./CopyTerminal";
 
-import { useState, useRef, useEffect, useCallback, useId } from "react";
-import { AgentCard, type AgentStatus } from "@/components/AgentCard";
-import { TaskFeed } from "@/components/TaskFeed";
-import { TaskGraphView, type TaskGraph, type AgentType as GraphAgentType, type NodeStatus } from "./TaskGraph";
-import { OnChainProofPanel } from "@/components/OnChainProofPanel";
-import { RunReceiptPanel } from "@/components/RunReceiptPanel";
-import type { RunReceipt, RunReceiptVerification } from "@calebux/agent-kit";
-
-// ── Types ──────────────────────────────────────────────────────────────────
-
-type AgentId = "scout" | "ledger" | "signal" | "scribe" | "executor";
-
-interface LogEntry {
-  id: number;
-  message: string;
-  level: "info" | "success" | "error";
-}
-
-interface CompletePayload {
-  report: string;
-  wallets: Record<AgentId, string>;
-  spent: Record<AgentId, number>;
-  reputation: Record<AgentId, number>;
-  timestamp: string;
-  txHashes?: Record<AgentId, string[]>;
-}
-
-// ── Agent definitions ─────────────────────────────────────────────────────
-
-const AGENTS: { id: AgentId; name: string; capability: string; color: string }[] = [
-  { id: "scout",    name: "Scout",    capability: "Web Research",        color: "#c8c040" },
-  { id: "ledger",   name: "Ledger",   capability: "On-Chain Data",       color: "#48b858" },
-  { id: "signal",   name: "Signal",   capability: "Market Intelligence", color: "#b050c0" },
-  { id: "scribe",   name: "Scribe",   capability: "Report Synthesis",    color: "#d04828" },
-  { id: "executor", name: "Notary",   capability: "Consensus Proof",     color: "#e07840" },
+const FEATURES = [
+  {
+    title: "x402 Payments",
+    desc: "Agents pay each other in USDm using the x402 protocol. Every transaction is verifiable on-chain.",
+    icon: "\u21C4",
+  },
+  {
+    title: "On-Chain Reputation",
+    desc: "AegisCeloRegistry tracks agent trust scores after every pipeline run. Route tasks by reputation tier.",
+    icon: "\u2605",
+  },
+  {
+    title: "Spend Policies",
+    desc: "AegisCeloPolicy enforces per-agent spend caps and session limits at the contract level.",
+    icon: "\u229B",
+  },
+  {
+    title: "Verifiable Receipts",
+    desc: "Every agent run produces a cryptographically signed receipt with task hash, output hash, and payment proof.",
+    icon: "\u2713",
+  },
+  {
+    title: "Agent Discovery",
+    desc: "Machine-readable manifests with capability, payment, and policy metadata. Filter and compose agents via API.",
+    icon: "\u2318",
+  },
+  {
+    title: "MCP Tooling",
+    desc: "Model Context Protocol integration lets LLMs discover and call Cal-AgentKit agents as native tools.",
+    icon: "\u2693",
+  },
+  {
+    title: "Pluggable LLM",
+    desc: "Swap the underlying model via OpenRouter. Use Claude, Llama, Mistral, or 200+ models with one API key.",
+    icon: "\u2699",
+  },
+  {
+    title: "ERC-8004 Compliant",
+    desc: "Bridge adapter registers agents on canonical ERC-8004 Identity and Reputation registries with NFT-based identity.",
+    icon: "\u29C9",
+  },
+  {
+    title: "Self Protocol Identity",
+    desc: "Sybil-resistant agent verification via Self Protocol. Gate agent runs behind human-verified wallet identity.",
+    icon: "\u2694",
+  },
+  {
+    title: "Agent Staking",
+    desc: "Stake USDm as collateral for agent behavior. Admin can slash misbehaving agents or reward good actors.",
+    icon: "\u26D3",
+  },
+  {
+    title: "Consensus Voting",
+    desc: "On-chain voting rounds for multi-agent consensus. Agents submit output hashes and the majority wins.",
+    icon: "\u2696",
+  },
+  {
+    title: "Task Escrow",
+    desc: "Deposit USDm into escrow for agent tasks. Funds release on verified receipt or refund after deadline.",
+    icon: "\u2747",
+  },
+  {
+    title: "Agent Delegation",
+    desc: "Parent agents delegate tasks to child agents with linked receipt chains and inherited spend budgets.",
+    icon: "\u21B3",
+  },
+  {
+    title: "Trust Scores",
+    desc: "Composite 0\u20131000 trust scores from on-chain reputation, staking, task completion, and escrow history.",
+    icon: "\u2261",
+  },
+  {
+    title: "Agent Credentials",
+    desc: "Scoped, time-limited on-chain credentials gate which services an agent can access. Grant, revoke, verify.",
+    icon: "\u229A",
+  },
+  {
+    title: "Capability Routing",
+    desc: "Agent DNS: discover agents by capability across local and federated peers, ranked by trust score.",
+    icon: "\u2B95",
+  },
+  {
+    title: "Approval Gateway",
+    desc: "Human-in-the-loop approval for high-value operations. Configurable thresholds enforce oversight before spend.",
+    icon: "\u270B",
+  },
 ];
 
-// ── Markdown renderer ──────────────────────────────────────────────────────
+const USE_CASES = [
+  {
+    title: "DeFi Research Agent",
+    desc: "Aggregate on-chain analytics, market signals, and web research into a single verified report.",
+  },
+  {
+    title: "Portfolio Monitor",
+    desc: "Track wallet positions across Celo DeFi protocols with automated alerting and attestation.",
+  },
+  {
+    title: "Compliance Agent",
+    desc: "Enforce policy constraints on agent spending and flag anomalous transaction patterns.",
+  },
+  {
+    title: "Multi-Agent Pipeline",
+    desc: "Compose Scout, Ledger, Signal, Scribe, and Notary agents into governed research workflows.",
+  },
+  {
+    title: "Price Oracle Agent",
+    desc: "Average multiple data snapshots with consensus validation for reliable on-chain price feeds.",
+  },
+  {
+    title: "Cross-Chain Interoperability",
+    desc: "Route tasks across Celo, Stellar, and Base via selectChain() and PeerRegistry. Unified receipts and reputation travel with agents.",
+  },
+  {
+    title: "ERC-8004 Agent Registry",
+    desc: "Register agents as ERC-8004 NFTs on the canonical Celo registry. Sync reputation and metadata via the bridge adapter.",
+  },
+  {
+    title: "Sybil-Resistant Agents",
+    desc: "Verify agent wallets via Self Protocol. Enforce human-verified identity before agents can execute tasks.",
+  },
+  {
+    title: "Staked Agent Collateral",
+    desc: "Require agents to stake USDm as skin-in-the-game. Slash stakes for misbehavior, reward for reliability.",
+  },
+  {
+    title: "On-Chain Consensus",
+    desc: "Record multi-agent consensus votes on-chain. Each agent submits its output hash — majority result is finalized immutably.",
+  },
+  {
+    title: "Task Escrow",
+    desc: "Hold USDm in escrow for agent tasks. Release on verified receipt or auto-refund after deadline — trustless task payment.",
+  },
+  {
+    title: "Agent Delegation",
+    desc: "Compose agent hierarchies. Parent agents delegate tasks to specialists with linked receipt chains for full traceability.",
+  },
+  {
+    title: "Trust-Scored Routing",
+    desc: "Query agents by capability and get back trust-ranked results. Routes to the highest-scored agent automatically.",
+  },
+  {
+    title: "Credentialed Services",
+    desc: "Grant agents scoped credentials for DeFi, oracles, or LLM services. Credentials expire and can be revoked on-chain.",
+  },
+  {
+    title: "Human Approval Workflows",
+    desc: "High-value agent operations pause for human approval. Configurable thresholds per agent, with pending/approved/denied lifecycle.",
+  },
+  {
+    title: "Federated Agent Discovery",
+    desc: "Discover agents across multiple Cal-AgentKit instances. Capability routing + trust scores enable secure cross-org agent collaboration.",
+  },
+];
 
-function renderInline(text: string): string {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    .replace(/`(.*?)`/g, "<code>$1</code>")
-    .replace(/_(.*?)_/g, "<em>$1</em>");
-}
+const FOOTER_LINKS = {
+  Product: [
+    { label: "Live Demo", href: "/dashboard" },
+    { label: "Agent Registry", href: "/agents" },
+    { label: "Receipts", href: "/receipts" },
+  ],
+  Developers: [
+    { label: "GitHub", href: "https://github.com/calebcauthon/agent-kit" },
+    { label: "npm", href: "https://www.npmjs.com/package/@calebux/agent-kit" },
+    { label: "Documentation", href: "https://github.com/calebcauthon/agent-kit#readme" },
+  ],
+  Ecosystem: [
+    { label: "Celo", href: "https://celo.org" },
+    { label: "Stellar", href: "https://stellar.org" },
+    { label: "x402 Protocol", href: "https://www.x402.org" },
+  ],
+};
 
-function SimpleMarkdown({ content }: { content: string }) {
-  const lines = content.split("\n");
-  const nodes: React.ReactNode[] = [];
-  let i = 0;
-  let key = 0;
-
-  while (i < lines.length) {
-    const line = lines[i];
-
-    if (line.startsWith("# ")) {
-      nodes.push(<h1 key={key++}>{line.slice(2)}</h1>);
-    } else if (line.startsWith("## ")) {
-      nodes.push(<h2 key={key++}>{line.slice(3)}</h2>);
-    } else if (line.startsWith("### ")) {
-      nodes.push(<h3 key={key++}>{line.slice(4)}</h3>);
-    } else if (line === "---") {
-      nodes.push(<hr key={key++} />);
-    } else if (line.startsWith("| ")) {
-      const tableLines: string[] = [];
-      while (i < lines.length && lines[i].startsWith("|")) { tableLines.push(lines[i]); i++; }
-      const rows = tableLines
-        .map(l => l.split("|").slice(1, -1).map(c => c.trim()))
-        .filter(r => !r.every(c => /^[-:]+$/.test(c)));
-      if (rows.length > 0) {
-        const [header, ...body] = rows;
-        nodes.push(
-          <table key={key++}>
-            <thead><tr>{header?.map((c, j) => <th key={j}>{c}</th>)}</tr></thead>
-            <tbody>
-              {body.map((row, ri) => (
-                <tr key={ri}>{row.map((c, ci) => <td key={ci} dangerouslySetInnerHTML={{ __html: renderInline(c) }} />)}</tr>
-              ))}
-            </tbody>
-          </table>
-        );
-      }
-      continue;
-    } else if (line.startsWith("- ")) {
-      const items: string[] = [];
-      while (i < lines.length && lines[i].startsWith("- ")) { items.push(lines[i].slice(2)); i++; }
-      nodes.push(<ul key={key++}>{items.map((item, j) => <li key={j} dangerouslySetInnerHTML={{ __html: renderInline(item) }} />)}</ul>);
-      continue;
-    } else if (/^\d+\. /.test(line)) {
-      const items: string[] = [];
-      while (i < lines.length && /^\d+\. /.test(lines[i])) { items.push(lines[i].replace(/^\d+\. /, "")); i++; }
-      nodes.push(<ol key={key++}>{items.map((item, j) => <li key={j} dangerouslySetInnerHTML={{ __html: renderInline(item) }} />)}</ol>);
-      continue;
-    } else if (line.trim() !== "") {
-      nodes.push(<p key={key++} dangerouslySetInnerHTML={{ __html: renderInline(line) }} />);
-    }
-    i++;
-  }
-
-  return <div className="report-body">{nodes}</div>;
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-function stroopsToXlm(s: number): string { return (s / 1e7).toFixed(4); }
-function ts(): string {
-  const n = new Date();
-  return [n.getHours(), n.getMinutes(), n.getSeconds()].map(v => String(v).padStart(2, "0")).join(":");
-}
-function clock(): string { return ts(); }
-
-// ── Page ───────────────────────────────────────────────────────────────────
-
-export default function DashboardPage() {
-  const [task, setTask]     = useState("");
-  const [chain, setChain]   = useState<"stellar" | "celo">("stellar");
-  const [running, setRunning] = useState(false);
-  const [logs, setLogs]     = useState<LogEntry[]>([]);
-  const [hasRun, setHasRun] = useState(false);
-  const [report, setReport] = useState<string | null>(null);
-  const [time, setTime]     = useState(clock);
-
-  const [agentStatus, setAgentStatus] = useState<Record<AgentId, AgentStatus>>({
-    scout: "idle", ledger: "idle", signal: "idle", scribe: "idle", executor: "idle",
-  });
-  const [agentSpent, setAgentSpent] = useState<Record<AgentId, number>>({
-    scout: 0, ledger: 0, signal: 0, scribe: 0, executor: 0,
-  });
-  const [wallets, setWallets] = useState<Record<AgentId, string>>({
-    scout: "", ledger: "", signal: "", scribe: "", executor: "",
-  });
-  const [reputation, setReputation] = useState<Record<AgentId, number>>({
-    scout: 5000, ledger: 5000, signal: 5000, scribe: 5000, executor: 5000,
-  });
-  const [agentTxHashes, setAgentTxHashes] = useState<Record<AgentId, string[]>>({
-    scout: [], ledger: [], signal: [], scribe: [], executor: [],
-  });
-  const [agentPaymentModes, setAgentPaymentModes] = useState<Record<AgentId, string>>({
-    scout: "", ledger: "", signal: "", scribe: "", executor: "",
-  });
-  const [agentSigTxHashes, setAgentSigTxHashes] = useState<Record<AgentId, string>>({
-    scout: "", ledger: "", signal: "", scribe: "", executor: "",
-  });
-  const [reputationOnChain, setReputationOnChain] = useState<Record<AgentId, number | null>>({
-    scout: null, ledger: null, signal: null, scribe: null, executor: null,
-  });
-  const [dexSettleTxHash, setDexSettleTxHash] = useState("");
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [taskGraph, setTaskGraph] = useState<TaskGraph | null>(null);
-  const [graphStatusMap, setGraphStatusMap] = useState<Partial<Record<GraphAgentType, NodeStatus>>>({});
-  const [graphConfidenceMap, setGraphConfidenceMap] = useState<Partial<Record<GraphAgentType, number>>>({});
-  const [runReceipt, setRunReceipt] = useState<RunReceipt | null>(null);
-  const [receiptVerification, setReceiptVerification] = useState<RunReceiptVerification | undefined>();
-
-  const logEndRef   = useRef<HTMLDivElement>(null);
-  const counterRef  = useRef(0);
-  const sessionId   = `SES_${useId().replace(/[^a-z0-9]/gi, "").toUpperCase()}`;
-
-  // Live clock
-  useEffect(() => {
-    const id = setInterval(() => setTime(clock()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  // Poll on-chain reputation from Identity Registry every 15s
-  useEffect(() => {
-    async function fetchOnChain() {
-      try {
-        const res = await fetch("/api/status");
-        if (!res.ok) return;
-        const data = await res.json() as Array<{ agentId: AgentId; reputationOnChain: number | null }>;
-        const map: Record<AgentId, number | null> = { scout: null, ledger: null, signal: null, scribe: null, executor: null };
-        for (const d of data) map[d.agentId] = d.reputationOnChain;
-        setReputationOnChain(map);
-      } catch { /* non-fatal */ }
-    }
-    fetchOnChain();
-    const id = setInterval(fetchOnChain, 15_000);
-    return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [logs]);
-
-  const addLog = useCallback((message: string, level: LogEntry["level"] = "info") => {
-    setLogs(prev => [...prev, { id: counterRef.current++, message, level }]);
-  }, []);
-
-  async function runAegis() {
-    if (!task.trim() || running) return;
-
-    setRunning(true);
-    setHasRun(true);
-    setLogs([]);
-    setReport(null);
-    counterRef.current = 0;
-    setAgentStatus({ scout: "idle", ledger: "idle", signal: "idle", scribe: "idle", executor: "idle" });
-    setAgentSpent({ scout: 0, ledger: 0, signal: 0, scribe: 0, executor: 0 });
-    setWallets({ scout: "", ledger: "", signal: "", scribe: "", executor: "" });
-    setReputation({ scout: 5000, ledger: 5000, signal: 5000, scribe: 5000, executor: 5000 });
-    setAgentTxHashes({ scout: [], ledger: [], signal: [], scribe: [], executor: [] });
-    setAgentPaymentModes({ scout: "", ledger: "", signal: "", scribe: "", executor: "" });
-    setAgentSigTxHashes({ scout: "", ledger: "", signal: "", scribe: "", executor: "" });
-    setDexSettleTxHash("");
-    setTaskGraph(null);
-    setGraphStatusMap({});
-    setGraphConfidenceMap({});
-    setRunReceipt(null);
-    setReceiptVerification(undefined);
-
-    try {
-      const res = await fetch("/api/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task, chain }),
-      });
-
-      if (!res.ok || !res.body) throw new Error(`API ${res.status}`);
-
-      const reader = res.body.getReader();
-      const dec = new TextDecoder();
-      let buf = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += dec.decode(value, { stream: true });
-        const chunks = buf.split("\n\n");
-        buf = chunks.pop() ?? "";
-
-        for (const chunk of chunks) {
-          if (!chunk.startsWith("data: ")) continue;
-          try {
-            const { type, payload } = JSON.parse(chunk.slice(6)) as { type: string; payload: unknown };
-            if (type === "log") {
-              const p = payload as { message: string; level?: LogEntry["level"] };
-              addLog(p.message, p.level ?? "info");
-            } else if (type === "task:graph") {
-              setTaskGraph(payload as TaskGraph);
-              // Mark all graph nodes as pending
-              const g = payload as TaskGraph;
-              const initStatus: Partial<Record<GraphAgentType, NodeStatus>> = {};
-              for (const n of g.nodes) initStatus[n.agentType as GraphAgentType] = "pending";
-              setGraphStatusMap(initStatus);
-            } else if (type === "agent_status") {
-              const p = payload as { agent: AgentId | "validator"; status?: AgentStatus; spent?: number; txHashes?: string[]; paymentMode?: string; confidence?: number; sigTxHash?: string };
-              if (p.agent !== "validator" && p.status) {
-                setAgentStatus(prev => ({ ...prev, [p.agent]: p.status! }));
-              }
-              if (p.spent !== undefined && p.agent !== "validator") setAgentSpent(prev => ({ ...prev, [p.agent]: p.spent! }));
-              if (p.txHashes && p.agent !== "validator") setAgentTxHashes(prev => ({ ...prev, [p.agent]: p.txHashes! }));
-              if (p.paymentMode && p.agent !== "validator") setAgentPaymentModes(prev => ({ ...prev, [p.agent]: p.paymentMode! }));
-              if (p.sigTxHash && p.agent !== "validator") setAgentSigTxHashes(prev => ({ ...prev, [p.agent]: p.sigTxHash! }));
-              if (p.agent === "executor" && (p as Record<string, unknown>).dexTxHash) setDexSettleTxHash((p as Record<string, unknown>).dexTxHash as string);
-              // Update graph status
-              const graphStatus: NodeStatus =
-                p.status === "complete" ? "complete" :
-                p.status === "failed"   ? "error" :
-                p.status === "running"  ? "running" : "pending";
-              setGraphStatusMap(prev => ({ ...prev, [p.agent as GraphAgentType]: graphStatus }));
-              if (p.confidence !== undefined) {
-                setGraphConfidenceMap(prev => ({ ...prev, [p.agent as GraphAgentType]: p.confidence! }));
-              }
-            } else if (type === "wallets") {
-              setWallets(payload as Record<AgentId, string>);
-            } else if (type === "complete") {
-              const p = payload as CompletePayload;
-              setReport(p.report);
-              setAgentSpent(p.spent);
-              setReputation(p.reputation);
-              setWallets(p.wallets);
-              if (p.txHashes) setAgentTxHashes(p.txHashes as Record<AgentId, string[]>);
-            } else if (type === "receipt") {
-              const receipt = payload as RunReceipt;
-              setRunReceipt(receipt);
-              fetch(`/api/receipts/${receipt.runId}/verify`)
-                .then((r) => r.ok ? r.json() : undefined)
-                .then((v) => setReceiptVerification(v as RunReceiptVerification | undefined))
-                .catch(() => {});
-            } else if (type === "error") {
-              addLog(`Error: ${(payload as { message: string }).message}`, "error");
-            }
-          } catch { /* skip malformed frame */ }
-        }
-      }
-    } catch (err) {
-      addLog(`Fatal: ${String(err)}`, "error");
-    } finally {
-      setRunning(false);
-    }
-  }
-
-  const totalSpent = Object.values(agentSpent).reduce((a, b) => a + b, 0);
-  const totalTxCount = Object.values(agentTxHashes).reduce((a, hashes) => a + hashes.length, 0);
-  const mode = running ? "RUNNING" : report ? "COMPLETE" : "IDLE";
-  const taskSnippet = task ? task.slice(0, 44) + (task.length > 44 ? "…" : "") : "—";
-
+export default function LandingPage() {
   return (
-    <>
-      <div className="dashboard-layout">
-        {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
-        <div className="d-left">
-          {/* CMD module */}
-          <div className="module cmd-module">
-            <span className="cmd-prefix">
-              CMD <span className="cmd-arrow">▸</span>
-            </span>
-            <input
-              className="cmd-input"
-              value={task}
-              onChange={e => setTask(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runAegis(); }}
-              placeholder="Enter research task…  (⌘↵ to execute)"
-              disabled={running}
-            />
-            <button
-              className={`cmd-chain-pill${chain === "stellar" ? " active" : ""}`}
-              onClick={() => setChain("stellar")}
-              disabled={running}
-              title="Stellar pipeline"
-            >
-              STELLAR
-            </button>
-            <button
-              className={`cmd-chain-pill${chain === "celo" ? " active" : ""}`}
-              onClick={() => setChain("celo")}
-              disabled={running}
-              title="Celo pipeline"
-            >
-              CELO
-            </button>
-            <button
-              className={`cmd-exec${running ? " is-running" : ""}`}
-              onClick={runAegis}
-              disabled={running || !task.trim()}
-            >
-              {running ? <><span className="spinner" /> WAIT</> : "EXEC"}
-            </button>
+    <div className="landing">
+      {/* ── Nav ──────────────────────────────────────────────────── */}
+      <nav className="landing-nav">
+        <div className="landing-nav-inner">
+          <span className="landing-logo">CAL-AGENTKIT</span>
+          <div className="landing-nav-links">
+            <a href="https://github.com/calebcauthon/agent-kit" target="_blank" rel="noopener noreferrer">
+              GitHub
+            </a>
+            <a href="https://www.npmjs.com/package/@calebux/agent-kit" target="_blank" rel="noopener noreferrer">
+              npm
+            </a>
+            <Link href="/agents">Agents</Link>
+            <Link href="/dashboard" className="landing-nav-cta">
+              Try Demo
+            </Link>
           </div>
+        </div>
+      </nav>
 
-          {/* Agents module */}
-          <div className="module agents-module">
-            {AGENTS.map((agent, i) => (
-              <AgentCard
-                key={agent.id}
-                index={i + 1}
-                name={agent.name}
-                capability={agent.capability}
-                color={agent.color}
-                status={agentStatus[agent.id]}
-                wallet={wallets[agent.id]}
-                spent={agentSpent[agent.id]}
-                reputation={reputation[agent.id]}
-                reputationOnChain={reputationOnChain[agent.id]}
-                isLast={i === AGENTS.length - 1}
-                txHashes={agentTxHashes[agent.id]}
-                paymentMode={agentPaymentModes[agent.id]}
-                sigTxHash={agentSigTxHashes[agent.id]}
-              />
+      {/* ── Hero ─────────────────────────────────────────────────── */}
+      <section className="landing-hero">
+        <div className="landing-container">
+          <h1 className="landing-hero-title">
+            The economic layer for autonomous agents
+          </h1>
+          <p className="landing-hero-subtitle">
+            Open-source economic infrastructure for autonomous agents on <span className="landing-celo-yellow">Celo</span> — identity,
+            reputation, payments, governance, discovery, coordination, and audit. All on-chain.
+          </p>
+          <div className="landing-hero-ctas">
+            <a
+              href="https://github.com/calebcauthon/agent-kit"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="landing-btn landing-btn-outline"
+            >
+              View on GitHub
+            </a>
+            <Link href="/dashboard" className="landing-btn landing-btn-primary">
+              Try Demo
+            </Link>
+          </div>
+          <CopyTerminal command="npm install @calebux/agent-kit" />
+        </div>
+      </section>
+
+      {/* ── Layers ──────────────────────────────────────────────── */}
+      <section className="landing-section landing-section-alt">
+        <div className="landing-container">
+          <h2 className="landing-section-title">Seven infrastructure layers</h2>
+          <p className="landing-section-subtitle">
+            Everything agents need to operate as autonomous, accountable participants in a multi-agent economy.
+          </p>
+          <div className="landing-grid">
+            {[
+              { layer: "Identity", desc: "On-chain agent registration, manifest hashes, ERC-8004 NFTs, Self Protocol verification" },
+              { layer: "Reputation", desc: "Live trust scores from task completion, staking, and consensus — updated after every run" },
+              { layer: "Payments", desc: "x402 micropayments, agent-to-agent USDm/XLM transfers, multi-chain settlement" },
+              { layer: "Governance", desc: "Spend caps, session policies, human approval gates, scoped credentials" },
+              { layer: "Discovery", desc: "Capability-based routing, federated peer registry, trust-ranked agent DNS" },
+              { layer: "Coordination", desc: "Task orchestration, delegation with linked receipts, consensus voting" },
+              { layer: "Audit", desc: "SHA-256 hashed receipts, Ed25519 signatures, on-chain attestation, escrow with conditional release" },
+            ].map((l) => (
+              <div key={l.layer} className="landing-card">
+                <h3>{l.layer}</h3>
+                <p>{l.desc}</p>
+              </div>
             ))}
           </div>
-
         </div>
+      </section>
 
-        {/* ── RIGHT COLUMN ────────────────────────────────────────────── */}
-        <div className="d-right">
-          {/* Task graph — shown once received */}
-          {taskGraph && (
-            <div className="module">
-              <div className="mod-header">
-                TASK GRAPH
-                <span style={{ color: "#505052", fontSize: "0.65rem", fontFamily: "monospace", marginLeft: "auto" }}>
-                  {taskGraph.nodes.length} NODES
-                </span>
+      {/* ── Features ─────────────────────────────────────────────── */}
+      <section className="landing-section">
+        <div className="landing-container">
+          <h2 className="landing-section-title">What&apos;s inside</h2>
+          <p className="landing-section-subtitle">
+            The building blocks behind each layer.
+          </p>
+          <div className="landing-grid">
+            {FEATURES.map((f) => (
+              <div key={f.title} className="landing-card">
+                <span className="landing-card-icon">{f.icon}</span>
+                <h3>{f.title}</h3>
+                <p>{f.desc}</p>
               </div>
-              <div style={{ padding: "0.5rem 1rem" }}>
-                <TaskGraphView
-                  graph={taskGraph}
-                  statusMap={graphStatusMap}
-                  confidenceMap={graphConfidenceMap}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* On-Chain Proof panel — always visible */}
-          <div className="module">
-            <div className="mod-header">
-              ON-CHAIN PROOF
-              <span style={{ color: "#2a5a2a", fontSize: "0.6rem", marginLeft: "auto" }}>
-                SOROBAN · STELLAR TESTNET
-              </span>
-            </div>
-            <OnChainProofPanel
-              agentSigTxHashes={agentSigTxHashes}
-              dexSettleTxHash={dexSettleTxHash}
-              shieldContractId={process.env.NEXT_PUBLIC_SHIELD_CONTRACT_ID ?? "CDGVUNE47FXSG6KJATMZB3MFTE7UJFBMUKNFK7FWZRAHPG5BUGBFV2RS"}
-              registryContractId={process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ID ?? "CBQV3JXYZS7ABOTLCYZM6U4LUEF7PTIUXV76QAPHYAACERXHROVTT2YM"}
-            />
+            ))}
           </div>
+        </div>
+      </section>
 
-          {runReceipt && (
-            <div className="module">
-              <div className="mod-header">
-                RUN RECEIPT
-                <span style={{ color: receiptVerification?.valid ? "#48a858" : "#a08010", fontSize: "0.6rem", marginLeft: "auto" }}>
-                  {receiptVerification?.valid ? "VERIFIED" : "PENDING"}
-                </span>
+      {/* ── Use Cases ────────────────────────────────────────────── */}
+      <section className="landing-section landing-section-alt">
+        <div className="landing-container">
+          <h2 className="landing-section-title">What builders can do</h2>
+          <p className="landing-section-subtitle">
+            Compose agents into governed pipelines for real-world use cases.
+          </p>
+          <div className="landing-grid">
+            {USE_CASES.map((u) => (
+              <div key={u.title} className="landing-card">
+                <h3>{u.title}</h3>
+                <p>{u.desc}</p>
               </div>
-              <RunReceiptPanel receipt={runReceipt} verification={receiptVerification} />
-            </div>
-          )}
+            ))}
+          </div>
+        </div>
+      </section>
 
-          {/* Output log — always visible */}
-          <div className="module">
-            <div className="mod-header">
-              {running && <span className="live-dot" />}
-              OUTPUT
-              {running && <span style={{ color: "#5890d8" }}>· LIVE</span>}
+      {/* ── MCP Integration ──────────────────────────────────────── */}
+      <section className="landing-section">
+        <div className="landing-container">
+          <h2 className="landing-section-title">MCP Integration</h2>
+          <p className="landing-section-subtitle">
+            Let LLMs discover and call Cal-AgentKit agents as native tools via Model Context Protocol.
+          </p>
+          <div className="landing-mcp-layout">
+            <div className="landing-mcp-tools">
+              {[
+                { name: "discover_agents", desc: "List all registered agents with capabilities and payment info" },
+                { name: "get_agent_manifest", desc: "Fetch full manifest for a specific agent by ID" },
+                { name: "run_agent_task", desc: "Execute a task on any agent and get a verifiable receipt" },
+                { name: "call_external_agent", desc: "Route tasks to agents on other Cal-AgentKit instances" },
+                { name: "get_run_receipt", desc: "Retrieve a receipt by run ID with full hash chain" },
+                { name: "verify_run_receipt", desc: "Cryptographically verify a receipt's integrity" },
+                { name: "get_task_status", desc: "Check pipeline progress and agent statuses" },
+                { name: "calagent_agents_endpoint", desc: "Raw HTTP access to the agent discovery endpoint" },
+              ].map((tool) => (
+                <div key={tool.name} className="landing-mcp-tool">
+                  <code>{tool.name}</code>
+                  <span>{tool.desc}</span>
+                </div>
+              ))}
             </div>
-            <div className="terminal">
-              {!hasRun ? (
-                <span style={{ color: "#303032" }}>STANDBY — submit a task to begin</span>
-              ) : logs.length === 0 ? (
-                <span style={{ color: "#303032" }}>Waiting for output…</span>
-              ) : (
-                logs.map(entry => (
-                  <div key={entry.id} className={`log-line ${entry.level}`}>
-                    <span className="ts">{ts()}</span>
-                    <span className="msg">{entry.message}</span>
-                  </div>
-                ))
-              )}
-              <div ref={logEndRef} />
+            <div className="landing-mcp-code">
+              <div className="landing-terminal" style={{ maxWidth: "100%", margin: 0 }}>
+                <div className="landing-terminal-dots">
+                  <span /><span /><span />
+                </div>
+                <code>{`> Using run_agent_task
+  agent: "celo-ledger"
+  task: "Get latest Celo block"
+
+✓ Agent returned result
+  block: 28491023
+  gasPrice: "5 gwei"
+
+> Using verify_run_receipt
+  runId: "a3f8...c912"
+
+✓ Receipt verified
+  taskHash: "sha256:e4b2..."
+  outputHash: "sha256:9c1f..."
+  signature: valid`}</code>
+              </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Intelligence report */}
-          {report && (
-            <div className="module">
-              <div className="mod-header">
-                REPORT
-                <span className="done-badge">COMPLETE</span>
-              </div>
-              <SimpleMarkdown content={report} />
+      {/* ── CTA Section ──────────────────────────────────────────── */}
+      <section className="landing-cta-section">
+        <div className="landing-container" style={{ textAlign: "center" }}>
+          <CopyTerminal command="npm install @calebux/agent-kit" />
+          <Link href="/dashboard" className="landing-btn landing-btn-dark">
+            Try the live demo
+          </Link>
+        </div>
+      </section>
+
+      {/* ── Footer ───────────────────────────────────────────────── */}
+      <footer className="landing-footer">
+        <div className="landing-container">
+          <div className="landing-footer-grid">
+            <div className="landing-footer-brand">
+              <span className="landing-logo">CAL-AGENTKIT</span>
+              <p>Infrastructure for autonomous agent economies.</p>
             </div>
-          )}
+            {Object.entries(FOOTER_LINKS).map(([title, links]) => (
+              <div key={title} className="landing-footer-col">
+                <h4>{title}</h4>
+                {links.map((l) =>
+                  l.href.startsWith("/") ? (
+                    <Link key={l.label} href={l.href}>{l.label}</Link>
+                  ) : (
+                    <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer">
+                      {l.label}
+                    </a>
+                  )
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="landing-footer-bottom">
+            <span>Open-source infrastructure for autonomous agent economies</span>
+          </div>
         </div>
-      </div>
-
-      {/* ── History drawer ──────────────────────────────────────────────── */}
-      <div className={`history-drawer${historyOpen ? " open" : ""}`}>
-        <div className="history-drawer-header">
-          HISTORY
-          <button className="drawer-close" onClick={() => setHistoryOpen(false)}>✕</button>
-        </div>
-        <div className="history-drawer-body">
-          <TaskFeed />
-        </div>
-      </div>
-      {historyOpen && <div className="drawer-overlay" onClick={() => setHistoryOpen(false)} />}
-
-      {/* ── Fixed footer ────────────────────────────────────────────────── */}
-      <div className="site-footer">
-        <span className="ftr-item">
-          MODE <span className={`ftr-val${running ? " active" : ""}`}>{mode}</span>
-        </span>
-        <span className="ftr-item">
-          TASK <span className="ftr-val">{taskSnippet}</span>
-        </span>
-        <span className="ftr-item">
-          CHAIN <span className="ftr-val">{chain.toUpperCase()}</span>
-        </span>
-        <span className="ftr-item">
-          TOTAL SPEND <span className="ftr-val">{stroopsToXlm(totalSpent)} XLM{totalTxCount > 0 ? ` · ${totalTxCount} TXS` : ""}</span>
-        </span>
-        <span className="ftr-item" style={{ marginLeft: "auto" }}>
-          SESSION <span className="ftr-val">{sessionId}</span>
-        </span>
-        <button className="ftr-btn" onClick={() => setHistoryOpen(v => !v)}>
-          HISTORY
-        </button>
-        <span className="ftr-item">
-          <span className="ftr-val">{time}</span>
-        </span>
-      </div>
-    </>
+      </footer>
+    </div>
   );
 }

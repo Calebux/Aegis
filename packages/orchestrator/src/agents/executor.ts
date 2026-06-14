@@ -1,13 +1,13 @@
 /**
  * Executor Agent — Consensus Notary (Infrastructure)
  *
- * The final step in the Aegis pipeline. Once the agent swarm reaches
+ * The final step in the Cal-AgentKit pipeline. Once the agent swarm reaches
  * consensus, the Notary does two things in parallel:
  *
  *   1. SOROBAN NOTARISATION
  *      SHA-256 hashes the agreed output, signs with its Stellar keypair,
  *      and stores the signature + hash on the Shield Contract permanently.
- *      Any third party can verify the AI conclusion without trusting Aegis.
+ *      Any third party can verify the AI conclusion without trusting Cal-AgentKit.
  *
  *   2. DEX SETTLEMENT
  *      Executes a small XLM → USDC swap on the native Stellar DEX as a
@@ -29,9 +29,10 @@ import {
   Asset,
   Memo,
 } from "@stellar/stellar-sdk";
-import { getHorizonServer } from "@aegis/shared";
-import { ShieldContract } from "@calebux/agent-kit";
+import { getHorizonServer } from "@calagent/shared";
+import { ShieldContract, type SettlementProvider } from "@calebux/agent-kit";
 import { bus } from "../lib/bus.js";
+import { withTimeout } from "../lib/timeout.js";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -76,7 +77,7 @@ async function settleDex(keypair: Keypair): Promise<string> {
           path:        [],
         })
       )
-      .addMemo(Memo.text("aegis:settle"))
+      .addMemo(Memo.text("calagent:settle"))
       .setTimeout(30)
       .build();
 
@@ -103,7 +104,7 @@ async function settleDex(keypair: Keypair): Promise<string> {
         offerId: 0,
       })
     )
-    .addMemo(Memo.text("aegis:settle"))
+    .addMemo(Memo.text("calagent:settle"))
     .setTimeout(30)
     .build();
 
@@ -116,6 +117,12 @@ async function settleDex(keypair: Keypair): Promise<string> {
 
 export class ExecutorAgent {
   readonly id = "executor";
+  private settlementProvider?: SettlementProvider;
+
+  /** Optionally inject a multi-chain settlement provider (Base, Celo, etc.) */
+  setSettlementProvider(provider: SettlementProvider): void {
+    this.settlementProvider = provider;
+  }
 
   wire(runId: string, keypair: Keypair): void {
     bus.subscribe(
@@ -131,10 +138,10 @@ export class ExecutorAgent {
         let dexTxHash    = "";
         let payloadHash  = "";
 
-        // Run Soroban notarisation and DEX settlement in parallel
+        // Run Soroban notarisation and DEX settlement in parallel (with per-op timeouts)
         const [notaryResult, dexResult] = await Promise.allSettled([
-          // ── Soroban notarisation ───────────────────────────────────────────
-          (async () => {
+          // ── Soroban notarisation (60s timeout) ─────────────────────────────
+          withTimeout(async () => {
             const hash      = createHash("sha256").update(agreedOutput).digest();
             payloadHash     = hash.toString("hex");
             const signature = keypair.sign(hash).toString("hex");
@@ -154,10 +161,22 @@ export class ExecutorAgent {
             );
 
             return shield.storeSignature({ agentId: "consensus-notary", runId, signature, payloadHash });
-          })(),
+          }, 60_000, "executor:soroban"),
 
-          // ── DEX settlement ────────────────────────────────────────────────
-          settleDex(keypair),
+          // ── DEX / multi-chain settlement (60s timeout) ──────────────────────
+          withTimeout(async () => {
+            // Use multi-chain provider if configured, otherwise default to Stellar DEX
+            if (this.settlementProvider) {
+              const result = await this.settlementProvider.settle({
+                from: keypair.publicKey(),
+                to: keypair.publicKey(), // self-settle as pipeline marker
+                amount: SETTLE_XLM,
+                memo: "calagent:settle",
+              });
+              return result.txHash;
+            }
+            return settleDex(keypair);
+          }, 60_000, "executor:settlement"),
         ]);
 
         if (notaryResult.status === "fulfilled") {

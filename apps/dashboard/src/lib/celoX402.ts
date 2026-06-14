@@ -1,5 +1,5 @@
 export const CELO_CHAIN = "celo";
-export const CELO_NETWORK = process.env.AEGIS_CELO_NETWORK ?? "alfajores";
+export const CELO_NETWORK = process.env.CALAGENT_CELO_NETWORK ?? "alfajores";
 export const CELO_CHAIN_ID = CELO_NETWORK === "mainnet" ? 42220 : 44787;
 export const CELO_NETWORK_ID = `eip155:${CELO_CHAIN_ID}`;
 
@@ -9,21 +9,21 @@ export const CELO_RPC_URL =
     ? "https://forno.celo.org"
     : "https://alfajores-forno.celo-testnet.org");
 
-export const CELO_STABLE_ASSET = process.env.AEGIS_CELO_ASSET ?? "cUSD";
+export const CELO_STABLE_ASSET = process.env.CALAGENT_CELO_ASSET ?? "cUSD";
 export const CELO_STABLE_ASSET_DECIMALS = Number(
-  process.env.AEGIS_CELO_ASSET_DECIMALS ?? 18
+  process.env.CALAGENT_CELO_ASSET_DECIMALS ?? 18
 );
 export const CELO_STABLE_ASSET_CONTRACT =
-  process.env.AEGIS_CELO_ASSET_CONTRACT ??
+  process.env.CALAGENT_CELO_ASSET_CONTRACT ??
   (CELO_NETWORK === "mainnet"
     ? "0x765DE816845861e75A25fCA122bb6898B8B1282a"
     : "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1");
 
-export const AEGIS_CELO_AGENT_PRICE =
-  process.env.AEGIS_CELO_AGENT_PRICE ?? "0.001";
+export const CALAGENT_CELO_AGENT_PRICE =
+  process.env.CALAGENT_CELO_AGENT_PRICE ?? "0.001";
 
 export function celoPaymentReceiver(): string | undefined {
-  return process.env.AEGIS_CELO_X402_RECEIVER ?? process.env.AEGIS_EVM_X402_RECEIVER;
+  return process.env.CALAGENT_CELO_X402_RECEIVER ?? process.env.CALAGENT_EVM_X402_RECEIVER;
 }
 
 /**
@@ -37,8 +37,8 @@ export function celoX402Enforced(): boolean {
 
 export function celoFacilitatorUrl(): string | undefined {
   return (
-    process.env.AEGIS_CELO_X402_FACILITATOR_URL ??
-    process.env.AEGIS_EVM_X402_FACILITATOR_URL
+    process.env.CALAGENT_CELO_X402_FACILITATOR_URL ??
+    process.env.CALAGENT_EVM_X402_FACILITATOR_URL
   );
 }
 

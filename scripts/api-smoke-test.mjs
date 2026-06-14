@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const baseUrl = (process.env.AEGIS_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const baseUrl = (process.env.CALAGENT_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
 async function request(path, init) {
   const res = await fetch(`${baseUrl}${path}`, init);
@@ -12,7 +12,7 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-console.log(`Aegis API smoke test: ${baseUrl}`);
+console.log(`Cal-AgentKit API smoke test: ${baseUrl}`);
 
 const health = await request("/api/health");
 assert(health.res.ok, `/api/health returned ${health.res.status}`);
@@ -85,4 +85,4 @@ if (celoRun.res.ok) {
   console.log("ok /api/agents/celo-ledger/run returned x402 402 challenge");
 }
 
-console.log("Aegis API smoke test passed");
+console.log("Cal-AgentKit API smoke test passed");

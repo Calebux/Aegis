@@ -9,7 +9,7 @@ import {
   scValToNative,
   xdr,
 } from "@stellar/stellar-sdk";
-import { getHorizonServer } from "@aegis/shared";
+import { getHorizonServer } from "@calagent/shared";
 import { sorobanInvoke } from "./utils.js";
 
 function networkPassphrase(): string {
@@ -20,7 +20,7 @@ function networkPassphrase(): string {
 }
 
 /**
- * Thin wrapper around the Aegis Identity Registry Contract.
+ * Thin wrapper around the Cal-AgentKit Identity Registry Contract.
  *
  * The Identity Registry tracks each agent's on-chain reputation.
  * Call `recordSuccess` after a successful run and `recordFailure` after

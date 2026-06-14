@@ -14,7 +14,7 @@
     "composite": true,
     "ignoreDeprecations": "5.0",
     "paths": {
-      "@aegis/shared": ["../shared/src/index.ts"]
+      "@calagent/shared": ["../shared/src/index.ts"]
     }
   },
   "include": ["src"],

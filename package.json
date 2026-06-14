@@ -1,8 +1,8 @@
 {
-  "name": "aegis",
+  "name": "calagent",
   "version": "0.1.0",
   "private": true,
-  "description": "Soroban-governed multi-agent system on Stellar",
+  "description": "Soroban-governed multi-agent system on Stellar — Cal-AgentKit",
   "keywords": [
     "stellar",
     "soroban",
@@ -21,13 +21,14 @@
     "apps/*"
   ],
   "scripts": {
-    "aegis": "cd packages/orchestrator && tsx src/index.ts",
+    "calagent": "cd packages/orchestrator && tsx src/index.ts",
     "demo:receipt": "node scripts/demo-receipt.mjs",
     "demo:foundation": "node scripts/stellar-foundation-demo.mjs",
     "example:x402-agent": "node scripts/example-x402-agent-client.mjs",
     "smoke:api": "node scripts/api-smoke-test.mjs",
     "publish:manifest-hashes": "npm run build --workspace=packages/agent-kit && node scripts/publish-manifest-hashes.mjs",
-    "publish:celo-manifest-hashes": "npm run build --workspace=packages/aegis-chain-celo && node scripts/publish-celo-manifest-hashes.mjs",
+    "publish:celo-manifest-hashes": "npm run build --workspace=packages/calagent-chain-celo && node scripts/publish-celo-manifest-hashes.mjs",
+    "publish:erc8004": "node scripts/publish-erc8004-registrations.mjs",
     "deploy:celo-contracts": "cd contracts/celo && bash deploy.sh",
     "dev:horizon": "cd packages/orchestrator && tsx src/services/horizon-x402-server.ts",
     "dev:celo": "tsx packages/agents/src/celo-x402-server.ts",
@@ -51,5 +52,9 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "@chaoschain/sdk": "^0.3.3",
+    "@selfxyz/agent-sdk": "^0.2.1"
   }
 }

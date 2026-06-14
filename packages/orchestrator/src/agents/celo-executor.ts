@@ -13,7 +13,7 @@
 
 import { createHash } from "node:crypto";
 import type { Account } from "viem";
-import { CeloIdentityRegistry } from "@calebux/agent-kit";
+import { CeloIdentityRegistry, Erc8004Adapter, ConsensusVotingManager } from "@calebux/agent-kit";
 import { bus } from "../lib/bus.js";
 
 // ── CeloExecutorAgent ─────────────────────────────────────────────────────────
@@ -34,7 +34,7 @@ export class CeloExecutorAgent {
       addr,
       key,
       this.rpcUrl ?? process.env.CELO_RPC_URL,
-      this.network ?? process.env.AEGIS_CELO_NETWORK
+      this.network ?? process.env.CALAGENT_CELO_NETWORK
     );
   }
 
@@ -84,6 +84,22 @@ export class CeloExecutorAgent {
 
           // Record success (fire-and-forget, non-blocking)
           void registry.recordSuccess("celo-pipeline-notary").catch(() => {});
+
+          // Item 2: Sync reputation to ERC-8004 if adapter is configured
+          const erc8004Addr = process.env.ERC8004_ADAPTER_ADDRESS;
+          if (erc8004Addr && (this.deployerPrivateKey ?? process.env.CELO_DEPLOYER_PRIVATE_KEY)) {
+            try {
+              const adapter = new Erc8004Adapter(
+                erc8004Addr,
+                (this.deployerPrivateKey ?? process.env.CELO_DEPLOYER_PRIVATE_KEY)!,
+                this.rpcUrl ?? process.env.CELO_RPC_URL,
+                this.network ?? process.env.CALAGENT_CELO_NETWORK
+              );
+              void adapter.syncReputation("celo-pipeline-notary", 1, "task-success").catch(() => {});
+            } catch {
+              // non-fatal
+            }
+          }
         } else {
           console.log(
             "[celo-notary] CELO_REGISTRY_ADDRESS or CELO_DEPLOYER_PRIVATE_KEY not set — skipping notarisation"
@@ -111,6 +127,33 @@ export class CeloExecutorAgent {
           confidence: 1.0,
           timestamp: Date.now(),
         });
+
+        // Item 11: On-chain consensus voting if configured
+        const votingAddr = process.env.CELO_CONSENSUS_VOTING_ADDRESS;
+        const votingKey = this.deployerPrivateKey ?? process.env.CELO_DEPLOYER_PRIVATE_KEY;
+        if (votingAddr && votingKey) {
+          try {
+            const votingMgr = new ConsensusVotingManager(
+              votingAddr,
+              votingKey,
+              this.rpcUrl ?? process.env.CELO_RPC_URL,
+              this.network ?? process.env.CALAGENT_CELO_NETWORK
+            );
+            const taskHash = createHash("sha256").update(runId).digest("hex");
+            const roundId = await votingMgr.openRound(taskHash);
+            // Submit the notary's vote with the agreed output hash
+            await votingMgr.submitVote(
+              roundId,
+              "celo-pipeline-notary",
+              payloadHash,
+              10000 // full confidence
+            );
+            await votingMgr.finalizeRound(roundId);
+            console.log(`[celo-notary] Consensus voting round ${roundId} finalized on-chain`);
+          } catch (err) {
+            console.warn("[celo-notary] Consensus voting failed (non-fatal):", err);
+          }
+        }
       },
       runId
     );

@@ -1,67 +1,48 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import { WalletStrip } from "@/components/WalletStrip";
-import { ThemeToggle } from "@/components/ThemeToggle";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Aegis - Stellar Agent Infrastructure",
+  title: "Cal-AgentKit - Celo Agent Infrastructure",
   description:
-    "Agent execution and trust infrastructure for Stellar: x402 payments, MPP-ready agent discovery, Soroban policy controls, on-chain reputation, and MCP tooling.",
+    "Agent execution and trust infrastructure for Celo: x402 payments, agent discovery, EVM policy controls, on-chain reputation, and MCP tooling.",
   keywords: [
-    "Stellar agents",
-    "Stellar agent infrastructure",
-    "Soroban agents",
-    "x402 Stellar",
-    "MPP payments",
-    "MCP Stellar",
+    "Celo agents",
+    "Celo agent infrastructure",
+    "x402 Celo",
     "AI agent payments",
     "on-chain reputation",
     "agent wallet policy",
     "verifiable agent execution",
+    "USDm",
+    "MCP agents",
   ],
-  applicationName: "Aegis",
-  authors: [{ name: "Aegis" }],
-  creator: "Aegis",
-  publisher: "Aegis",
+  applicationName: "Cal-AgentKit",
+  authors: [{ name: "Cal-AgentKit" }],
+  creator: "Cal-AgentKit",
+  publisher: "Cal-AgentKit",
   openGraph: {
-    title: "Aegis - Stellar Agent Infrastructure",
+    title: "Cal-AgentKit - Celo Agent Infrastructure",
     description:
-      "Build governed AI agents on Stellar with x402 payments, Soroban spend policies, on-chain reputation, agent discovery, and MCP tools.",
-    siteName: "Aegis",
+      "Build governed AI agents on Celo with x402 payments, EVM spend policies, on-chain reputation, agent discovery, and MCP tools.",
+    siteName: "Cal-AgentKit",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "Aegis - Stellar Agent Infrastructure",
+    title: "Cal-AgentKit - Celo Agent Infrastructure",
     description:
-      "Governed AI agent infrastructure for Stellar: wallets, policy, x402 payments, reputation, discovery, and MCP.",
+      "Governed AI agent infrastructure for Celo: wallets, policy, x402 payments, reputation, discovery, and MCP.",
   },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body>
-        <header className="site-header">
-          <span className="hdr-brand">
-            AEGIS<span className="slash"> / </span>FIELD
-          </span>
-          <span className="hdr-sub">Agent Control Module</span>
-          <div className="hdr-right">
-            <WalletStrip />
-            <span className="hdr-divider" />
-            <span className="sys-ok">
-              <span className="sys-dot" />
-              SYS.OK
-            </span>
-            <span>Stellar · Testnet</span>
-            <span className="hdr-divider" />
-            <ThemeToggle />
-          </div>
-        </header>
-        <main>{children}</main>
-      </body>
+    <html lang="en" className={inter.variable}>
+      <body>{children}</body>
     </html>
   );
 }

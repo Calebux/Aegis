@@ -79,7 +79,7 @@ export class CeloPolicyManager {
     this.account = privateKeyToAccount(
       (privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Hex
     );
-    const net = network ?? process.env.AEGIS_CELO_NETWORK ?? "alfajores";
+    const net = network ?? process.env.CALAGENT_CELO_NETWORK ?? "alfajores";
     this.chain = net === "mainnet" ? celo : celoAlfajores;
     const url =
       rpcUrl ??

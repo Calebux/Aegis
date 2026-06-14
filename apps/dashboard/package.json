@@ -1,5 +1,5 @@
 {
-  "name": "@aegis/dashboard",
+  "name": "@calagent/dashboard",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,9 +11,9 @@
     "clean": "rm -rf .next"
   },
   "dependencies": {
-    "@aegis/orchestrator": "*",
-    "@aegis/shared": "*",
-    "@calebux/aegis-chain-celo": "*",
+    "@calagent/orchestrator": "*",
+    "@calagent/shared": "*",
+    "@calebux/calagent-chain-celo": "*",
     "@calebux/agent-kit": "*",
     "@stellar/stellar-sdk": "^12.0.0",
     "@x402/core": "^2.14.0",

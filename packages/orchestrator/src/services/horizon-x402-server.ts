@@ -6,14 +6,14 @@
  *   session — pay for N queries upfront (payment channel pattern)
  *   dev     — no payment required (HORIZON_PAYMENT_RECEIVER not set)
  *
- * Discovery: GET /.well-known/aegis.json
+ * Discovery: GET /.well-known/calagent.json
  * Endpoints:  GET /network-stats  GET /account/:id  GET /market-data
  *             POST /session/open  GET /health
  */
 
 import express, { Request, Response, NextFunction } from "express";
 import * as http from "http";
-import { getHorizonServer } from "@aegis/shared";
+import { getHorizonServer } from "@calagent/shared";
 import { Asset } from "@stellar/stellar-sdk";
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -109,8 +109,8 @@ function send402(res: Response): void {
     asset: "XLM",
     nonce,
     network: PAYMENT_NETWORK,
-    message: "Payment required — Aegis Horizon Gateway",
-    gateway: "aegis-horizon-v2",
+    message: "Payment required — Cal-AgentKit Horizon Gateway",
+    gateway: "calagent-horizon-v2",
   });
 }
 
@@ -219,8 +219,8 @@ async function fetchMarketData() {
 
 function buildManifest() {
   return {
-    aegis: "1.0",
-    name: "Aegis Horizon Gateway",
+    calagent: "1.0",
+    name: "Cal-AgentKit Horizon Gateway",
     description:
       "Stellar network intelligence — pay per query or open a prepaid session",
     modes: PAYMENT_ENABLED ? ["x402", "session"] : ["dev"],
@@ -241,7 +241,7 @@ function buildManifest() {
       "market-data": "GET /market-data",
       "session-open": "POST /session/open",
     },
-    tags: ["stellar", "horizon", "aegis", "multi-agent"],
+    tags: ["stellar", "horizon", "calagent", "multi-agent"],
   };
 }
 
@@ -252,7 +252,7 @@ export async function startHorizonX402Server(): Promise<http.Server> {
   app.use(express.json());
 
   // ── Discovery + health (no payment) ──────────────────────────────────────
-  app.get("/.well-known/aegis.json", (_req, res) => res.json(buildManifest()));
+  app.get("/.well-known/calagent.json", (_req, res) => res.json(buildManifest()));
 
   app.get("/health", (_req, res) =>
     res.json({
@@ -428,7 +428,7 @@ export async function startHorizonX402Server(): Promise<http.Server> {
           `[${PAYMENT_ENABLED ? "payment enforced" : "DEV — no payment"}]`
       );
       console.log(
-        `[horizon-x402] Manifest: http://localhost:${PORT}/.well-known/aegis.json`
+        `[horizon-x402] Manifest: http://localhost:${PORT}/.well-known/calagent.json`
       );
       resolve(server as unknown as http.Server);
     });

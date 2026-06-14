@@ -10,6 +10,7 @@
 
 import { Keypair } from "@stellar/stellar-sdk";
 import { IdentityRegistry } from "@calebux/agent-kit";
+import type { LLMProvider } from "@calebux/agent-kit";
 import { bus, type AgentMessage } from "../lib/bus.js";
 import { ValidatorAgent } from "./validator.js";
 
@@ -42,6 +43,11 @@ export function cacheLedgerPayload(runId: string, payload: unknown): void {
 
 export class ConsensusManager {
   readonly id = "consensus-manager";
+  private readonly llm?: LLMProvider;
+
+  constructor(llm?: LLMProvider) {
+    this.llm = llm;
+  }
 
   wire(
     runId: string,
@@ -127,7 +133,7 @@ export class ConsensusManager {
         console.log(
           "[consensus] Spawning ValidatorAgent to resolve discrepancy…"
         );
-        const validator = new ValidatorAgent();
+        const validator = new ValidatorAgent(this.llm);
 
         // Listen for validator's verdict before forwarding to Scribe
         bus.subscribe(

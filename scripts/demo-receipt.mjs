@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const baseUrl = (process.env.AEGIS_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const baseUrl = (process.env.CALAGENT_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const task =
   process.argv.slice(2).join(" ").trim() ||
   "Analyze Stellar agent infrastructure and explain why governed AI agents need receipts";
@@ -14,7 +14,7 @@ function parseSseFrames(buffer) {
 }
 
 async function main() {
-  console.log(`Aegis demo task: ${task}`);
+  console.log(`Cal-AgentKit demo task: ${task}`);
   console.log(`Dashboard: ${baseUrl}`);
 
   const res = await fetch(`${baseUrl}/api/run`, {
@@ -24,7 +24,7 @@ async function main() {
   });
 
   if (!res.ok || !res.body) {
-    throw new Error(`Aegis run failed to start: HTTP ${res.status}`);
+    throw new Error(`Cal-AgentKit run failed to start: HTTP ${res.status}`);
   }
 
   const reader = res.body.getReader();
@@ -52,7 +52,7 @@ async function main() {
       if (event.type === "complete") complete = event.payload;
       if (event.type === "receipt") receipt = event.payload;
       if (event.type === "error") {
-        throw new Error(event.payload?.message ?? "Aegis run failed");
+        throw new Error(event.payload?.message ?? "Cal-AgentKit run failed");
       }
     }
   }
@@ -64,7 +64,7 @@ async function main() {
   const verifyRes = await fetch(`${baseUrl}/api/receipts/${receipt.runId}/verify`);
   const verification = verifyRes.ok ? await verifyRes.json() : null;
 
-  console.log("\n--- Aegis Receipt ---");
+  console.log("\n--- Cal-AgentKit Receipt ---");
   console.log(`Receipt URL: ${baseUrl}/receipts/${receipt.runId}`);
   console.log(`Receipt hash: ${receipt.receiptHash}`);
   console.log(`Task hash: ${receipt.taskHash}`);

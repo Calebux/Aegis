@@ -1,20 +1,12 @@
 import type { CSSProperties } from "react";
 import { buildAgentManifests } from "@/lib/agentRegistry";
+import { AgentsTable } from "@/components/AgentsTable";
 
 type AgentsPageProps = {
   searchParams?: Promise<{
     chain?: string;
   }>;
 };
-
-function join(value: string[] | undefined): string {
-  return value && value.length > 0 ? value.join(", ") : "-";
-}
-
-function short(value: string | undefined): string {
-  if (!value) return "-";
-  return value.length > 22 ? `${value.slice(0, 10)}...${value.slice(-8)}` : value;
-}
 
 function filterHref(chain?: string): string {
   return chain ? `/agents?chain=${encodeURIComponent(chain)}` : "/agents";
@@ -46,7 +38,7 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
       <div className="module receipt-page-title">
         <h1>Agent Registry</h1>
         <p>
-          Discoverable Aegis agent manifests for Stellar-native agent routing,
+          Discoverable Cal-AgentKit agent manifests for Celo-native agent routing,
           x402 payments, policy checks, and MCP tooling.
         </p>
       </div>
@@ -56,61 +48,15 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
           AGENTS
           <span style={{ marginLeft: "auto" }}>{agents.length}</span>
         </div>
-        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", padding: "0.5rem 0.75rem 0" }}>
           <a href={filterHref()} style={filterStyle(!chain)}>
             All
-          </a>
-          <a href={filterHref("stellar")} style={filterStyle(chain === "stellar")}>
-            Stellar
           </a>
           <a href={filterHref("celo")} style={filterStyle(chain === "celo")}>
             Celo
           </a>
         </div>
-        <table className="receipt-detail-table">
-          <thead>
-            <tr>
-              <th>Agent</th>
-              <th>Chain</th>
-              <th>Capabilities</th>
-              <th>Wallet</th>
-              <th>Payments</th>
-              <th>Policy</th>
-              <th>Manifest</th>
-              <th>Endpoint</th>
-            </tr>
-          </thead>
-          <tbody>
-            {agents.map((agent) => (
-              <tr key={agent.id}>
-                <td>
-                  <strong>{agent.name}</strong>
-                  <br />
-                  <span>{agent.id}</span>
-                </td>
-                <td>{agent.chain ?? "-"}</td>
-                <td>{join(agent.capabilities)}</td>
-                <td>{short(agent.walletAddress)}</td>
-                <td>
-                  {agent.payments
-                    .map((payment) =>
-                      [payment.protocol, payment.asset, payment.network, payment.price]
-                        .filter(Boolean)
-                        .join(" / ")
-                    )
-                    .join("; ")}
-                </td>
-                <td>
-                  assets: {join(agent.policies?.allowedAssets)}
-                  <br />
-                  min rep: {agent.policies?.minCounterpartyReputation ?? "-"}
-                </td>
-                <td>{short(agent.manifestHash)}</td>
-                <td>{agent.endpoint?.url ?? "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <AgentsTable manifests={agents as Parameters<typeof AgentsTable>[0]["manifests"]} />
       </div>
     </div>
   );

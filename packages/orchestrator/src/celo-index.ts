@@ -1,7 +1,7 @@
 /**
  * Celo Orchestrator — Bus-Based Pipeline
  *
- * Parallel Celo implementation of the Aegis pipeline. Agents share the same
+ * Parallel Celo implementation of the Cal-AgentKit pipeline. Agents share the same
  * singleton bus as the Stellar pipeline — same event shapes, same SSE consumer.
  *
  * Pipeline:
@@ -24,7 +24,7 @@ import { EventEmitter } from "events";
 import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
 import type { Account, Address } from "viem";
 import { CeloIdentityRegistry } from "@calebux/agent-kit";
-import type { OrchestratorReport } from "@calebux/agent-kit";
+import type { OrchestratorReport, LLMProvider } from "@calebux/agent-kit";
 
 import { bus, type AgentMessage, type AgentTopic } from "./lib/bus.js";
 import { ConsensusManager } from "./agents/consensus.js";
@@ -34,7 +34,7 @@ import { CeloSignalAgent } from "./agents/celo-signal.js";
 import { CeloScribeAgent } from "./agents/celo-scribe.js";
 import { CeloExecutorAgent } from "./agents/celo-executor.js";
 
-export type { OrchestratorReport as AegisReport };
+export type { OrchestratorReport as CalagentReport };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -95,6 +95,7 @@ function bridgeBusToEmitter(msg: AgentMessage, emit: EmitFn): void {
       txHashes: p["txHashes"] ?? [],
       paymentMode: p["paymentMode"] ?? "celo",
       confidence: msg.confidence,
+      timestamp: Date.now(),
     });
   }
 
@@ -109,7 +110,7 @@ function bridgeBusToEmitter(msg: AgentMessage, emit: EmitFn): void {
   }
 
   if (msg.topic === "consensus:reached" && msg.agentId === "scribe") {
-    emit("agent_status", { agent: "celo-scribe", status: "complete", confidence: msg.confidence });
+    emit("agent_status", { agent: "celo-scribe", status: "complete", confidence: msg.confidence, timestamp: Date.now() });
   }
 
   if (msg.topic === "executor:complete") {
@@ -123,6 +124,7 @@ function bridgeBusToEmitter(msg: AgentMessage, emit: EmitFn): void {
       paymentMode: "celo-notary",
       confidence: msg.confidence,
       sigTxHash: notaryTxHash || undefined,
+      timestamp: Date.now(),
     });
     emit("log", {
       message: notaryTxHash
@@ -142,7 +144,8 @@ function bridgeBusToEmitter(msg: AgentMessage, emit: EmitFn): void {
 
 export async function runCeloTask(
   prompt: string,
-  emitter?: EventEmitter
+  emitter?: EventEmitter,
+  llmProvider?: LLMProvider
 ): Promise<OrchestratorReport> {
   const emit = makeEmit(emitter);
 
@@ -174,7 +177,7 @@ export async function runCeloTask(
   emit("wallets", walletKeys);
 
   for (const [agentId, addr] of Object.entries(walletKeys)) {
-    emit("agent_status", { agent: agentId, status: "idle" });
+    emit("agent_status", { agent: agentId, status: "idle", timestamp: Date.now() });
     emit("log", { message: `   ${agentId.padEnd(12)} → ${addr}`, level: "info" });
   }
 
@@ -190,7 +193,7 @@ export async function runCeloTask(
         registryAddr,
         deployerKey,
         process.env.CELO_RPC_URL,
-        process.env.AEGIS_CELO_NETWORK
+        process.env.CALAGENT_CELO_NETWORK
       );
 
       const agentDefs = [
@@ -261,10 +264,10 @@ export async function runCeloTask(
   signalAgent.wire(runId, signalAccount, prompt);
   emit("log", { message: "   Celo Signal wired (waiting for Scout + Ledger)", level: "info" });
 
-  const consensusManager = new ConsensusManager();
+  const consensusManager = new ConsensusManager(llmProvider);
   consensusManager.wire(runId, undefined, undefined, false);
 
-  const scribeAgent = new CeloScribeAgent();
+  const scribeAgent = new CeloScribeAgent(llmProvider);
   scribeAgent.wire(runId, scribeAccount, scoutAccount.address as Address);
   emit("log", { message: "   Celo Scribe wired (waiting for consensus)", level: "info" });
 
@@ -273,19 +276,19 @@ export async function runCeloTask(
     registryAddress: process.env.CELO_REGISTRY_ADDRESS,
     deployerPrivateKey: process.env.CELO_DEPLOYER_PRIVATE_KEY,
     rpcUrl: process.env.CELO_RPC_URL,
-    network: process.env.AEGIS_CELO_NETWORK,
+    network: process.env.CALAGENT_CELO_NETWORK,
   });
-  emit("agent_status", { agent: "celo-executor", status: "running" });
+  emit("agent_status", { agent: "celo-executor", status: "running", timestamp: Date.now() });
   emit("log", { message: "   Celo Notary wired (waiting for consensus)", level: "info" });
 
   // ── 5. Fire Scout + Ledger in parallel ────────────────────────────────────
   emit("log", { message: "▶ Launching Celo Scout and Ledger in parallel…", level: "info" });
-  emit("agent_status", { agent: "celo-scout",  status: "running" });
-  emit("agent_status", { agent: "celo-ledger", status: "running" });
-  emit("agent_status", { agent: "celo-signal", status: "running" });
-  emit("agent_status", { agent: "celo-scribe", status: "running" });
+  emit("agent_status", { agent: "celo-scout",  status: "running", timestamp: Date.now() });
+  emit("agent_status", { agent: "celo-ledger", status: "running", timestamp: Date.now() });
+  emit("agent_status", { agent: "celo-signal", status: "running", timestamp: Date.now() });
+  emit("agent_status", { agent: "celo-scribe", status: "running", timestamp: Date.now() });
 
-  const scoutAgent  = new CeloScoutAgent();
+  const scoutAgent  = new CeloScoutAgent(llmProvider);
   const ledgerAgent = new CeloLedgerAgent();
 
   await Promise.all([

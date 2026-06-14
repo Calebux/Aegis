@@ -4,11 +4,11 @@ export type AgentStatus = "idle" | "running" | "complete" | "failed";
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
-const EXPLORER    = "https://stellar.expert/explorer/testnet/account";
-const TX_EXPLORER = "https://stellar.expert/explorer/testnet/tx";
+const EXPLORER    = "https://celoscan.io/address";
+const TX_EXPLORER = "https://celoscan.io/tx";
 
 const STATUS_DOT: Record<AgentStatus, string> = {
-  idle:     "#303034",
+  idle:     "#d0d0d8",
   running:  "#5890d8",
   complete: "#48a858",
   failed:   "#c05050",
@@ -20,7 +20,7 @@ const STATUS_LABEL: Record<AgentStatus, string> = {
   failed:   "FAILED",
 };
 const STATUS_TEXT_COLOR: Record<AgentStatus, string> = {
-  idle:     "#383838",
+  idle:     "#b0b0b8",
   running:  "#5890d8",
   complete: "#48a858",
   failed:   "#c05050",
@@ -38,7 +38,7 @@ export interface AgentCardProps {
   capability: string;
   status: AgentStatus;
   wallet: string;
-  spent: number;          // stroops
+  spent: number;          // wei (USDm)
   reputation: number;     // basis points 0–10 000
   reputationOnChain?: number | null;
   color: string;
@@ -46,16 +46,18 @@ export interface AgentCardProps {
   txHashes?: string[];
   paymentMode?: string;   // "x402" | "session" | "dev" | "notary"
   sigTxHash?: string;
+  selfVerified?: boolean;
+  erc8004Id?: string | null;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────
 
 export function AgentCard({
   index, name, capability, status, wallet, spent, reputation, reputationOnChain,
-  color, isLast, txHashes, paymentMode, sigTxHash,
+  color, isLast, txHashes, paymentMode, sigTxHash, selfVerified, erc8004Id,
 }: AgentCardProps) {
   const repScore  = String(Math.round(reputation / 100)).padStart(3, "0");
-  const spentXlm  = (spent / 1e7).toFixed(4);
+  const spentCusd = (spent / 1e18).toFixed(4);
   const dotColor  = status === "running" ? color : STATUS_DOT[status];
   const isActive  = status === "running";
   const hasTx     = txHashes && txHashes.length > 0;
@@ -67,8 +69,8 @@ export function AgentCard({
   return (
     <div style={{
       padding: "0.75rem 1.25rem",
-      borderBottom: isLast ? "none" : "1px solid #1e1e20",
-      background: isActive ? "rgba(28,56,96,0.07)" : "transparent",
+      borderBottom: isLast ? "none" : "1px solid #e8e8ec",
+      background: isActive ? "rgba(64,112,184,0.04)" : "transparent",
       transition: "background 0.3s",
     }}>
 
@@ -93,8 +95,8 @@ export function AgentCard({
           fontSize: "0.75rem",
           fontWeight: 700,
           letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          color: isActive ? color : "#c8c8c8",
+          textTransform: "uppercase" as const,
+          color: isActive ? color : "#1a1a2e",
           fontFamily: "var(--font)",
           transition: "color 0.3s",
         }}>
@@ -105,9 +107,9 @@ export function AgentCard({
         <span style={{
           fontSize: "0.45rem",
           letterSpacing: "0.12em",
-          color: "#353538",
-          fontFamily: "var(--font)",
-          textTransform: "uppercase",
+          color: "#b0b0b8",
+          fontFamily: "var(--font-mono)",
+          textTransform: "uppercase" as const,
           marginRight: "auto",
         }}>
           AGT.0{index}
@@ -117,22 +119,34 @@ export function AgentCard({
         <span style={{
           fontSize: "0.52rem",
           letterSpacing: "0.06em",
-          color: "#404044",
+          color: "#656d76",
           fontFamily: "var(--font)",
-          textTransform: "uppercase",
+          textTransform: "uppercase" as const,
         }}>
           {capability}
         </span>
+
+        {/* Verification badges */}
+        {selfVerified && (
+          <span className="infra-badge" data-tooltip="Verified via Self Protocol (sybil-resistant)" style={{ color: "#2a8a3a" }}>
+            Self
+          </span>
+        )}
+        {erc8004Id && (
+          <span className="infra-badge" data-tooltip={`ERC-8004 Agent NFT #${erc8004Id}`} style={{ color: "#5060d0" }}>
+            8004
+          </span>
+        )}
 
         {/* Status text */}
         <span style={{
           fontSize: "0.52rem",
           letterSpacing: "0.1em",
-          fontFamily: "var(--font)",
-          textTransform: "uppercase",
+          fontFamily: "var(--font-mono)",
+          textTransform: "uppercase" as const,
           color: STATUS_TEXT_COLOR[status],
           minWidth: 52,
-          textAlign: "right",
+          textAlign: "right" as const,
           transition: "color 0.3s",
         }}>
           {STATUS_LABEL[status]}
@@ -155,54 +169,58 @@ export function AgentCard({
             style={{
               fontSize: "0.5rem",
               letterSpacing: "0.06em",
-              color: "#404044",
+              color: "#656d76",
               textDecoration: "none",
-              fontFamily: "var(--font)",
+              fontFamily: "var(--font-mono)",
               flexShrink: 0,
               transition: "color 0.15s",
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#888"; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#404044"; }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#1a1a2e"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#656d76"; }}
           >
             {truncate(wallet)}
           </a>
         ) : (
-          <span style={{ fontSize: "0.5rem", color: "#2c2c2e", fontFamily: "var(--font)" }}>
+          <span style={{ fontSize: "0.5rem", color: "#b0b0b8", fontFamily: "var(--font-mono)" }}>
             no wallet
           </span>
         )}
 
-        <span style={{ color: "#252528", fontSize: "0.5rem", userSelect: "none" }}>·</span>
+        <span style={{ color: "#d0d0d8", fontSize: "0.5rem", userSelect: "none" }}>·</span>
 
         {/* REP */}
         <span style={{
           fontSize: "0.5rem",
           letterSpacing: "0.08em",
-          fontFamily: "var(--font)",
-          color: "#484848",
-          textTransform: "uppercase",
+          fontFamily: "var(--font-mono)",
+          color: "#656d76",
+          textTransform: "uppercase" as const,
         }}>
           REP{" "}
-          <span style={{ color: reputation > 5000 ? color : "#585858", fontWeight: 700 }}>
+          <span style={{ color: reputation > 5000 ? color : "#656d76", fontWeight: 700 }}>
             {repScore}
           </span>
           {reputationOnChain != null && (
-            <span style={{ color: "#3a6a3a", marginLeft: 4 }}>⛓{reputationOnChain}</span>
+            <>
+              <span style={{ color: "#2a8a3a", marginLeft: 4 }}>⛓{reputationOnChain}</span>
+              {" "}
+              <span className="infra-badge" data-tooltip="Live trust score from AegisCeloRegistry">On-Chain</span>
+            </>
           )}
         </span>
 
-        <span style={{ color: "#252528", fontSize: "0.5rem", userSelect: "none" }}>·</span>
+        <span style={{ color: "#d0d0d8", fontSize: "0.5rem", userSelect: "none" }}>·</span>
 
         {/* SPEND */}
         <span style={{
           fontSize: "0.5rem",
           letterSpacing: "0.08em",
-          fontFamily: "var(--font)",
-          color: "#484848",
-          textTransform: "uppercase",
+          fontFamily: "var(--font-mono)",
+          color: "#656d76",
+          textTransform: "uppercase" as const,
         }}>
-          {spentXlm}{" "}
-          <span style={{ color: "#363638" }}>XLM</span>
+          {spentCusd}{" "}
+          <span style={{ color: "#b0b0b8" }}>USDm</span>
         </span>
       </div>
 
@@ -216,48 +234,56 @@ export function AgentCard({
           marginTop: 4,
         }}>
           {hasTx && (
-            <a
-              href={`${TX_EXPLORER}/${txHashes![0]}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                fontSize: "0.48rem",
-                letterSpacing: "0.06em",
-                color: "#545458",
-                textDecoration: "none",
-                fontFamily: "var(--font)",
-                transition: "color 0.15s",
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#999"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#545458"; }}
-            >
-              💸 {txHashes!.length} tx{txHashes!.length > 1 ? "s" : ""}
-              {modeLabel && <span style={{ color: "#383838", marginLeft: 3 }}>[{modeLabel}]</span>}
-            </a>
+            <>
+              <a
+                href={`${TX_EXPLORER}/${txHashes![0]}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontSize: "0.48rem",
+                  letterSpacing: "0.06em",
+                  color: "#656d76",
+                  textDecoration: "none",
+                  fontFamily: "var(--font-mono)",
+                  transition: "color 0.15s",
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#1a1a2e"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#656d76"; }}
+              >
+                {txHashes!.length} tx{txHashes!.length > 1 ? "s" : ""}
+                {modeLabel && <span style={{ color: "#b0b0b8", marginLeft: 3 }}>[{modeLabel}]</span>}
+              </a>
+              {modeLabel === "x402" && (
+                <span className="infra-badge" data-tooltip="Paid via x402 micropayment protocol on Celo">x402</span>
+              )}
+            </>
           )}
 
           {hasTx && sigTxHash && (
-            <span style={{ color: "#252528", fontSize: "0.5rem", userSelect: "none" }}>·</span>
+            <span style={{ color: "#d0d0d8", fontSize: "0.5rem", userSelect: "none" }}>·</span>
           )}
 
           {sigTxHash && (
-            <a
-              href={`${TX_EXPLORER}/${sigTxHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                fontSize: "0.48rem",
-                letterSpacing: "0.06em",
-                color: "#3a5a3a",
-                textDecoration: "none",
-                fontFamily: "var(--font)",
-                transition: "color 0.15s",
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#5a8a5a"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#3a5a3a"; }}
-            >
-              ✍️ sig on-chain
-            </a>
+            <>
+              <a
+                href={`${TX_EXPLORER}/${sigTxHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontSize: "0.48rem",
+                  letterSpacing: "0.06em",
+                  color: "#2a8a3a",
+                  textDecoration: "none",
+                  fontFamily: "var(--font-mono)",
+                  transition: "color 0.15s",
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#3aaa4a"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#2a8a3a"; }}
+              >
+                sig on-chain
+              </a>
+              <span className="infra-badge" data-tooltip="SHA-256 output hash stored on Celo for verification">Attested</span>
+            </>
           )}
         </div>
       )}

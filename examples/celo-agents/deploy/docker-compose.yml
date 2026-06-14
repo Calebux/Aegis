@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  celo-agents:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    ports:
+      - "${PORT:-4000}:4000"
+    environment:
+      - PORT=4000
+      - CELO_RPC_URL=${CELO_RPC_URL:-https://forno.celo.org}
+      - WATCHED_WALLETS=${WATCHED_WALLETS:-}
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

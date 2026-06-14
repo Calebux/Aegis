@@ -36,14 +36,14 @@ export class CeloLedgerAgent {
     const addr = process.env.CELO_REGISTRY_ADDRESS;
     const key = process.env.CELO_DEPLOYER_PRIVATE_KEY;
     if (!addr || !key) return null;
-    return new CeloIdentityRegistry(addr, key, process.env.CELO_RPC_URL, process.env.AEGIS_CELO_NETWORK);
+    return new CeloIdentityRegistry(addr, key, process.env.CELO_RPC_URL, process.env.CALAGENT_CELO_NETWORK);
   }
 
   private buildPolicy(): CeloPolicyManager | null {
     const addr = process.env.CELO_POLICY_ADDRESS;
     const key = process.env.CELO_DEPLOYER_PRIVATE_KEY;
     if (!addr || !key) return null;
-    return new CeloPolicyManager(addr, key, process.env.CELO_RPC_URL, process.env.AEGIS_CELO_NETWORK);
+    return new CeloPolicyManager(addr, key, process.env.CELO_RPC_URL, process.env.CALAGENT_CELO_NETWORK);
   }
 
   private async fetchCeloData(account: Account): Promise<{
@@ -154,7 +154,7 @@ export class CeloLedgerAgent {
     await this.policy?.authorizeSpend(
       "celo-ledger",
       BigInt(1_000_000_000_000_000), // 0.001 cUSD in wei
-      process.env.AEGIS_CELO_STABLE_ASSET_CONTRACT ?? "cUSD"
+      process.env.CALAGENT_CELO_STABLE_ASSET_CONTRACT ?? "cUSD"
     ).catch(() => {});
 
     const { data, txHashes, paymentMode } = await this.fetchCeloData(activeAccount);

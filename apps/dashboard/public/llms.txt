@@ -1,8 +1,8 @@
-# Aegis
+# Cal-AgentKit
 
 > Agent execution and trust infrastructure for Stellar.
 
-Aegis provides the primitives developers need to build governed AI agents on
+Cal-AgentKit provides the primitives developers need to build governed AI agents on
 Stellar: agent wallets, x402 payments, MPP-ready discovery metadata, Soroban
 policy controls, on-chain reputation, verifiable outputs, and MCP tooling.
 
@@ -12,9 +12,9 @@ policy controls, on-chain reputation, verifiable outputs, and MCP tooling.
   asset, network, and reputation.
 - `/agents` - visual agent registry.
 - `/receipts` - visual index of verifiable run receipts.
-- `/receipts/:id` - public proof page for one Aegis run.
+- `/receipts/:id` - public proof page for one Cal-AgentKit run.
 - `@calebux/agent-kit` - SDK for governed Stellar agents.
-- `aegis-mcp-stellar` - MCP server for Stellar agent discovery.
+- `calagent-mcp-stellar` - MCP server for Stellar agent discovery.
 - Shield Contract - Soroban spend policy enforcement.
 - Identity Registry - on-chain agent identity and reputation.
 

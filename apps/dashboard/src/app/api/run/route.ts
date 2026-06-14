@@ -1,26 +1,29 @@
 /**
  * POST /api/run
  *
- * Accepts { task: string }, runs the Aegis multi-agent pipeline in-process,
+ * Accepts { task: string }, runs the Cal-AgentKit multi-agent pipeline in-process,
  * and streams progress back to the client via Server-Sent Events.
  *
  * Event shapes (unchanged from previous stub so the frontend needs no edits):
  *   { type: "log",          payload: { message: string, level: "info"|"success"|"error" } }
  *   { type: "agent_status", payload: { agent: AgentId, status: AgentStatus, spent?: number } }
  *   { type: "wallets",      payload: Record<AgentId, string> }
- *   { type: "complete",     payload: AegisReport }
+ *   { type: "complete",     payload: CalagentReport }
  *   { type: "error",        payload: { message: string } }
  */
 
 import { NextRequest } from "next/server";
 import { EventEmitter } from "events";
-import { runTask, runCeloTask } from "@aegis/orchestrator";
+import { runCeloTask } from "@calagent/orchestrator";
 import { Keypair } from "@stellar/stellar-sdk";
 import {
   createRunReceipt,
   signRunReceipt,
+  createLLMProvider,
   type OrchestratorReport,
   type RunReceipt,
+  type LLMProvider,
+  type LLMProviderConfig,
 } from "@calebux/agent-kit";
 import {
   tasks,
@@ -33,13 +36,18 @@ import {
   persistReceipts,
   persistTasks,
 } from "@/lib/taskStore";
-import type { Task } from "@aegis/shared";
+import type { Task } from "@calagent/shared";
+import {
+  validateTaskInput,
+  checkRateLimit,
+  getClientIp,
+} from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // Vercel Pro: allow up to 5-min pipeline runs
 
 export async function POST(req: NextRequest) {
-  let body: { task?: string; chain?: string };
+  let body: { task?: string; chain?: string; llm?: LLMProviderConfig };
   try {
     body = await req.json();
   } catch {
@@ -49,6 +57,19 @@ export async function POST(req: NextRequest) {
   }
 
   const prompt = (body?.task ?? "").trim();
+
+  // Build LLM provider from request config (key used for this request only)
+  let llmProvider: LLMProvider | undefined;
+  if (body?.llm && body.llm.provider !== "anthropic") {
+    try {
+      llmProvider = createLLMProvider(body.llm);
+    } catch (err) {
+      return new Response(JSON.stringify({ error: `Invalid LLM config: ${String(err)}` }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
   if (!prompt) {
     return new Response(JSON.stringify({ error: "task is required" }), {
       status: 400,
@@ -56,76 +77,67 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const chain = (body?.chain ?? "stellar").toLowerCase();
+  const validation = validateTaskInput(prompt);
+  if (!validation.valid) {
+    return new Response(JSON.stringify({ error: validation.error }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const ip = getClientIp(req);
+  const rateCheck = checkRateLimit(ip);
+  if (!rateCheck.allowed) {
+    return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again later." }), {
+      status: 429,
+      headers: {
+        "Content-Type": "application/json",
+        "Retry-After": String(Math.ceil(rateCheck.retryAfterMs / 1000)),
+      },
+    });
+  }
 
   const taskId = crypto.randomUUID();
   const emitter = new EventEmitter();
   emitter.setMaxListeners(20);
 
-  const isCeloChain = chain === "celo";
   const task: Task = {
     id: taskId,
     prompt,
     status: "running",
-    chain: isCeloChain ? "celo" : "stellar",
-    subTasks: isCeloChain
-      ? [
-          {
-            id: crypto.randomUUID(),
-            assignedAgent: "celo-scout",
-            instruction: `Search the web for: ${prompt}`,
-            status: "pending",
-          },
-          {
-            id: crypto.randomUUID(),
-            assignedAgent: "celo-ledger",
-            instruction: `Fetch relevant Celo on-chain metrics for: ${prompt}`,
-            status: "pending",
-          },
-          {
-            id: crypto.randomUUID(),
-            assignedAgent: "celo-signal",
-            instruction: `Identify Celo market signals for: ${prompt}`,
-            status: "pending",
-          },
-          {
-            id: crypto.randomUUID(),
-            assignedAgent: "celo-scribe",
-            instruction: `Synthesize all Celo findings into a report for: ${prompt}`,
-            status: "pending",
-          },
-        ]
-      : [
-          {
-            id: crypto.randomUUID(),
-            assignedAgent: "scout",
-            instruction: `Search the web for: ${prompt}`,
-            status: "pending",
-          },
-          {
-            id: crypto.randomUUID(),
-            assignedAgent: "ledger",
-            instruction: `Fetch relevant Stellar on-chain metrics for: ${prompt}`,
-            status: "pending",
-          },
-          {
-            id: crypto.randomUUID(),
-            assignedAgent: "signal",
-            instruction: `Identify market signals for: ${prompt}`,
-            status: "pending",
-          },
-          {
-            id: crypto.randomUUID(),
-            assignedAgent: "scribe",
-            instruction: `Synthesize all findings into a report for: ${prompt}`,
-            status: "pending",
-          },
-        ],
+    chain: "celo",
+    subTasks: [
+      {
+        id: crypto.randomUUID(),
+        assignedAgent: "celo-scout",
+        instruction: `Search the web for: ${prompt}`,
+        status: "pending",
+      },
+      {
+        id: crypto.randomUUID(),
+        assignedAgent: "celo-ledger",
+        instruction: `Fetch relevant Celo on-chain metrics for: ${prompt}`,
+        status: "pending",
+      },
+      {
+        id: crypto.randomUUID(),
+        assignedAgent: "celo-signal",
+        instruction: `Identify Celo market signals for: ${prompt}`,
+        status: "pending",
+      },
+      {
+        id: crypto.randomUUID(),
+        assignedAgent: "celo-scribe",
+        instruction: `Synthesize all Celo findings into a report for: ${prompt}`,
+        status: "pending",
+      },
+    ],
     createdAt: new Date(),
   };
 
   tasks.set(taskId, task);
   emitters.set(taskId, emitter);
+  persistTasks(); // Persist running task so it survives restarts (marked failed on reload)
 
   // Update subtask statuses based on agent_status events
   emitter.on(
@@ -153,9 +165,8 @@ export async function POST(req: NextRequest) {
     }
   );
 
-  // Fire-and-forget: run the orchestrator pipeline (Stellar or Celo)
-  const pipelineFn = chain === "celo" ? runCeloTask : runTask;
-  void pipelineFn(prompt, emitter)
+  // Fire-and-forget: run the Celo orchestrator pipeline
+  void runCeloTask(prompt, emitter, llmProvider)
     .then((report) => {
       const t = tasks.get(taskId);
       if (t) {
@@ -216,11 +227,9 @@ export async function POST(req: NextRequest) {
         taskId,
         createdAt: task.createdAt.toISOString(),
         completedAt: payload.timestamp ?? new Date().toISOString(),
-        shieldContractId: isCeloChain ? process.env.CELO_POLICY_ADDRESS : process.env.SHIELD_CONTRACT_ID,
-        registryContractId: isCeloChain ? process.env.CELO_REGISTRY_ADDRESS : process.env.REGISTRY_CONTRACT_ID,
-        network: isCeloChain
-          ? `eip155:${process.env.AEGIS_CELO_NETWORK === "mainnet" ? "42220" : "44787"}`
-          : `stellar:${process.env.STELLAR_NETWORK ?? "testnet"}`,
+        shieldContractId: process.env.CELO_POLICY_ADDRESS,
+        registryContractId: process.env.CELO_REGISTRY_ADDRESS,
+        network: `eip155:${process.env.CALAGENT_CELO_NETWORK === "mainnet" ? "42220" : "44787"}`,
 
       });
 
@@ -253,25 +262,50 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      emitter.on("log", (p) => emit("log", p));
-      emitter.on("agent_status", (p) => emit("agent_status", p));
-      emitter.on("wallets", (p) => emit("wallets", p));
-      emitter.on("task:graph", (p) => emit("task:graph", p));
-      emitter.on("receipt", (p) => emit("receipt", p));
+      // Store listener refs so we can clean them up on cancel
+      const onLog = (p: unknown) => emit("log", p);
+      const onAgentStatus = (p: unknown) => emit("agent_status", p);
+      const onWallets = (p: unknown) => emit("wallets", p);
+      const onTaskGraph = (p: unknown) => emit("task:graph", p);
+      const onReceipt = (p: unknown) => emit("receipt", p);
+
+      emitter.on("log", onLog);
+      emitter.on("agent_status", onAgentStatus);
+      emitter.on("wallets", onWallets);
+      emitter.on("task:graph", onTaskGraph);
+      emitter.on("receipt", onReceipt);
+
+      const cleanup = () => {
+        emitter.removeListener("log", onLog);
+        emitter.removeListener("agent_status", onAgentStatus);
+        emitter.removeListener("wallets", onWallets);
+        emitter.removeListener("task:graph", onTaskGraph);
+        emitter.removeListener("receipt", onReceipt);
+      };
 
       emitter.once("complete", (p) => {
         emit("complete", p);
+        cleanup();
         controller.close();
       });
 
       emitter.once("error", (p) => {
         emit("error", p);
+        cleanup();
         controller.close();
       });
+
+      // Expose cleanup for cancel()
+      (controller as unknown as { _sseCleanup: () => void })._sseCleanup = cleanup;
     },
     cancel() {
-      // Client disconnected — emitter listeners will leak until task finishes,
-      // but the task continues running in the background (fire-and-forget)
+      // Client disconnected — clean up SSE listeners to prevent leaks
+      // The pipeline continues running in the background (fire-and-forget)
+      emitter.removeAllListeners("log");
+      emitter.removeAllListeners("agent_status");
+      emitter.removeAllListeners("wallets");
+      emitter.removeAllListeners("task:graph");
+      emitter.removeAllListeners("receipt");
     },
   });
 

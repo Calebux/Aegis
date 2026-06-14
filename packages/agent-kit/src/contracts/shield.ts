@@ -8,7 +8,7 @@ import {
   nativeToScVal,
   Address,
 } from "@stellar/stellar-sdk";
-import { getHorizonServer } from "@aegis/shared";
+import { getHorizonServer } from "@calagent/shared";
 import { sorobanInvoke } from "./utils.js";
 
 function networkPassphrase(): string {
@@ -19,7 +19,7 @@ function networkPassphrase(): string {
 }
 
 /**
- * Thin wrapper around the Aegis Shield Contract.
+ * Thin wrapper around the Cal-AgentKit Shield Contract.
  *
  * The Shield Contract enforces per-agent XLM spend caps on Soroban.
  * Register each agent before it runs; the contract will reject any spend

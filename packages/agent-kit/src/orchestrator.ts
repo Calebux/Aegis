@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import { Keypair, SorobanRpc } from "@stellar/stellar-sdk";
-import { fundTestnetAccount } from "@aegis/shared";
+import { fundTestnetAccount } from "@calagent/shared";
 import type {
   AgentDefinition,
   AgentContext,

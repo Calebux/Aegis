@@ -16,9 +16,9 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"],
-      "@aegis/shared": ["../../packages/shared/src/index.ts"],
+      "@calagent/shared": ["../../packages/shared/src/index.ts"],
       "@calebux/agent-kit": ["../../packages/agent-kit/src/index.ts"],
-      "@aegis/orchestrator": ["../../packages/orchestrator/src/index.ts"]
+      "@calagent/orchestrator": ["../../packages/orchestrator/src/index.ts"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

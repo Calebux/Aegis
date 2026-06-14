@@ -1,6 +1,6 @@
 //! Shield Contract
 //!
-//! Aegis's core spend-policy enforcer. Maintains a registry of sub-agents,
+//! Cal-AgentKit's core spend-policy enforcer. Maintains a registry of sub-agents,
 //! each with an XLM spend cap per session. The orchestrator (admin) registers
 //! agents, authorises individual spends, and resets or deactivates agents as
 //! needed. All state-mutating operations are admin-gated; reads are open.

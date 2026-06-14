@@ -33,10 +33,12 @@ import {
   Operation,
   Asset,
 } from "@stellar/stellar-sdk";
-import { keypairFromSecret, getHorizonServer } from "@aegis/shared";
+import { keypairFromSecret, getHorizonServer } from "@calagent/shared";
 import { bus } from "../lib/bus.js";
 import { cacheLedgerPayload } from "./consensus.js";
 import { publishSigned } from "../lib/signer.js";
+import { withTimeout } from "../lib/timeout.js";
+import { fetchWithRetry } from "../lib/retry.js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -151,46 +153,48 @@ async function payAndFetch<T>(
   keypair: Keypair,
   txHashes: string[]
 ): Promise<{ data: T; paymentMode: "x402" | "dev" }> {
-  const probe = await fetch(url);
+  return withTimeout(async () => {
+    const probe = await fetchWithRetry(url, undefined, { label: "ledger:probe" });
 
-  // Dev mode: server skipped payment gate
-  if (probe.ok) {
-    const data = (await probe.json()) as T;
-    return { data, paymentMode: "dev" };
-  }
+    // Dev mode: server skipped payment gate
+    if (probe.ok) {
+      const data = (await probe.json()) as T;
+      return { data, paymentMode: "dev" as const };
+    }
 
-  if (probe.status !== 402) {
-    throw new Error(
-      `[ledger] Unexpected status ${probe.status} from ${url}`
+    if (probe.status !== 402) {
+      throw new Error(
+        `[ledger] Unexpected status ${probe.status} from ${url}`
+      );
+    }
+
+    const payReq = (await probe.json()) as PaymentRequired;
+
+    // Submit Stellar payment — NOT retried (not idempotent)
+    const txHash = await submitXlmPayment(keypair, payReq.payTo, payReq.amount);
+    txHashes.push(txHash);
+    console.log(
+      `   [ledger] 💸 Paid ${payReq.amount} XLM → ${payReq.payTo.slice(0, 8)}… ` +
+        `tx:${txHash.slice(0, 12)}…`
     );
-  }
 
-  const payReq = (await probe.json()) as PaymentRequired;
+    // Retry with proof
+    const resp = await fetchWithRetry(url, {
+      headers: {
+        "x-payment-tx-hash": txHash,
+        "x-payment-nonce": payReq.nonce,
+      },
+    }, { label: "ledger:data" });
 
-  // Submit Stellar payment
-  const txHash = await submitXlmPayment(keypair, payReq.payTo, payReq.amount);
-  txHashes.push(txHash);
-  console.log(
-    `   [ledger] 💸 Paid ${payReq.amount} XLM → ${payReq.payTo.slice(0, 8)}… ` +
-      `tx:${txHash.slice(0, 12)}…`
-  );
+    if (!resp.ok) {
+      throw new Error(
+        `[ledger] Data fetch failed after payment: ${resp.status}`
+      );
+    }
 
-  // Retry with proof
-  const resp = await fetch(url, {
-    headers: {
-      "x-payment-tx-hash": txHash,
-      "x-payment-nonce": payReq.nonce,
-    },
-  });
-
-  if (!resp.ok) {
-    throw new Error(
-      `[ledger] Data fetch failed after payment: ${resp.status}`
-    );
-  }
-
-  const data = (await resp.json()) as T;
-  return { data, paymentMode: "x402" };
+    const data = (await resp.json()) as T;
+    return { data, paymentMode: "x402" as const };
+  }, 30_000, "ledger:payAndFetch");
 }
 
 /** Authorize spend via Shield Contract (checks + logs, non-fatal) */

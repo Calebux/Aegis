@@ -6,10 +6,10 @@
  * Celo market data (block, gasPrice, chainId, celoUsdRate, cUsdSupply)
  * behind a cUSD x402 payment gate.
  *
- * Dev mode: AEGIS_CELO_X402_RECEIVER not set → all routes return 200 free.
+ * Dev mode: CALAGENT_CELO_X402_RECEIVER not set → all routes return 200 free.
  *
  * Doubles as the x402 facilitator for /verify and /settle.
- * Set AEGIS_CELO_X402_FACILITATOR_URL=http://localhost:3002 to activate.
+ * Set CALAGENT_CELO_X402_FACILITATOR_URL=http://localhost:3002 to activate.
  */
 
 import * as dotenv from "dotenv";
@@ -23,10 +23,10 @@ import { randomUUID } from "crypto";
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const PORT = Number(process.env.CELO_X402_SERVER_PORT ?? "3002");
-const RECEIVER = process.env.AEGIS_CELO_X402_RECEIVER ?? "";
+const RECEIVER = process.env.CALAGENT_CELO_X402_RECEIVER ?? "";
 const DEV_MODE = !RECEIVER;
 
-const CELO_NETWORK = process.env.AEGIS_CELO_NETWORK ?? "alfajores";
+const CELO_NETWORK = process.env.CALAGENT_CELO_NETWORK ?? "alfajores";
 const CELO_RPC_URL =
   process.env.CELO_RPC_URL ??
   (CELO_NETWORK === "mainnet"
@@ -247,9 +247,9 @@ app.get("/health", (_req: Request, res: Response) => {
 
 // ── Manifest ──────────────────────────────────────────────────────────────────
 
-app.get("/.well-known/aegis-celo.json", (_req: Request, res: Response) => {
+app.get("/.well-known/calagent-celo.json", (_req: Request, res: Response) => {
   res.json({
-    name: "Aegis Celo x402 Facilitator",
+    name: "Cal-AgentKit Celo x402 Facilitator",
     chain: `eip155:${CHAIN_ID}`,
     asset: "cUSD",
     contract: CUSD_CONTRACT,

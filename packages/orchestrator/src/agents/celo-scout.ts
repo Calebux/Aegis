@@ -10,6 +10,7 @@ import { LinkupClient } from "linkup-sdk";
 import Anthropic from "@anthropic-ai/sdk";
 import type { Account } from "viem";
 import { CeloIdentityRegistry } from "@calebux/agent-kit";
+import type { LLMProvider } from "@calebux/agent-kit";
 import { bus } from "../lib/bus.js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -27,10 +28,12 @@ export class CeloScoutAgent {
   private registry: CeloIdentityRegistry | null = null;
   private readonly anthropic: Anthropic;
   private readonly linkup: LinkupClient;
+  private readonly llm?: LLMProvider;
 
-  constructor() {
+  constructor(llm?: LLMProvider) {
     this.anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     this.linkup = new LinkupClient({ apiKey: process.env.LINKUP_API_KEY ?? "" });
+    this.llm = llm;
   }
 
   private async search(query: string): Promise<SearchResult> {
@@ -61,18 +64,24 @@ export class CeloScoutAgent {
 
   private async decompose(task: string): Promise<string[]> {
     try {
-      const resp = await this.anthropic.messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 256,
-        messages: [
-          {
-            role: "user",
-            content: `Decompose this task into 2-4 specific web search queries.\nOutput ONLY the queries, one per line — no labels or JSON.\n\nTask: ${task}`,
-          },
-        ],
-      });
-      const text =
-        resp.content[0].type === "text" ? resp.content[0].text : task;
+      const decomposePrompt = `Decompose this task into 2-4 specific web search queries.\nOutput ONLY the queries, one per line — no labels or JSON.\n\nTask: ${task}`;
+      let text: string;
+
+      if (this.llm) {
+        const result = await this.llm.chat(
+          [{ role: "user", content: decomposePrompt }],
+          { model: "claude-haiku-4-5-20251001", maxTokens: 256 }
+        );
+        text = result.text;
+      } else {
+        const resp = await this.anthropic.messages.create({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 256,
+          messages: [{ role: "user", content: decomposePrompt }],
+        });
+        text = resp.content[0].type === "text" ? resp.content[0].text : task;
+      }
+
       return text
         .split("\n")
         .map((l) => l.trim())
@@ -91,7 +100,7 @@ export class CeloScoutAgent {
       addr,
       key,
       process.env.CELO_RPC_URL,
-      process.env.AEGIS_CELO_NETWORK
+      process.env.CALAGENT_CELO_NETWORK
     );
   }
 
