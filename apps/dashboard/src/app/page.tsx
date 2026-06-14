@@ -198,7 +198,7 @@ export default function LandingPage() {
       {/* ── Nav ──────────────────────────────────────────────────── */}
       <nav className="landing-nav">
         <div className="landing-nav-inner">
-          <span className="landing-logo">CAL-AGENTKIT</span>
+          <span className="landing-logo"><img src="/logo.svg" alt="Cal-AgentKit" className="landing-logo-img" />CAL-AGENTKIT</span>
           <div className="landing-nav-links">
             <a href="https://github.com/Calebux/CAL-AGENTKIT" target="_blank" rel="noopener noreferrer">
               GitHub

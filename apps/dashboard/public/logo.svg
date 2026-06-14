@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#0d1117"/>
+  <circle cx="256" cy="256" r="240" stroke="#FCFF52" stroke-width="8"/>
+
+  <!-- Inner hexagonal network pattern - represents agent coordination -->
+  <path d="M256 100 L356 156 L356 268 L256 324 L156 268 L156 156 Z"
+        stroke="#FCFF52" stroke-width="4" fill="none" opacity="0.3"/>
+  <path d="M256 140 L332 180 L332 260 L256 300 L180 260 L180 180 Z"
+        stroke="#FCFF52" stroke-width="3" fill="none" opacity="0.5"/>
+
+  <!-- Central node - the orchestrator -->
+  <circle cx="256" cy="220" r="32" fill="#FCFF52"/>
+
+  <!-- Agent nodes -->
+  <circle cx="176" cy="176" r="14" fill="#FCFF52" opacity="0.8"/>
+  <circle cx="336" cy="176" r="14" fill="#FCFF52" opacity="0.8"/>
+  <circle cx="176" cy="264" r="14" fill="#FCFF52" opacity="0.8"/>
+  <circle cx="336" cy="264" r="14" fill="#FCFF52" opacity="0.8"/>
+  <circle cx="256" cy="308" r="14" fill="#FCFF52" opacity="0.8"/>
+
+  <!-- Connection lines from center to nodes -->
+  <line x1="256" y1="220" x2="176" y2="176" stroke="#FCFF52" stroke-width="2.5" opacity="0.6"/>
+  <line x1="256" y1="220" x2="336" y2="176" stroke="#FCFF52" stroke-width="2.5" opacity="0.6"/>
+  <line x1="256" y1="220" x2="176" y2="264" stroke="#FCFF52" stroke-width="2.5" opacity="0.6"/>
+  <line x1="256" y1="220" x2="336" y2="264" stroke="#FCFF52" stroke-width="2.5" opacity="0.6"/>
+  <line x1="256" y1="220" x2="256" y2="308" stroke="#FCFF52" stroke-width="2.5" opacity="0.6"/>
+
+  <!-- Text: CAL -->
+  <text x="256" y="410" text-anchor="middle" font-family="Inter, -apple-system, sans-serif"
+        font-size="72" font-weight="800" letter-spacing="8" fill="#ffffff">CAL</text>
+</svg>

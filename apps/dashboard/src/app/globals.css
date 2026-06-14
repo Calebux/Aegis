@@ -701,6 +701,15 @@ body:has(.landing) {
   font-size: 1.125rem;
   letter-spacing: 0.08em;
   color: #1a1a2e;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.landing-logo-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
 }
 
 .landing-nav-links {
