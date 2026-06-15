@@ -31,6 +31,8 @@
 // Core API
 export { defineAgent } from "./agent.js";
 export { createOrchestrator } from "./orchestrator.js";
+export { createCeloOrchestrator } from "./orchestrator-celo.js";
+export type { CeloOrchestratorOptions } from "./orchestrator-celo.js";
 export { createAutomation } from "./automation.js";
 export type {
   AutomationOptions,
@@ -173,6 +175,7 @@ export type {
 export {
   GBrainMemory,
   InMemoryProvider,
+  FileMemoryProvider,
   createMemoryProvider,
 } from "./memory.js";
 export type {

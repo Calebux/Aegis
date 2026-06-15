@@ -35,8 +35,10 @@ export interface GBrainMemoryConfig {
 }
 
 export interface MemoryProviderConfig {
-  type: "gbrain" | "memory";
+  type: "gbrain" | "memory" | "file";
   gbrain?: GBrainMemoryConfig;
+  /** Path to the JSON file for the "file" provider */
+  filePath?: string;
 }
 
 // ── GBrainMemory ─────────────────────────────────────────────────────────────
@@ -159,6 +161,76 @@ export class InMemoryProvider implements MemoryProvider {
   }
 }
 
+// ── FileMemoryProvider ───────────────────────────────────────────────────────
+
+/**
+ * JSON-file-backed memory provider that survives process restarts.
+ * Falls back to keyword matching (same as InMemoryProvider) for search.
+ * Data is persisted to `filePath` after every write.
+ */
+export class FileMemoryProvider implements MemoryProvider {
+  private data = new Map<string, { content: string; metadata?: Record<string, string> }>();
+  private loaded = false;
+
+  constructor(private readonly filePath: string) {}
+
+  private async load(): Promise<void> {
+    if (this.loaded) return;
+    this.loaded = true;
+    try {
+      const { readFile } = await import("fs/promises");
+      const raw = await readFile(this.filePath, "utf-8");
+      const entries = JSON.parse(raw) as Array<[string, { content: string; metadata?: Record<string, string> }]>;
+      this.data = new Map(entries);
+    } catch {
+      // File doesn't exist yet or is invalid — start empty
+    }
+  }
+
+  private async flush(): Promise<void> {
+    const { writeFile, mkdir } = await import("fs/promises");
+    const { dirname } = await import("path");
+    await mkdir(dirname(this.filePath), { recursive: true });
+    await writeFile(this.filePath, JSON.stringify([...this.data]), "utf-8");
+  }
+
+  async search(query: string, limit = 10): Promise<MemoryResult[]> {
+    await this.load();
+    const queryLower = query.toLowerCase();
+    const results: MemoryResult[] = [];
+    for (const [key, entry] of this.data) {
+      const combined = `${key} ${entry.content}`.toLowerCase();
+      if (combined.includes(queryLower)) {
+        results.push({
+          key,
+          content: entry.content,
+          score: 1.0,
+          metadata: entry.metadata,
+        });
+      }
+    }
+    return results.slice(0, limit);
+  }
+
+  async store(key: string, content: string, metadata?: Record<string, string>): Promise<void> {
+    await this.load();
+    this.data.set(key, { content, metadata });
+    await this.flush();
+  }
+
+  async getPage(key: string): Promise<string | null> {
+    await this.load();
+    return this.data.get(key)?.content ?? null;
+  }
+
+  async recall(agentId: string, taskContext: string): Promise<string> {
+    const results = await this.search(`${agentId} ${taskContext}`, 5);
+    if (results.length === 0) return "";
+    const lines = results.map((r) => `[${r.key}]\n${r.content}`);
+    return `## Recalled Memory\n\n${lines.join("\n\n---\n\n")}`;
+  }
+}
+
 // ── Factory ──────────────────────────────────────────────────────────────────
 
 /**
@@ -176,6 +248,10 @@ export function createMemoryProvider(config: MemoryProviderConfig): MemoryProvid
       throw new Error("GBrain config required when type is 'gbrain'");
     }
     return new GBrainMemory(config.gbrain);
+  }
+  if (config.type === "file") {
+    const filePath = config.filePath ?? ".calagent/memory.json";
+    return new FileMemoryProvider(filePath);
   }
   return new InMemoryProvider();
 }

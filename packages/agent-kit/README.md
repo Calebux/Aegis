@@ -8,6 +8,16 @@ Build agents that own identities, hold reputation, pay each other, escrow funds,
 npm install @calebux/agent-kit
 ```
 
+### Optional peer dependencies
+
+- **`@anthropic-ai/sdk`** — Required only if you use `AnthropicProvider` for LLM-powered task decomposition or synthesis. Install it separately:
+
+```bash
+npm install @anthropic-ai/sdk
+```
+
+If you don't need LLM features (e.g. you provide your own `decompose`/`synthesize` functions), you can skip this.
+
 ---
 
 ## What it does
@@ -70,6 +80,76 @@ const txHash = await submitCusdPayment(account, '0xDEST...', '0.5')
 // Agent-to-agent USDm payment
 const hash = await celoAgentToAgentPayment(fromAccount, toAddress, '0.001')
 ```
+
+---
+
+## Celo Orchestrator
+
+`createCeloOrchestrator` is the Celo-native equivalent of `createOrchestrator`. It provisions EVM wallets, registers agents on AegisCeloRegistry, enforces spend caps via AegisCeloPolicy, and uses cUSD x402 payments — no Stellar dependencies.
+
+```ts
+import { defineAgent, createCeloOrchestrator } from '@calebux/agent-kit'
+
+const analyst = defineAgent({
+  id: 'analyst',
+  spendCapXlm: 2, // reused as cUSD cap (2 cUSD)
+  run: async (task, { pay }) => {
+    const data = await pay<{ result: string }>('https://my-celo-api.com/analyze?q=' + task)
+    return { result: data.result }
+  }
+})
+
+const { run } = createCeloOrchestrator([analyst], {
+  registryAddress: process.env.CELO_REGISTRY_ADDRESS,
+  policyAddress: process.env.CELO_POLICY_ADDRESS,
+  adminPrivateKey: process.env.CELO_DEPLOYER_PRIVATE_KEY,
+  network: 'mainnet',
+})
+
+const report = await run('Analyze Celo DeFi TVL')
+```
+
+Supports the same `decompose`, `synthesize`, `memory`, and `onWalletsProvisioned` options as the Stellar orchestrator.
+
+---
+
+## Agent Memory
+
+Persistent memory lets agents recall context from past runs. Three providers are available:
+
+```ts
+import { createMemoryProvider, createOrchestrator } from '@calebux/agent-kit'
+
+// File-based — persists to disk, survives restarts (recommended for production)
+const memory = createMemoryProvider({ type: 'file', filePath: '.calagent/memory.json' })
+
+// In-memory — fast but resets on restart (good for testing)
+const memory2 = createMemoryProvider({ type: 'memory' })
+
+// gBrain — knowledge graph via MCP server (advanced)
+const memory3 = createMemoryProvider({
+  type: 'gbrain',
+  gbrain: { url: 'http://localhost:3100', token: 'my-token' }
+})
+
+// Pass to any orchestrator
+const { run } = createOrchestrator([agent], { memory })
+// or: createCeloOrchestrator([agent], { memory })
+
+// Agents can use memory directly in their run function:
+const agent = defineAgent({
+  id: 'researcher',
+  run: async (task, ctx) => {
+    // Recall past context
+    const context = await ctx.memory?.recall('researcher', task)
+    // Store new findings
+    await ctx.memory?.store('finding/123', 'key insight', { topic: 'defi' })
+    return { result: context + '\n\nNew findings...' }
+  }
+})
+```
+
+After each orchestrator run, results are automatically stored in memory for future recall.
 
 ---
 
