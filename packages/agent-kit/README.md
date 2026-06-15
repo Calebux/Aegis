@@ -1,12 +1,111 @@
 # @calebux/agent-kit
 
-**Infrastructure for autonomous agent economies on Celo and Stellar.**
+**The complete agent infrastructure SDK — memory, agentic loops, tool-use, orchestration, identity, reputation, payments, and governance.**
 
-Build agents that own identities, hold reputation, pay each other, escrow funds, delegate work, vote on outcomes, and generate verifiable receipts — all on-chain, without writing infrastructure code.
+Works completely off-chain (no blockchain needed) or on-chain with Celo and Stellar. Use it to build agents that remember, reason in loops, use tools, orchestrate pipelines, pay each other, and generate verifiable receipts.
 
 ```bash
 npm install @calebux/agent-kit
 ```
+
+---
+
+## Off-chain: Agents with memory, loops, and tools (no blockchain)
+
+You don't need wallets or contracts to use agent-kit. Here's a fully off-chain agent with Obsidian-style memory and an autonomous loop:
+
+```ts
+import {
+  createAgentLoop,
+  createMemoryProvider,
+  webFetchTool,
+  fileWriteTool,
+  defineTool,
+} from '@calebux/agent-kit'
+
+// 1. Memory — choose your backend
+const memory = createMemoryProvider({ type: 'markdown', vaultPath: './research-vault' })
+// Also available: { type: 'file', filePath: './memory.json' }
+//                 { type: 'memory' }  (in-process, for testing)
+//                 { type: 'gbrain', gbrain: { url: '...' } }
+
+// 2. Tools — use built-ins or define your own
+const summarize = defineTool({
+  name: 'summarize',
+  description: 'Summarize text into bullet points',
+  parameters: { text: 'string' },
+  execute: async ({ text }) => {
+    // Call your LLM here
+    return `Summary of ${text.length} chars...`
+  },
+})
+
+// 3. Agentic loop — think → act → observe, repeat
+const loop = createAgentLoop({
+  goal: 'Research the top 3 DeFi protocols and write a report',
+  tools: [webFetchTool, fileWriteTool, summarize],
+  memory,
+  maxIterations: 10,
+  think: async (goal, history, recalled, toolDesc) => {
+    // Plug in ANY LLM here (GPT, Claude, Llama, Mistral, etc.)
+    // Return which tool to call next
+    if (history.length === 0) {
+      return { tool: 'web_fetch', input: { url: 'https://defillama.com/...' }, reasoning: 'Starting research' }
+    }
+    return { done: true, tool: '', input: {}, reasoning: 'Research complete' }
+  },
+  onStep: (step) => console.log(`[${step.iteration}] ${step.toolName}: ${step.observation.slice(0, 80)}`),
+})
+
+const result = await loop.run()
+console.log(result.summary)
+// Memory auto-stores results — next run will recall this context
+```
+
+### Memory providers
+
+| Type | Persistence | Search | Best for |
+|------|-------------|--------|----------|
+| `markdown` | Obsidian-compatible `.md` files with frontmatter | Keyword + tag | Production agents, human-readable memory |
+| `file` | JSON file on disk | Keyword | Simple persistence, CLI tools |
+| `memory` | In-process Map | Keyword | Testing, ephemeral agents |
+| `gbrain` | gBrain MCP knowledge graph | Semantic (via gBrain) | Advanced knowledge graph use cases |
+
+### Built-in tools
+
+| Tool | What it does |
+|------|-------------|
+| `webFetchTool` | Fetch any URL, return response as text |
+| `fileReadTool` | Read a file from disk |
+| `fileWriteTool` | Write content to a file |
+| `shellTool` | Execute a shell command |
+| `grepTool` | Search for patterns in files |
+| `defineTool()` | Create your own custom tool |
+
+### Agentic loop
+
+`createAgentLoop` runs an autonomous **think → act → observe** cycle. You provide the `think` function (your LLM), tools, and a goal. The loop runs until the goal is met or the iteration budget is exhausted. Works with any LLM — GPT, Claude, Llama, Mistral, local models.
+
+```ts
+const loop = createAgentLoop({
+  goal: 'Your objective here',
+  tools: [webFetchTool, fileWriteTool, yourCustomTool],
+  memory: createMemoryProvider({ type: 'markdown', vaultPath: './vault' }),
+  maxIterations: 15,
+  think: async (goal, history, recalled, toolDescriptions) => {
+    // Your LLM decides the next action
+    return { tool: 'web_fetch', input: { url: '...' }, reasoning: 'Need more data' }
+  },
+  isDone: (history) => history.some(s => s.observation.includes('COMPLETE')),
+  onStep: (step) => console.log(step),
+})
+```
+
+---
+
+## On-chain: Full agent economy (Celo + Stellar)
+
+For agents that need identity, reputation, payments, escrow, staking, and governance — add on-chain infrastructure:
 
 ### Optional peer dependencies
 

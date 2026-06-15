@@ -185,9 +185,35 @@ export type {
   MemoryProviderConfig,
 } from "./memory.js";
 
+// Markdown / Obsidian memory
+export { MarkdownMemoryProvider } from "./memory-markdown.js";
+
 // Hermes Agent (Nous Research)
 export { createHermesAgent, getHermesMcpConfig } from "./hermes.js";
 export type { HermesAgentConfig } from "./hermes.js";
+
+// Tool-use framework
+export {
+  defineTool,
+  createToolkit,
+  toOpenAIFunctions,
+  toAnthropicTools,
+  webFetchTool,
+  fileReadTool,
+  fileWriteTool,
+  shellTool,
+  grepTool,
+} from "./tools.js";
+export type { Tool, ToolResult, Toolkit, OpenAIFunction, AnthropicTool } from "./tools.js";
+
+// Agentic loops
+export { createAgentLoop } from "./agent-loop.js";
+export type {
+  AgentLoopOptions,
+  LoopStep,
+  LoopResult,
+  ThinkResult,
+} from "./agent-loop.js";
 
 // Types
 export type {

@@ -35,10 +35,12 @@ export interface GBrainMemoryConfig {
 }
 
 export interface MemoryProviderConfig {
-  type: "gbrain" | "memory" | "file";
+  type: "gbrain" | "memory" | "file" | "markdown";
   gbrain?: GBrainMemoryConfig;
   /** Path to the JSON file for the "file" provider */
   filePath?: string;
+  /** Path to the markdown vault folder for the "markdown" provider */
+  vaultPath?: string;
 }
 
 // ── GBrainMemory ─────────────────────────────────────────────────────────────
@@ -252,6 +254,12 @@ export function createMemoryProvider(config: MemoryProviderConfig): MemoryProvid
   if (config.type === "file") {
     const filePath = config.filePath ?? ".calagent/memory.json";
     return new FileMemoryProvider(filePath);
+  }
+  if (config.type === "markdown") {
+    // Lazy import to avoid circular deps
+    const { MarkdownMemoryProvider } = require("./memory-markdown.js") as typeof import("./memory-markdown.js");
+    const vaultPath = config.vaultPath ?? ".calagent/vault";
+    return new MarkdownMemoryProvider(vaultPath);
   }
   return new InMemoryProvider();
 }

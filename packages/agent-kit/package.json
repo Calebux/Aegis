@@ -1,12 +1,22 @@
 {
   "name": "@calebux/agent-kit",
-  "version": "0.5.0",
-  "description": "Infrastructure for autonomous agent economies — identity, reputation, payments, governance, discovery, coordination, and audit on Celo and Stellar",
+  "version": "0.7.0",
+  "description": "Infrastructure for autonomous agent economies — identity, reputation, payments, governance, discovery, coordination, and audit on Celo and Stellar. Also works fully off-chain with persistent memory, agentic loops, and tool-use.",
   "keywords": [
-    "agent-economy",
-    "agent-infrastructure",
+    "agent-kit",
+    "agent-framework",
+    "agent-memory",
+    "agent-loop",
+    "agentic",
     "ai-agents",
     "multi-agent",
+    "tool-use",
+    "obsidian",
+    "markdown-memory",
+    "knowledge-graph",
+    "agent-orchestration",
+    "agent-infrastructure",
+    "agent-economy",
     "agent-identity",
     "agent-reputation",
     "agent-payments",
@@ -24,7 +34,10 @@
     "on-chain-reputation",
     "verifiable-agents",
     "blockchain",
-    "orchestration"
+    "orchestration",
+    "autonomous-agents",
+    "think-act-observe",
+    "agent-tools"
   ],
   "license": "MIT",
   "main": "./dist/index.js",
@@ -37,7 +50,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "examples",
+    "AGENTS.md"
   ],
   "scripts": {
     "build": "tsc",
