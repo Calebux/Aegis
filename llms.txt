@@ -1,22 +1,22 @@
-# Aegis
+# Calagent
 
 > Agent execution and trust infrastructure for Stellar and Celo.
 
-Aegis helps developers build governed AI agents on Stellar and Celo. It
+Calagent helps developers build governed AI agents on Stellar and Celo. It
 provides agent wallets, Soroban spend policies, x402 payments, MPP-ready
 discovery metadata, on-chain reputation, verifiable agent outputs, and an MCP
 server for agent runtimes. Celo EVM agents are supported through a dedicated
-adapter with deployed AegisCeloRegistry and AegisCeloPolicy contracts on Celo
+adapter with deployed CalagentCeloRegistry and CalagentCeloPolicy contracts on Celo
 mainnet.
 
 ## Core Use Cases
 
 - Build AI agents that can pay for APIs with Stellar XLM/USDC or Celo USDm payments.
 - Enforce agent spend limits and execution policies with Soroban contracts (Stellar)
-  or AegisCeloPolicy (Celo EVM).
+  or CalagentCeloPolicy (Celo EVM).
 - Discover trusted agents by capability, asset, payment protocol, network, and
   reputation — across both Stellar and Celo.
-- Expose agent infrastructure through MCP tools (aegis-mcp-stellar, aegis-mcp-celo).
+- Expose agent infrastructure through MCP tools (calagent-mcp-stellar, calagent-mcp-celo).
 - Verify agent outputs with wallet-bound identity, payment receipts, and
   on-chain reputation on both chains.
 - Run a five-agent pipeline (Scout → Ledger → Signal → Scribe → Notary) on
@@ -29,7 +29,7 @@ mainnet.
 - Agent builder guide: ./BUILDING_AGENTS.md
 - Infrastructure roadmap: ./docs/agentic-infrastructure-roadmap.md
 - Agent Kit package: ./packages/agent-kit/README.md
-- MCP server package: ./packages/aegis-mcp-stellar/README.md
+- MCP server package: ./packages/calagent-mcp-stellar/README.md
 - Dashboard agents API: ./apps/dashboard/src/app/api/agents/route.ts
 - Dashboard receipts API: ./apps/dashboard/src/app/api/receipts/route.ts
 - Shield Contract: ./contracts/shield-contract/src/lib.rs
@@ -37,18 +37,18 @@ mainnet.
 
 ## Packages
 
-- `@calebux/agent-kit`: governed agent SDK — Stellar wallets, x402 payments,
+- `@calagent/agent-kit`: governed agent SDK — Stellar wallets, x402 payments,
   Soroban contracts, Celo USDm payments, manifests, discovery, and run receipts.
-- `@calebux/aegis-chain-celo`: Celo EVM adapter — viem clients, AegisCeloRegistry
+- `@calagent/calagent-chain-celo`: Celo EVM adapter — viem clients, CalagentCeloRegistry
   ABI, CeloIdentityRegistry, CeloPolicyManager, manifest helpers.
-- `aegis-mcp-stellar`: MCP server (8 tools) for discovering and calling Aegis
+- `calagent-mcp-stellar`: MCP server (8 tools) for discovering and calling Calagent
   Stellar agents via `/api/agents`.
-- `aegis-mcp-celo`: MCP server (8 tools) for discovering and calling Aegis Celo
+- `calagent-mcp-celo`: MCP server (8 tools) for discovering and calling Calagent Celo
   agents via `/api/agents?chain=celo`.
-- `@aegis/orchestrator`: reference multi-agent runtime — Stellar pipeline
+- `@calagent/orchestrator`: reference multi-agent runtime — Stellar pipeline
   (Scout, Ledger, Signal, Scribe, Notary) and Celo pipeline (celo-scout,
   celo-ledger, celo-signal, celo-scribe, celo-executor).
-- `@aegis/dashboard`: Next.js reference UI, `/api/agents` manifest endpoint,
+- `@calagent/dashboard`: Next.js reference UI, `/api/agents` manifest endpoint,
   `/api/run` SSE pipeline, chain toggle (Stellar ↔ Celo), receipt viewer.
 
 ## Deployed Contracts
@@ -58,8 +58,8 @@ Stellar testnet:
 - Identity Registry: CBQV3JXYZS7ABOTLCYZM6U4LUEF7PTIUXV76QAPHYAACERXHROVTT2YM
 
 Celo mainnet:
-- AegisCeloRegistry: 0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C
-- AegisCeloPolicy: 0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c
+- CalagentCeloRegistry: 0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C
+- CalagentCeloPolicy: 0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c
 
 ## Search Phrases
 

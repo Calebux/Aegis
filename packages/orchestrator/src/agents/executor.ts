@@ -30,7 +30,7 @@ import {
   Memo,
 } from "@stellar/stellar-sdk";
 import { getHorizonServer } from "@calagent/shared";
-import { ShieldContract, type SettlementProvider } from "@calebux/agent-kit";
+import { ShieldContract, type SettlementProvider } from "@calagent/agent-kit";
 import { bus } from "../lib/bus.js";
 import { withTimeout } from "../lib/timeout.js";
 

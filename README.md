@@ -19,7 +19,7 @@ Seven infrastructure layers in one SDK:
 Currently live on **Celo mainnet** and **Stellar testnet**.
 
 ```bash
-npm install @calebux/agent-kit
+npm install @calagent/agent-kit
 ```
 
 ---
@@ -32,8 +32,8 @@ Cal-AgentKit deploys a full agent infrastructure on Celo: identity registry, pol
 
 | Contract | Address | Purpose |
 |---|---|---|
-| **AegisCeloRegistry** | [`0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C`](https://celoscan.io/address/0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C) | Agent identity, manifest hashes, on-chain reputation |
-| **AegisCeloPolicy** | [`0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c`](https://celoscan.io/address/0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c) | Per-agent spend caps and session management |
+| **CalagentCeloRegistry** | [`0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C`](https://celoscan.io/address/0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C) | Agent identity, manifest hashes, on-chain reputation |
+| **CalagentCeloPolicy** | [`0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c`](https://celoscan.io/address/0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c) | Per-agent spend caps and session management |
 | **Erc8004Adapter** | _(deployed via `deploy.sh`)_ | Bridge to canonical ERC-8004 Identity and Reputation registries |
 | **AgentStaking** | [`0xa852E09A72C5208Ac7c912393Bb7C93af206C3b7`](https://celoscan.io/address/0xa852E09A72C5208Ac7c912393Bb7C93af206C3b7) | USDm staking, slashing, and rewards for agents |
 | **ConsensusVoting** | [`0xcB0d228488046b97d77b029e5516c845Da19d976`](https://celoscan.io/address/0xcB0d228488046b97d77b029e5516c845Da19d976) | On-chain consensus voting for multi-agent pipelines |
@@ -59,7 +59,7 @@ The adapter provides:
 The `AgentStaking` contract lets agents stake USDm as collateral. Admins can slash misbehaving agents or reward reliable ones:
 
 ```ts
-import { AgentStakingManager } from '@calebux/agent-kit'
+import { AgentStakingManager } from '@calagent/agent-kit'
 
 const staking = new AgentStakingManager(
   process.env.CELO_STAKING_ADDRESS!,
@@ -78,7 +78,7 @@ const isStaked = await staking.isStaked('my-agent', 50_000000000000000000n)
 The `ConsensusVoting` contract records multi-agent consensus on-chain:
 
 ```ts
-import { ConsensusVotingManager } from '@calebux/agent-kit'
+import { ConsensusVotingManager } from '@calagent/agent-kit'
 
 const voting = new ConsensusVotingManager(
   process.env.CELO_CONSENSUS_VOTING_ADDRESS!,
@@ -99,7 +99,7 @@ const result = await voting.getRoundResult(roundId)
 The `TaskEscrow` contract holds USDm in escrow for agent tasks. Funds are released when a verified receipt is provided, or refunded to the depositor after a deadline:
 
 ```ts
-import { TaskEscrowManager } from '@calebux/agent-kit'
+import { TaskEscrowManager } from '@calagent/agent-kit'
 
 const escrow = new TaskEscrowManager(
   process.env.CELO_TASK_ESCROW_ADDRESS!,
@@ -123,7 +123,7 @@ await escrow.refundEscrow(escrowId)
 The `AgentCredentials` contract manages scoped, time-limited credentials that gate agent access to services:
 
 ```ts
-import { AgentCredentialManager } from '@calebux/agent-kit'
+import { AgentCredentialManager } from '@calagent/agent-kit'
 
 const creds = new AgentCredentialManager(
   process.env.CELO_CREDENTIALS_ADDRESS!,
@@ -155,7 +155,7 @@ import {
   createDefaultTrustProviders,
   CeloIdentityRegistry,
   AgentStakingManager,
-} from '@calebux/agent-kit'
+} from '@calagent/agent-kit'
 
 const registry = new CeloIdentityRegistry(/* ... */)
 const staking = new AgentStakingManager(/* ... */)
@@ -170,7 +170,7 @@ const result = await calculateTrustScore('scout', providers)
 Discover and route to agents by capability, ranked by trust score:
 
 ```ts
-import { AgentRouter } from '@calebux/agent-kit'
+import { AgentRouter } from '@calagent/agent-kit'
 
 const router = new AgentRouter({
   localManifests: manifests,
@@ -190,7 +190,7 @@ const result = await router.routeByCapability('web-research', 'Search for Celo D
 Enforce human-in-the-loop approval for high-value agent operations:
 
 ```ts
-import { ApprovalGateway, approvalMiddleware, ApprovalRequiredError } from '@calebux/agent-kit'
+import { ApprovalGateway, approvalMiddleware, ApprovalRequiredError } from '@calagent/agent-kit'
 
 const gateway = new ApprovalGateway()
 
@@ -213,7 +213,7 @@ try {
 Parent agents can delegate tasks to child agents with linked receipt chains:
 
 ```ts
-import { delegateTask, createSubOrchestrator } from '@calebux/agent-kit'
+import { delegateTask, createSubOrchestrator } from '@calagent/agent-kit'
 
 // Simple delegation
 const delegation = delegateTask('parent-agent', 'child-agent', 'research task', parentRunId)
@@ -242,7 +242,7 @@ API endpoint: `POST /api/agents/:id/delegate` with `{ childAgentId, task }`.
 | Agent | Capabilities | What it does |
 |---|---|---|
 | **celo-ledger** | `celo`, `onchain-data`, `stablecoins`, `rpc` | Live Celo RPC reads — block height, gas price, chain ID |
-| **celo-notary** | `celo`, `attestation`, `execution`, `proof` | On-chain attestation writes to AegisCeloRegistry |
+| **celo-notary** | `celo`, `attestation`, `execution`, `proof` | On-chain attestation writes to CalagentCeloRegistry |
 | **celo-defi** | `celo`, `defi`, `stablecoins`, `mento`, `oracles`, `yield`, `reserves`, `liquidity` | Mento oracles, reserve data, Ubeswap pools, Moola rates |
 | **celo-price** | `celo`, `price`, `market-data` | CELO token price via CoinGecko in a verifiable receipt |
 
@@ -255,7 +255,7 @@ Prompt → Celo Scout (web research) + Celo Ledger (on-chain data)
        → Celo Signal (market analytics, 3-source averaging)
        → Consensus Manager (reconciliation, validator if confidence < 0.7)
        → Celo Scribe (final report synthesis via Claude)
-       → Celo Notary (SHA-256 → AegisCeloRegistry attestation on mainnet)
+       → Celo Notary (SHA-256 → CalagentCeloRegistry attestation on mainnet)
 ```
 
 Run the Celo pipeline:
@@ -292,7 +292,7 @@ import {
   payAndFetchCelo,
   submitCusdPayment,
   celoAgentToAgentPayment,
-} from '@calebux/agent-kit'
+} from '@calagent/agent-kit'
 
 const registry = new CeloIdentityRegistry(
   '0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C',
@@ -329,8 +329,8 @@ const verified = await isSelfVerified('0xAgentWallet...')
 |---|---|
 | `CALAGENT_CELO_NETWORK` | `mainnet` or `alfajores` |
 | `CELO_RPC_URL` | Celo JSON-RPC endpoint |
-| `CELO_REGISTRY_ADDRESS` | AegisCeloRegistry address |
-| `CELO_POLICY_ADDRESS` | AegisCeloPolicy address |
+| `CELO_REGISTRY_ADDRESS` | CalagentCeloRegistry address |
+| `CELO_POLICY_ADDRESS` | CalagentCeloPolicy address |
 | `CELO_DEPLOYER_PRIVATE_KEY` | Admin key for registry/policy writes |
 | `CALAGENT_CELO_X402_RECEIVER` | Celo address receiving x402 USDm payments |
 | `CALAGENT_CELO_X402_FACILITATOR_URL` | Celo/EVM x402 facilitator |
@@ -361,7 +361,7 @@ npm run publish:erc8004
 
 ## Stellar — Testnet
 
-Aegis's original chain integration. Full Soroban contract suite with x402 payment protocol.
+Calagent's original chain integration. Full Soroban contract suite with x402 payment protocol.
 
 ### Deployed Contracts (Stellar Testnet)
 
@@ -384,7 +384,7 @@ Admin: `GDSUBJ4J6V4DR7B3UZ7IETLM7TPF23BXEZ7U4KTHQPSHXM3HACV2HWIC`
 
 ### x402 Dual Role
 
-Aegis operates on **both sides of x402 simultaneously**:
+Calagent operates on **both sides of x402 simultaneously**:
 
 | Role | Component | What it does |
 |---|---|---|
@@ -431,7 +431,7 @@ Cal-AgentKit is chain-agnostic agent economy infrastructure. The same agent defi
 `selectChain()` routes agent payments to the right network at runtime:
 
 ```ts
-import { selectChain } from '@calebux/agent-kit'
+import { selectChain } from '@calagent/agent-kit'
 
 const chain = selectChain('celo')   // or 'stellar', 'base'
 await chain.pay(destination, amount)
@@ -443,7 +443,7 @@ await chain.attest(outputHash)
 `PeerRegistry` lets Cal-AgentKit instances discover and delegate tasks to each other, with trust verification:
 
 ```ts
-import { PeerRegistry, routeToPeer } from '@calebux/agent-kit'
+import { PeerRegistry, routeToPeer } from '@calagent/agent-kit'
 
 const peers = new PeerRegistry()
 peers.add('https://partner-instance.example.com', { trust: 'verified' })
@@ -480,7 +480,7 @@ calagent/
 ├── apps/dashboard/              Next.js 14 App Router — live dashboard + public agent API
 ├── packages/
 │   ├── orchestrator/            Master pipeline (Scout→Ledger→Signal→Scribe→Notary)
-│   ├── agent-kit/               @calebux/agent-kit — reusable SDK
+│   ├── agent-kit/               @calagent/agent-kit — reusable SDK
 │   ├── agents/                  Standalone agent processes / x402 servers
 │   ├── shared/                  Shared types
 │   ├── calagent-chain-celo/        Celo/viem helpers, registry ABI
@@ -488,7 +488,7 @@ calagent/
 ├── contracts/
 │   ├── identity-registry/       Soroban — agent identity + reputation (Rust)
 │   ├── shield-contract/         Soroban — per-agent spend cap enforcement (Rust)
-│   └── celo/                    Foundry — AegisCeloRegistry + AegisCeloPolicy + Erc8004Adapter + AgentStaking + ConsensusVoting
+│   └── celo/                    Foundry — CalagentCeloRegistry + CalagentCeloPolicy + Erc8004Adapter + AgentStaking + ConsensusVoting
 └── scripts/                     Manifest publishing, smoke tests, demos
 ```
 
@@ -558,16 +558,16 @@ npm run publish:erc8004
 
 ---
 
-## @calebux/agent-kit
+## @calagent/agent-kit
 
 The reusable SDK for building governed multi-agent systems:
 
 ```bash
-npm install @calebux/agent-kit
+npm install @calagent/agent-kit
 ```
 
 ```ts
-import { defineAgent, createOrchestrator } from '@calebux/agent-kit'
+import { defineAgent, createOrchestrator } from '@calagent/agent-kit'
 
 const researcher = defineAgent({
   id: 'researcher',
@@ -586,7 +586,7 @@ const { run } = createOrchestrator([researcher], {
 const report = await run('Analyze current DeFi activity')
 ```
 
-Full docs: [npmjs.com/package/@calebux/agent-kit](https://www.npmjs.com/package/@calebux/agent-kit)
+Full docs: [npmjs.com/package/@calagent/agent-kit](https://www.npmjs.com/package/@calagent/agent-kit)
 
 ---
 

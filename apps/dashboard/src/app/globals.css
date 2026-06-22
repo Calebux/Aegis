@@ -1,4 +1,4 @@
-/* AEGIS — Clean modern dashboard theme */
+/* CALAGENT — Clean modern dashboard theme */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -701,6 +701,15 @@ body:has(.landing) {
   font-size: 1.125rem;
   letter-spacing: 0.08em;
   color: #1a1a2e;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.landing-logo-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
 }
 
 .landing-nav-links {
@@ -739,6 +748,15 @@ body:has(.landing) {
 .landing-container {
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.landing-hero-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: #FCFF52;
+  margin-bottom: 1.25rem;
+  text-transform: uppercase;
 }
 
 .landing-hero-title {
@@ -899,13 +917,25 @@ body:has(.landing) {
   background: #f6f8fa;
 }
 
+.landing-section-dark {
+  background: #0d1117;
+}
+
+.landing-section-title--light {
+  color: #ffffff;
+}
+
+.landing-section-subtitle--light {
+  color: #8b949e;
+}
+
 .landing-section-title {
   font-size: 2rem;
-  font-weight: 800;
+  font-weight: 700;
   text-align: center;
   margin-bottom: 0.75rem;
   color: #1a1a2e;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .landing-section-subtitle {
@@ -928,8 +958,8 @@ body:has(.landing) {
 .landing-card {
   background: #ffffff;
   border: 1px solid #e8e8ec;
-  border-radius: 12px;
-  padding: 2rem;
+  border-radius: 16px;
+  padding: 1.75rem;
   transition: box-shadow 0.2s, border-color 0.2s;
 }
 
@@ -939,7 +969,43 @@ body:has(.landing) {
 
 .landing-card:hover {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-  border-color: #d0d0d8;
+  border-color: rgba(252, 255, 82, 0.4);
+}
+
+/* Dark cards for Layers section */
+.landing-section-alt .landing-card--dark {
+  background: #161b22;
+  border-color: #30363d;
+}
+.landing-section-alt .landing-card--dark:hover {
+  border-color: rgba(252, 255, 82, 0.3);
+  box-shadow: 0 4px 24px rgba(252, 255, 82, 0.04);
+}
+.landing-section-alt .landing-card.landing-card--dark h3 {
+  color: #ffffff;
+}
+.landing-section-alt .landing-card.landing-card--dark p {
+  color: #8b949e;
+}
+
+/* Dark cards for Memory section */
+.landing-card--dark {
+  background: #1c2128;
+  border-color: #30363d;
+}
+.landing-card--dark:hover {
+  border-color: rgba(252, 255, 82, 0.3);
+  box-shadow: 0 4px 24px rgba(252, 255, 82, 0.04);
+}
+.landing-card.landing-card--dark h3 {
+  color: #ffffff;
+}
+.landing-card.landing-card--dark p {
+  color: #8b949e;
+}
+.landing-card.landing-card--dark .landing-card-icon {
+  background: #21262d;
+  color: #FCFF52;
 }
 
 .landing-card-icon {
@@ -957,7 +1023,7 @@ body:has(.landing) {
 
 .landing-card h3 {
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: 600;
   margin-bottom: 0.5rem;
   color: #1a1a2e;
 }
@@ -973,6 +1039,10 @@ body:has(.landing) {
 .landing-cta-section {
   background: #FCFF52;
   padding: 4rem 2rem;
+}
+
+.landing-cta-section .landing-btn-dark {
+  margin-top: 2rem;
 }
 
 .landing-cta-section .landing-terminal {
@@ -1561,4 +1631,125 @@ body:has(.landing) {
 
 @media (max-width: 900px) {
   .landing-mcp-layout { grid-template-columns: 1fr; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   COMPARISON PAGE STYLES
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.compare-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.compare-card {
+  background: #ffffff;
+  border: 1px solid #e8e8ec;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.compare-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: #1a1a2e;
+}
+
+.compare-card p,
+.compare-card li {
+  font-size: 0.875rem;
+  color: #505060;
+  line-height: 1.7;
+}
+
+.compare-card--problem {
+  border-color: #e8c0c0;
+  background: #fdf6f6;
+}
+
+.compare-card--problem h3 {
+  color: #903030;
+}
+
+.compare-card--solution {
+  border-color: #b0d8b8;
+  background: #f4faf5;
+}
+
+.compare-card--solution h3 {
+  color: #2a6a3a;
+}
+
+/* Comparison table */
+.compare-table-wrap {
+  overflow-x: auto;
+  margin-top: 1.5rem;
+  border: 1px solid #e8e8ec;
+  border-radius: 12px;
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.compare-table thead {
+  background: #f6f8fa;
+}
+
+.compare-table th {
+  padding: 0.875rem 1.25rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #656d76;
+  border-bottom: 1px solid #e8e8ec;
+}
+
+.compare-th--calagent {
+  color: #2a6a3a !important;
+}
+
+.compare-th--fugu {
+  color: #903030 !important;
+}
+
+.compare-dimension {
+  font-weight: 600;
+  color: #1a1a2e;
+  white-space: nowrap;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid #f0f0f3;
+  width: 140px;
+}
+
+.compare-cell {
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid #f0f0f3;
+  color: #505060;
+  line-height: 1.6;
+}
+
+.compare-cell--calagent {
+  background: #f9fcf9;
+}
+
+.compare-cell--fugu {
+  background: #fcf9f9;
+}
+
+.compare-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+@media (max-width: 768px) {
+  .compare-cards {
+    grid-template-columns: 1fr;
+  }
 }

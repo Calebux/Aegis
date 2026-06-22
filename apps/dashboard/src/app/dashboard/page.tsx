@@ -10,7 +10,7 @@ import { RunReceiptPanel } from "@/components/RunReceiptPanel";
 import { CostBreakdown } from "@/components/CostBreakdown";
 import { PipelineTimeline } from "@/components/PipelineTimeline";
 import { VerifyPanel } from "@/components/VerifyPanel";
-import type { RunReceipt, RunReceiptVerification } from "@calebux/agent-kit";
+import type { RunReceipt, RunReceiptVerification } from "@calagent/agent-kit";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

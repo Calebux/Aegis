@@ -11,7 +11,7 @@ import {
   runAgentTask,
   verifyRunReceiptById,
 } from "./manifest-client.js";
-import type { AgentDiscoveryQuery } from "@calebux/agent-kit";
+import type { AgentDiscoveryQuery } from "@calagent/agent-kit";
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 

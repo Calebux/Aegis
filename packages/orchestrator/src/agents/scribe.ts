@@ -10,8 +10,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { keypairFromSecret } from "@calagent/shared";
 import { Keypair } from "@stellar/stellar-sdk";
 import { bus } from "../lib/bus.js";
-import { agentToAgentPayment } from "@calebux/agent-kit";
-import type { LLMProvider } from "@calebux/agent-kit";
+import { agentToAgentPayment } from "@calagent/agent-kit";
+import type { LLMProvider } from "@calagent/agent-kit";
 import { publishSigned } from "../lib/signer.js";
 
 interface AgentContribution {

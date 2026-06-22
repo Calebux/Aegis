@@ -3,7 +3,7 @@ const path = require("path");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   outputFileTracingRoot: path.join(__dirname, "../.."),
-  transpilePackages: ["@calagent/shared", "@calebux/agent-kit", "@calagent/orchestrator"],
+  transpilePackages: ["@calagent/shared", "@calagent/agent-kit", "@calagent/orchestrator"],
   webpack(config) {
     config.resolve.alias = {
       ...config.resolve.alias,

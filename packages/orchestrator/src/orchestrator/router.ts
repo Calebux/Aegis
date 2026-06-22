@@ -12,7 +12,7 @@
  */
 
 import { Keypair, SorobanRpc } from "@stellar/stellar-sdk";
-import { IdentityRegistry } from "@calebux/agent-kit";
+import { IdentityRegistry } from "@calagent/agent-kit";
 
 export type ReputationTier = "trusted" | "standard" | "probation";
 

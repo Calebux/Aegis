@@ -4,16 +4,16 @@ import { Keypair } from "@stellar/stellar-sdk";
 import {
   CALAGENT_CELO_REGISTRY_ABI,
   createCeloClients,
-} from "@calebux/calagent-chain-celo";
+} from "@calagent/calagent-chain-celo";
 import {
   createRunReceipt,
   computeReceiptHash,
   signRunReceipt,
   type OrchestratorReport,
   type RunReceipt,
-} from "@calebux/agent-kit";
+} from "@calagent/agent-kit";
 import { buildAgentManifests, findPeerForAgent } from "@/lib/agentRegistry";
-import { routeToPeer, getHopCount } from "@calebux/agent-kit";
+import { routeToPeer, getHopCount } from "@calagent/agent-kit";
 import {
   buildStellarX402Requirement,
   facilitatorUrl,
@@ -49,7 +49,7 @@ import {
   Erc8004Adapter,
   CeloPolicyManager,
   CeloIdentityRegistry,
-} from "@calebux/agent-kit";
+} from "@calagent/agent-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -281,7 +281,7 @@ async function celoNotaryRun(task: string, runId: string): Promise<NotaryResult>
         ? "Attestation: write failed (check logs)"
         : "Attestation: CELO_DEPLOYER_PRIVATE_KEY not set — read-only mode",
     "",
-    "Existing on-chain manifest hashes (from AegisCeloRegistry):",
+    "Existing on-chain manifest hashes (from CalagentCeloRegistry):",
     `  celo-ledger:  ${ledgerHashHex ? decodeBytes32(ledgerHashHex) : "not registered"}`,
     `  celo-notary:  ${notaryHashHex ? decodeBytes32(notaryHashHex) : "not registered"}`,
     "",
@@ -756,7 +756,7 @@ export async function POST(
     }
   }
 
-  // Item 8: On-chain receipt anchoring on AegisCeloRegistry
+  // Item 8: On-chain receipt anchoring on CalagentCeloRegistry
   const celoRegistryAddr = process.env.CELO_REGISTRY_ADDRESS;
   if (celoRegistryAddr && celoDeployerKey && receipt.receiptHash) {
     try {

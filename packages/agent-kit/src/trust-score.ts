@@ -40,7 +40,7 @@ export interface TrustScoreResult {
 // ── Built-in Providers ────────────────────────────────────────────────────────
 
 /**
- * Derives trust from on-chain reputation stored in AegisCeloRegistry.
+ * Derives trust from on-chain reputation stored in CalagentCeloRegistry.
  * Maps reputation linearly: 0 rep → 0, 100+ rep → 1000.
  */
 export class ReputationProvider implements TrustScoreProvider {

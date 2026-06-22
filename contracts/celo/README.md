@@ -4,8 +4,8 @@ EVM/Celo contracts for the Cal-AgentKit portable agent infrastructure layer.
 
 ## Contracts
 
-- `AegisCeloRegistry.sol`: agent identity, reputation, and manifest hash registry.
-- `AegisCeloPolicy.sol`: per-task and per-session spend policy checks.
+- `CalagentCeloRegistry.sol`: agent identity, reputation, and manifest hash registry.
+- `CalagentCeloPolicy.sol`: per-task and per-session spend policy checks.
 
 ## Deploy
 

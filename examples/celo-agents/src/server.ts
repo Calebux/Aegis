@@ -10,7 +10,7 @@ import { usdmYieldMonitorAutomation } from "./agents/cusd-yield-monitor.js";
 import { whaleWatcherAutomation } from "./agents/whale-watcher.js";
 import { governanceVoterAutomation } from "./agents/governance-voter.js";
 import { balanceSentinelAutomation } from "./agents/balance-sentinel.js";
-import type { Automation } from "@calebux/agent-kit";
+import type { Automation } from "@calagent/agent-kit";
 
 const agents: Record<string, Automation> = {
   "gas-tracker": gasTrackerAutomation,

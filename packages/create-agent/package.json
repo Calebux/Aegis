@@ -1,0 +1,25 @@
+{
+  "name": "create-agent",
+  "version": "0.1.0",
+  "description": "Scaffold an AI agent project with memory, loops, tools, and optional on-chain capabilities",
+  "keywords": [
+    "create-agent",
+    "agent-scaffold",
+    "ai-agent",
+    "agent-kit",
+    "agentic",
+    "agent-memory",
+    "agent-loop"
+  ],
+  "license": "MIT",
+  "bin": {
+    "create-agent": "./bin/create-agent.mjs"
+  },
+  "files": [
+    "bin",
+    "templates"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}

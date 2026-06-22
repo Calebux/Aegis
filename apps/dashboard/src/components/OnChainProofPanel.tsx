@@ -95,12 +95,12 @@ export function OnChainProofPanel({ agentSigTxHashes, registryAddress, policyAdd
           <span className="infra-badge" data-tooltip="Per-agent spend cap enforcement">Policy</span>
         </div>
         <Row
-          label="AegisCeloRegistry"
+          label="CalagentCeloRegistry"
           value={truncate(registryAddress, 12)}
           href={registryAddress ? `${CT_EXPLORER}/${registryAddress}` : undefined}
         />
         <Row
-          label="AegisCeloPolicy"
+          label="CalagentCeloPolicy"
           value={truncate(policyAddress, 12)}
           href={policyAddress ? `${CT_EXPLORER}/${policyAddress}` : undefined}
         />

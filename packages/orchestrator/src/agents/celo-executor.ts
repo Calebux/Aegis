@@ -4,7 +4,7 @@
  * The final step in the Celo pipeline. Once consensus is reached, the Notary:
  *
  *   1. SHA-256 hashes the agreed output → bytes32 payloadHash
- *   2. Calls AegisCeloRegistry.setManifestHash("celo-pipeline-notary", hash)
+ *   2. Calls CalagentCeloRegistry.setManifestHash("celo-pipeline-notary", hash)
  *      — permanent on-chain attestation on Celo
  *   3. Calls recordSuccess("celo-pipeline-notary") — reputation update
  *
@@ -13,7 +13,7 @@
 
 import { createHash } from "node:crypto";
 import type { Account } from "viem";
-import { CeloIdentityRegistry, Erc8004Adapter, ConsensusVotingManager } from "@calebux/agent-kit";
+import { CeloIdentityRegistry, Erc8004Adapter, ConsensusVotingManager } from "@calagent/agent-kit";
 import { bus } from "../lib/bus.js";
 
 // ── CeloExecutorAgent ─────────────────────────────────────────────────────────
@@ -70,7 +70,7 @@ export class CeloExecutorAgent {
           try {
             // Ensure agent is registered before writing hash
             await registry.registerAgent("celo-pipeline-notary", "Celo Pipeline Notary", "attestation").catch(() => {});
-            // Store payload hash in AegisCeloRegistry
+            // Store payload hash in CalagentCeloRegistry
             notaryTxHash = await registry.setManifestHash(
               "celo-pipeline-notary",
               payloadHash

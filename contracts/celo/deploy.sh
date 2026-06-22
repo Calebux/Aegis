@@ -49,7 +49,7 @@ if [[ -n "$GAS_PRICE_WEI" ]]; then
       --broadcast \
       --legacy \
       --gas-price "$GAS_PRICE_WEI" \
-      src/AegisCeloRegistry.sol:AegisCeloRegistry \
+      src/CalagentCeloRegistry.sol:CalagentCeloRegistry \
       --constructor-args "$ADMIN_ADDRESS"
   )"
 else
@@ -58,7 +58,7 @@ else
       --rpc-url "$RPC_URL" \
       --private-key "$CELO_DEPLOYER_PRIVATE_KEY" \
       --broadcast \
-      src/AegisCeloRegistry.sol:AegisCeloRegistry \
+      src/CalagentCeloRegistry.sol:CalagentCeloRegistry \
       --constructor-args "$ADMIN_ADDRESS"
   )"
 fi
@@ -74,7 +74,7 @@ if [[ -n "$GAS_PRICE_WEI" ]]; then
       --broadcast \
       --legacy \
       --gas-price "$GAS_PRICE_WEI" \
-      src/AegisCeloPolicy.sol:AegisCeloPolicy \
+      src/CalagentCeloPolicy.sol:CalagentCeloPolicy \
       --constructor-args "$ADMIN_ADDRESS"
   )"
 else
@@ -83,7 +83,7 @@ else
       --rpc-url "$RPC_URL" \
       --private-key "$CELO_DEPLOYER_PRIVATE_KEY" \
       --broadcast \
-      src/AegisCeloPolicy.sol:AegisCeloPolicy \
+      src/CalagentCeloPolicy.sol:CalagentCeloPolicy \
       --constructor-args "$ADMIN_ADDRESS"
   )"
 fi

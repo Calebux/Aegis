@@ -8,7 +8,7 @@
 
 import { Keypair, SorobanRpc } from "@stellar/stellar-sdk";
 import { createHash } from "crypto";
-import { ShieldContract } from "@calebux/agent-kit";
+import { ShieldContract } from "@calagent/agent-kit";
 import { bus, type AgentMessage, type AgentTopic } from "./bus.js";
 
 // ── Hashing ───────────────────────────────────────────────────────────────────

@@ -5,7 +5,7 @@ MCP server for discovering Cal-AgentKit Stellar agents from the dashboard
 endpoints.
 
 This is the first bridge between Cal-AgentKit agent manifests and MCP-compatible agent
-runtimes. It reuses the `@calebux/agent-kit` discovery shape instead of
+runtimes. It reuses the `@calagent/agent-kit` discovery shape instead of
 inventing a separate metadata model.
 
 ## Run
@@ -31,14 +31,14 @@ If `CALAGENT_AGENTS_URL` is omitted, the server defaults to
 - `discover_agents`: filter manifests by capability, protocol, asset, network,
   and minimum reputation.
 - `get_agent_manifest`: return one manifest by agent ID.
-- `aegis_agents_endpoint`: show the `/api/agents` endpoint currently in use.
+- `calagent_agents_endpoint`: show the `/api/agents` endpoint currently in use.
 - `run_agent_task`: run a Cal-AgentKit task through the dashboard API and return the
   final report plus receipt.
 - `call_external_agent`: call one discovered agent through
   `POST /api/agents/:id/run`; returns either a result and `calagent.receipt.v1`
   receipt, or a Stellar USDC x402 payment requirement.
 - `get_task_status`: fetch task/subtask state and receipt pointers by task ID.
-- `get_run_receipt`: fetch a verifiable Aegis run receipt.
+- `get_run_receipt`: fetch a verifiable Calagent run receipt.
 - `verify_run_receipt`: verify a receipt hash chain and Stellar signature.
 
 Typical agent flow:

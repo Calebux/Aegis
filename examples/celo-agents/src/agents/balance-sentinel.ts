@@ -6,7 +6,7 @@
  */
 import { createPublicClient, http, formatEther, parseEther, type Address } from "viem";
 import { celo } from "viem/chains";
-import { defineAgent, createAutomation } from "@calebux/agent-kit";
+import { defineAgent, createAutomation } from "@calagent/agent-kit";
 
 export interface WatchedWallet {
   address: Address;

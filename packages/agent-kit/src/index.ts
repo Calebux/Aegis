@@ -1,5 +1,5 @@
 /**
- * @calebux/agent-kit
+ * @calagent/agent-kit
  *
  * Infrastructure for autonomous agent economies on Celo and Stellar.
  * Identity, reputation, payments, governance, discovery, coordination,
@@ -7,7 +7,7 @@
  *
  * @example
  * ```ts
- * import { defineAgent, createOrchestrator } from '@calebux/agent-kit'
+ * import { defineAgent, createOrchestrator } from '@calagent/agent-kit'
  *
  * const researcher = defineAgent({
  *   id: 'researcher',
@@ -31,6 +31,8 @@
 // Core API
 export { defineAgent } from "./agent.js";
 export { createOrchestrator } from "./orchestrator.js";
+export { createCeloOrchestrator } from "./orchestrator-celo.js";
+export type { CeloOrchestratorOptions } from "./orchestrator-celo.js";
 export { createAutomation } from "./automation.js";
 export type {
   AutomationOptions,
@@ -169,6 +171,50 @@ export type {
   LLMChatResult,
 } from "./llm.js";
 
+// Memory (gBrain integration)
+export {
+  GBrainMemory,
+  InMemoryProvider,
+  FileMemoryProvider,
+  createMemoryProvider,
+} from "./memory.js";
+export type {
+  MemoryProvider,
+  MemoryResult,
+  GBrainMemoryConfig,
+  MemoryProviderConfig,
+} from "./memory.js";
+
+// Markdown / Obsidian memory
+export { MarkdownMemoryProvider } from "./memory-markdown.js";
+
+// Hermes Agent (Nous Research)
+export { createHermesAgent, getHermesMcpConfig } from "./hermes.js";
+export type { HermesAgentConfig } from "./hermes.js";
+
+// Tool-use framework
+export {
+  defineTool,
+  createToolkit,
+  toOpenAIFunctions,
+  toAnthropicTools,
+  webFetchTool,
+  fileReadTool,
+  fileWriteTool,
+  shellTool,
+  grepTool,
+} from "./tools.js";
+export type { Tool, ToolResult, Toolkit, OpenAIFunction, AnthropicTool } from "./tools.js";
+
+// Agentic loops
+export { createAgentLoop } from "./agent-loop.js";
+export type {
+  AgentLoopOptions,
+  LoopStep,
+  LoopResult,
+  ThinkResult,
+} from "./agent-loop.js";
+
 // Types
 export type {
   AgentDefinition,
@@ -192,3 +238,12 @@ export type {
   OrchestratorReport,
   Orchestrator,
 } from "./types.js";
+
+// Client
+export { CalagentClient } from "./client.js";
+export type {
+  CalagentClientOptions,
+  CalagentChatMessage,
+  CalagentChatCompletionRequest,
+  CalagentChatCompletionResponse,
+} from "./client.js";

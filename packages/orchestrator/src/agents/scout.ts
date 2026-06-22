@@ -24,7 +24,7 @@ import {
 import { LinkupClient } from "linkup-sdk";
 import { getHorizonServer } from "@calagent/shared";
 import Anthropic from "@anthropic-ai/sdk";
-import type { LLMProvider } from "@calebux/agent-kit";
+import type { LLMProvider } from "@calagent/agent-kit";
 import { bus } from "../lib/bus.js";
 import { publishSigned } from "../lib/signer.js";
 import { withTimeout } from "../lib/timeout.js";

@@ -1,7 +1,7 @@
-# Aegis Discoverability Playbook
+# Calagent Discoverability Playbook
 
 Goal: when builders search for Stellar agents, x402 agents, Soroban policy
-agents, MCP Stellar tools, or LLM agent infrastructure, Aegis should be easy to
+agents, MCP Stellar tools, or LLM agent infrastructure, Calagent should be easy to
 find and easy for crawlers to summarize correctly.
 
 ## Canonical Positioning
@@ -44,7 +44,7 @@ Supporting phrase:
 
 - Set `NEXT_PUBLIC_SITE_URL` to the production dashboard URL before deploy.
 - Submit the repo and deployed site to search engines.
-- Publish `@calebux/agent-kit` with the expanded keywords.
+- Publish `@calagent/agent-kit` with the expanded keywords.
 - Publish `calagent-mcp-stellar` with the expanded keywords.
 - Link the deployed `/api/agents` and `/llms.txt` from the project README.
 - Write one technical post using the title:
@@ -56,4 +56,4 @@ Supporting phrase:
 - A tutorial: "Create a Stellar agent with x402 payments and Soroban spend
   limits".
 - A tutorial: "Expose Stellar agents through MCP".
-- A reference page: "Aegis Agent Manifest".
+- A reference page: "Calagent Agent Manifest".

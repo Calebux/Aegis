@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { buildAgentManifests } from "@/lib/agentRegistry";
-import { isSelfVerified, SELF_AGENT_REGISTRY } from "@calebux/agent-kit";
+import { isSelfVerified, SELF_AGENT_REGISTRY } from "@calagent/agent-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +41,7 @@ export async function GET(
   let erc8004Id: string | null = null;
   if (adapterAddress && rpcUrl) {
     try {
-      const { Erc8004Adapter } = await import("@calebux/agent-kit");
+      const { Erc8004Adapter } = await import("@calagent/agent-kit");
       // Read-only — use a dummy private key (we only call view functions)
       const dummyKey = "0x0000000000000000000000000000000000000000000000000000000000000001";
       const adapter = new Erc8004Adapter(

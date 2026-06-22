@@ -1,4 +1,4 @@
-import type { AgentManifest } from "@calebux/agent-kit";
+import type { AgentManifest } from "@calagent/agent-kit";
 import {
   createPublicClient,
   createWalletClient,

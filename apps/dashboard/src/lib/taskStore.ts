@@ -9,7 +9,7 @@ import { EventEmitter } from "events";
 import * as fs from "fs";
 import * as path from "path";
 import type { Task } from "@calagent/shared";
-import type { RunReceipt } from "@calebux/agent-kit";
+import type { RunReceipt } from "@calagent/agent-kit";
 
 /** Active tasks keyed by taskId */
 export const tasks = new Map<string, Task>();

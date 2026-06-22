@@ -218,7 +218,7 @@ const agents = [
 
 // ── Step 1: Register Agents ─────────────────────────────────────────────────
 
-console.log("\n=== Step 1: Register agents on AegisCeloRegistry ===\n");
+console.log("\n=== Step 1: Register agents on CalagentCeloRegistry ===\n");
 
 for (const agent of agents) {
   const manifestHash = toBytes32(sha256(JSON.stringify(agent)));
@@ -358,8 +358,8 @@ console.log(`Deployer: ${account.address}`);
 console.log("");
 
 console.log("Contracts exercised:");
-console.log(`  AegisCeloRegistry:  ${REGISTRY}`);
-console.log(`  AegisCeloPolicy:    ${POLICY}`);
+console.log(`  CalagentCeloRegistry:  ${REGISTRY}`);
+console.log(`  CalagentCeloPolicy:    ${POLICY}`);
 if (VOTING) console.log(`  ConsensusVoting:    ${VOTING}`);
 if (ERC8004_ADAPTER) console.log(`  Erc8004Adapter:     ${ERC8004_ADAPTER}`);
 if (CREDENTIALS) console.log(`  AgentCredentials:   ${CREDENTIALS}`);

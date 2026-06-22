@@ -1,12 +1,121 @@
-# @calebux/agent-kit
+# @calagent/agent-kit
 
-**Infrastructure for autonomous agent economies on Celo and Stellar.**
+**The complete agent infrastructure SDK — memory, agentic loops, tool-use, orchestration, identity, reputation, payments, and governance.**
 
-Build agents that own identities, hold reputation, pay each other, escrow funds, delegate work, vote on outcomes, and generate verifiable receipts — all on-chain, without writing infrastructure code.
+Works completely off-chain (no blockchain needed) or on-chain with Celo and Stellar. Use it to build agents that remember, reason in loops, use tools, orchestrate pipelines, pay each other, and generate verifiable receipts.
 
 ```bash
-npm install @calebux/agent-kit
+npm install @calagent/agent-kit
 ```
+
+---
+
+## Off-chain: Agents with memory, loops, and tools (no blockchain)
+
+You don't need wallets or contracts to use agent-kit. Here's a fully off-chain agent with Obsidian-style memory and an autonomous loop:
+
+```ts
+import {
+  createAgentLoop,
+  createMemoryProvider,
+  webFetchTool,
+  fileWriteTool,
+  defineTool,
+} from '@calagent/agent-kit'
+
+// 1. Memory — choose your backend
+const memory = createMemoryProvider({ type: 'markdown', vaultPath: './research-vault' })
+// Also available: { type: 'file', filePath: './memory.json' }
+//                 { type: 'memory' }  (in-process, for testing)
+//                 { type: 'gbrain', gbrain: { url: '...' } }
+
+// 2. Tools — use built-ins or define your own
+const summarize = defineTool({
+  name: 'summarize',
+  description: 'Summarize text into bullet points',
+  parameters: { text: 'string' },
+  execute: async ({ text }) => {
+    // Call your LLM here
+    return `Summary of ${text.length} chars...`
+  },
+})
+
+// 3. Agentic loop — think → act → observe, repeat
+const loop = createAgentLoop({
+  goal: 'Research the top 3 DeFi protocols and write a report',
+  tools: [webFetchTool, fileWriteTool, summarize],
+  memory,
+  maxIterations: 10,
+  think: async (goal, history, recalled, toolDesc) => {
+    // Plug in ANY LLM here (GPT, Claude, Llama, Mistral, etc.)
+    // Return which tool to call next
+    if (history.length === 0) {
+      return { tool: 'web_fetch', input: { url: 'https://defillama.com/...' }, reasoning: 'Starting research' }
+    }
+    return { done: true, tool: '', input: {}, reasoning: 'Research complete' }
+  },
+  onStep: (step) => console.log(`[${step.iteration}] ${step.toolName}: ${step.observation.slice(0, 80)}`),
+})
+
+const result = await loop.run()
+console.log(result.summary)
+// Memory auto-stores results — next run will recall this context
+```
+
+### Memory providers
+
+| Type | Persistence | Search | Best for |
+|------|-------------|--------|----------|
+| `markdown` | Obsidian-compatible `.md` files with frontmatter | Keyword + tag | Production agents, human-readable memory |
+| `file` | JSON file on disk | Keyword | Simple persistence, CLI tools |
+| `memory` | In-process Map | Keyword | Testing, ephemeral agents |
+| `gbrain` | gBrain MCP knowledge graph | Semantic (via gBrain) | Advanced knowledge graph use cases |
+
+### Built-in tools
+
+| Tool | What it does |
+|------|-------------|
+| `webFetchTool` | Fetch any URL, return response as text |
+| `fileReadTool` | Read a file from disk |
+| `fileWriteTool` | Write content to a file |
+| `shellTool` | Execute a shell command |
+| `grepTool` | Search for patterns in files |
+| `defineTool()` | Create your own custom tool |
+
+### Agentic loop
+
+`createAgentLoop` runs an autonomous **think → act → observe** cycle. You provide the `think` function (your LLM), tools, and a goal. The loop runs until the goal is met or the iteration budget is exhausted. Works with any LLM — GPT, Claude, Llama, Mistral, local models.
+
+```ts
+const loop = createAgentLoop({
+  goal: 'Your objective here',
+  tools: [webFetchTool, fileWriteTool, yourCustomTool],
+  memory: createMemoryProvider({ type: 'markdown', vaultPath: './vault' }),
+  maxIterations: 15,
+  think: async (goal, history, recalled, toolDescriptions) => {
+    // Your LLM decides the next action
+    return { tool: 'web_fetch', input: { url: '...' }, reasoning: 'Need more data' }
+  },
+  isDone: (history) => history.some(s => s.observation.includes('COMPLETE')),
+  onStep: (step) => console.log(step),
+})
+```
+
+---
+
+## On-chain: Full agent economy (Celo + Stellar)
+
+For agents that need identity, reputation, payments, escrow, staking, and governance — add on-chain infrastructure:
+
+### Optional peer dependencies
+
+- **`@anthropic-ai/sdk`** — Required only if you use `AnthropicProvider` for LLM-powered task decomposition or synthesis. Install it separately:
+
+```bash
+npm install @anthropic-ai/sdk
+```
+
+If you don't need LLM features (e.g. you provide your own `decompose`/`synthesize` functions), you can skip this.
 
 ---
 
@@ -15,9 +124,9 @@ npm install @calebux/agent-kit
 | Feature | Celo | Stellar |
 |---|---|---|
 | **Wallet provisioning** | viem Account from private key or random | Fresh Stellar keypair, auto-funded via Friendbot on testnet |
-| **On-chain spend caps** | AegisCeloPolicy contract | Soroban Shield Contract |
+| **On-chain spend caps** | CalagentCeloPolicy contract | Soroban Shield Contract |
 | **x402 payments** | `payAndFetchCelo()` — probe → pay USDm → retry | `payAndFetch()` — probe → pay XLM → retry |
-| **Verifiable reputation** | AegisCeloRegistry on Celo mainnet | Soroban Identity Registry |
+| **Verifiable reputation** | CalagentCeloRegistry on Celo mainnet | Soroban Identity Registry |
 | **Agent-to-agent payments** | USDm ERC-20 transfers | XLM with on-chain memos |
 | **Run receipts** | SHA-256 hashed, Ed25519 signed | SHA-256 hashed, Ed25519 signed |
 | **Agent manifests** | Same shape, `chain: "celo"` | Capabilities, endpoints, payment terms, policies |
@@ -35,7 +144,7 @@ import {
   payAndFetchCelo,
   submitCusdPayment,
   celoAgentToAgentPayment,
-} from '@calebux/agent-kit'
+} from '@calagent/agent-kit'
 
 // Registry — agent identity and reputation on Celo mainnet
 const registry = new CeloIdentityRegistry(
@@ -73,6 +182,76 @@ const hash = await celoAgentToAgentPayment(fromAccount, toAddress, '0.001')
 
 ---
 
+## Celo Orchestrator
+
+`createCeloOrchestrator` is the Celo-native equivalent of `createOrchestrator`. It provisions EVM wallets, registers agents on CalagentCeloRegistry, enforces spend caps via CalagentCeloPolicy, and uses cUSD x402 payments — no Stellar dependencies.
+
+```ts
+import { defineAgent, createCeloOrchestrator } from '@calagent/agent-kit'
+
+const analyst = defineAgent({
+  id: 'analyst',
+  spendCapXlm: 2, // reused as cUSD cap (2 cUSD)
+  run: async (task, { pay }) => {
+    const data = await pay<{ result: string }>('https://my-celo-api.com/analyze?q=' + task)
+    return { result: data.result }
+  }
+})
+
+const { run } = createCeloOrchestrator([analyst], {
+  registryAddress: process.env.CELO_REGISTRY_ADDRESS,
+  policyAddress: process.env.CELO_POLICY_ADDRESS,
+  adminPrivateKey: process.env.CELO_DEPLOYER_PRIVATE_KEY,
+  network: 'mainnet',
+})
+
+const report = await run('Analyze Celo DeFi TVL')
+```
+
+Supports the same `decompose`, `synthesize`, `memory`, and `onWalletsProvisioned` options as the Stellar orchestrator.
+
+---
+
+## Agent Memory
+
+Persistent memory lets agents recall context from past runs. Three providers are available:
+
+```ts
+import { createMemoryProvider, createOrchestrator } from '@calagent/agent-kit'
+
+// File-based — persists to disk, survives restarts (recommended for production)
+const memory = createMemoryProvider({ type: 'file', filePath: '.calagent/memory.json' })
+
+// In-memory — fast but resets on restart (good for testing)
+const memory2 = createMemoryProvider({ type: 'memory' })
+
+// gBrain — knowledge graph via MCP server (advanced)
+const memory3 = createMemoryProvider({
+  type: 'gbrain',
+  gbrain: { url: 'http://localhost:3100', token: 'my-token' }
+})
+
+// Pass to any orchestrator
+const { run } = createOrchestrator([agent], { memory })
+// or: createCeloOrchestrator([agent], { memory })
+
+// Agents can use memory directly in their run function:
+const agent = defineAgent({
+  id: 'researcher',
+  run: async (task, ctx) => {
+    // Recall past context
+    const context = await ctx.memory?.recall('researcher', task)
+    // Store new findings
+    await ctx.memory?.store('finding/123', 'key insight', { topic: 'defi' })
+    return { result: context + '\n\nNew findings...' }
+  }
+})
+```
+
+After each orchestrator run, results are automatically stored in memory for future recall.
+
+---
+
 ## ERC-8004 and Self Protocol (Celo)
 
 ```ts
@@ -81,7 +260,7 @@ import {
   isSelfVerified,
   selfEnforced,
   SELF_AGENT_REGISTRY,
-} from '@calebux/agent-kit'
+} from '@calagent/agent-kit'
 
 // ERC-8004 adapter — bridge to canonical Identity + Reputation registries
 const adapter = new Erc8004Adapter(
@@ -117,7 +296,7 @@ const enforce = selfEnforced() // checks CALAGENT_SELF_ENFORCE env var
 ## Agent Staking (Celo)
 
 ```ts
-import { AgentStakingManager } from '@calebux/agent-kit'
+import { AgentStakingManager } from '@calagent/agent-kit'
 
 const staking = new AgentStakingManager(
   process.env.CELO_STAKING_ADDRESS!,
@@ -144,7 +323,7 @@ await staking.unstake('my-agent')
 ## Consensus Voting (Celo)
 
 ```ts
-import { ConsensusVotingManager } from '@calebux/agent-kit'
+import { ConsensusVotingManager } from '@calagent/agent-kit'
 
 const voting = new ConsensusVotingManager(
   process.env.CELO_CONSENSUS_VOTING_ADDRESS!,
@@ -168,7 +347,7 @@ const { outputHash, voteCount, finalized } = await voting.getRoundResult(roundId
 ## Task Escrow (Celo)
 
 ```ts
-import { TaskEscrowManager } from '@calebux/agent-kit'
+import { TaskEscrowManager } from '@calagent/agent-kit'
 
 const escrow = new TaskEscrowManager(
   process.env.CELO_TASK_ESCROW_ADDRESS!,
@@ -201,7 +380,7 @@ const info = await escrow.getEscrow(escrowId)
 ## Agent Delegation
 
 ```ts
-import { delegateTask, createSubOrchestrator } from '@calebux/agent-kit'
+import { delegateTask, createSubOrchestrator } from '@calagent/agent-kit'
 
 // Simple delegation with receipt chain linking
 const delegation = delegateTask('parent-agent', 'child-agent', 'research task', parentRunId)
@@ -224,7 +403,7 @@ console.log(sub.remaining) // 500000n
 ## Agent Credentials (Celo)
 
 ```ts
-import { AgentCredentialManager } from '@calebux/agent-kit'
+import { AgentCredentialManager } from '@calagent/agent-kit'
 
 const creds = new AgentCredentialManager(
   process.env.CELO_CREDENTIALS_ADDRESS!,
@@ -255,7 +434,7 @@ import {
   createDefaultTrustProviders,
   CeloIdentityRegistry,
   AgentStakingManager,
-} from '@calebux/agent-kit'
+} from '@calagent/agent-kit'
 
 const registry = new CeloIdentityRegistry(/* ... */)
 const staking = new AgentStakingManager(/* ... */)
@@ -271,7 +450,7 @@ const result = await calculateTrustScore('scout', providers)
 ## Capability Routing (Agent DNS)
 
 ```ts
-import { AgentRouter } from '@calebux/agent-kit'
+import { AgentRouter } from '@calagent/agent-kit'
 
 const router = new AgentRouter({
   localManifests: manifests,
@@ -291,7 +470,7 @@ const { agent, response } = await router.routeByCapability('web-research', 'Celo
 ## Human Approval Gateway
 
 ```ts
-import { ApprovalGateway, approvalMiddleware, ApprovalRequiredError } from '@calebux/agent-kit'
+import { ApprovalGateway, approvalMiddleware, ApprovalRequiredError } from '@calagent/agent-kit'
 
 const gateway = new ApprovalGateway()
 const check = approvalMiddleware(gateway, 1_000000n) // threshold
@@ -313,7 +492,7 @@ try {
 Full Stellar/Soroban support with x402 payments in XLM:
 
 ```ts
-import { defineAgent, createOrchestrator } from '@calebux/agent-kit'
+import { defineAgent, createOrchestrator } from '@calagent/agent-kit'
 
 const researcher = defineAgent({
   id: 'researcher',
@@ -355,7 +534,7 @@ import {
   signRunReceipt,
   computeReceiptHash,
   verifyRunReceipt,
-} from '@calebux/agent-kit'
+} from '@calagent/agent-kit'
 
 // Create a receipt from an orchestrator report
 const receipt = createRunReceipt(orchestratorReport, {
@@ -388,7 +567,7 @@ import {
   createAgentManifest,
   computeAgentManifestHash,
   discoverAgents,
-} from '@calebux/agent-kit'
+} from '@calagent/agent-kit'
 
 const manifest = createAgentManifest(agent, {
   walletAddress: 'G...',
@@ -438,7 +617,7 @@ import {
   agentToAgentPayment,
   ShieldContract,
   IdentityRegistry,
-} from '@calebux/agent-kit'
+} from '@calagent/agent-kit'
 
 // x402 payment helper (probe → pay → retry)
 const { data, paymentMode } = await payAndFetch('https://api.example.com/data', keypair, txHashes)
@@ -468,7 +647,7 @@ const score = await registry.getReputation('my-agent')
 Schedule recurring agent tasks with `createAutomation()`:
 
 ```ts
-import { createAutomation } from '@calebux/agent-kit'
+import { createAutomation } from '@calagent/agent-kit'
 
 const automation = createAutomation({
   agent: 'celo-defi',
@@ -488,7 +667,7 @@ automation.start()
 Cal-AgentKit is chain-agnostic. The same agent definitions, manifests, and receipts work across every supported chain — and across independently deployed instances.
 
 ```ts
-import { selectChain, PeerRegistry, routeToPeer } from '@calebux/agent-kit'
+import { selectChain, PeerRegistry, routeToPeer } from '@calagent/agent-kit'
 
 // Route payments to any supported chain
 const chain = selectChain('celo')   // or 'stellar', 'base'
@@ -519,8 +698,8 @@ const result = await routeToPeer(peers, {
 
 | Contract | Address |
 |---|---|
-| AegisCeloRegistry | `0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C` |
-| AegisCeloPolicy | `0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c` |
+| CalagentCeloRegistry | `0x34BdE9da696fCAc92DF24f0631bcf7C41dB8A19C` |
+| CalagentCeloPolicy | `0xF1aCE070B7265094c24e276671a72Af4B3Fa1A0c` |
 | Erc8004Adapter | _(deployed via `deploy.sh`)_ |
 | AgentStaking | _(deployed via `deploy.sh`)_ |
 | ConsensusVoting | _(deployed via `deploy.sh`)_ |
@@ -541,8 +720,8 @@ const result = await routeToPeer(peers, {
 | `REGISTRY_CONTRACT_ID` | Stellar | Identity Registry address |
 | `ORCHESTRATOR_SECRET_KEY` | Stellar | Admin keypair for on-chain registration |
 | `CELO_RPC_URL` | Celo | Celo JSON-RPC endpoint (default: `https://forno.celo.org`) |
-| `CELO_REGISTRY_ADDRESS` | Celo | AegisCeloRegistry contract address |
-| `CELO_POLICY_ADDRESS` | Celo | AegisCeloPolicy contract address |
+| `CELO_REGISTRY_ADDRESS` | Celo | CalagentCeloRegistry contract address |
+| `CELO_POLICY_ADDRESS` | Celo | CalagentCeloPolicy contract address |
 | `CELO_DEPLOYER_PRIVATE_KEY` | Celo | Admin key for registry/policy writes |
 | `CALAGENT_CELO_NETWORK` | Celo | `mainnet` or `alfajores` |
 | `ERC8004_ADAPTER_ADDRESS` | Celo | Erc8004Adapter bridge contract address |
@@ -558,7 +737,7 @@ All contract options are optional — omit them to run in dev mode with no on-ch
 
 ## Reference implementation
 
-[Aegis](https://github.com/Calebux/Aegis) is the full reference implementation: five specialized agents per chain (Scout, Ledger, Signal, Scribe, Notary), live x402 payment servers, agent-to-agent payments, verifiable run receipts, and a Next.js dashboard — all built on `@calebux/agent-kit`.
+[CAL-AGENTKIT](https://github.com/Calagent/CAL-AGENTKIT) is the full reference implementation: five specialized agents per chain (Scout, Ledger, Signal, Scribe, Notary), live x402 payment servers, agent-to-agent payments, verifiable run receipts, and a Next.js dashboard — all built on `@calagent/agent-kit`.
 
 ---
 

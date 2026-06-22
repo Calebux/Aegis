@@ -9,12 +9,12 @@ const FEATURES = [
   },
   {
     title: "On-Chain Reputation",
-    desc: "AegisCeloRegistry tracks agent trust scores after every pipeline run. Route tasks by reputation tier.",
+    desc: "CalagentCeloRegistry tracks agent trust scores after every pipeline run. Route tasks by reputation tier.",
     icon: "\u2605",
   },
   {
     title: "Spend Policies",
-    desc: "AegisCeloPolicy enforces per-agent spend caps and session limits at the contract level.",
+    desc: "CalagentCeloPolicy enforces per-agent spend caps and session limits at the contract level.",
     icon: "\u229B",
   },
   {
@@ -87,6 +87,16 @@ const FEATURES = [
     desc: "Human-in-the-loop approval for high-value operations. Configurable thresholds enforce oversight before spend.",
     icon: "\u270B",
   },
+  {
+    title: "Agent Memory",
+    desc: "Persistent knowledge graph memory via gBrain. Agents search past runs, store learned patterns, and build context over time.",
+    icon: "\u29BB",
+  },
+  {
+    title: "Hermes Agent",
+    desc: "Nous Research's autonomous agent with skill-learning loop. Grows more capable with every task \u2014 plugs directly into pipelines.",
+    icon: "\u26A1",
+  },
 ];
 
 const USE_CASES = [
@@ -154,18 +164,26 @@ const USE_CASES = [
     title: "Federated Agent Discovery",
     desc: "Discover agents across multiple Cal-AgentKit instances. Capability routing + trust scores enable secure cross-org agent collaboration.",
   },
+  {
+    title: "Memory-Augmented Research",
+    desc: "Agents recall past research before starting new tasks. Each run is informed by everything that came before.",
+  },
+  {
+    title: "Hermes Skill Learning",
+    desc: "Hermes agents write reusable skills after completing tasks. Plug them into Cal-AgentKit pipelines for compounding capability.",
+  },
 ];
 
 const FOOTER_LINKS = {
   Product: [
-    { label: "Live Demo", href: "/dashboard" },
+    { label: "Calagent-Ultra API", href: "/dashboard" },
     { label: "Agent Registry", href: "/agents" },
     { label: "Receipts", href: "/receipts" },
   ],
   Developers: [
-    { label: "GitHub", href: "https://github.com/calebcauthon/agent-kit" },
-    { label: "npm", href: "https://www.npmjs.com/package/@calebux/agent-kit" },
-    { label: "Documentation", href: "https://github.com/calebcauthon/agent-kit#readme" },
+    { label: "GitHub", href: "https://github.com/Calagent/CAL-AGENTKIT" },
+    { label: "npm", href: "https://www.npmjs.com/package/@calagent/agent-kit" },
+    { label: "Documentation", href: "https://github.com/Calagent/CAL-AGENTKIT#readme" },
   ],
   Ecosystem: [
     { label: "Celo", href: "https://celo.org" },
@@ -180,71 +198,145 @@ export default function LandingPage() {
       {/* ── Nav ──────────────────────────────────────────────────── */}
       <nav className="landing-nav">
         <div className="landing-nav-inner">
-          <span className="landing-logo">CAL-AGENTKIT</span>
+          <span className="landing-logo"><img src="/logo.svg" alt="Cal-AgentKit" className="landing-logo-img" />CAL-AGENTKIT</span>
           <div className="landing-nav-links">
-            <a href="https://github.com/calebcauthon/agent-kit" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/Calagent/CAL-AGENTKIT" target="_blank" rel="noopener noreferrer">
               GitHub
             </a>
-            <a href="https://www.npmjs.com/package/@calebux/agent-kit" target="_blank" rel="noopener noreferrer">
+            <a href="https://www.npmjs.com/package/@calagent/agent-kit" target="_blank" rel="noopener noreferrer">
               npm
             </a>
             <Link href="/agents">Agents</Link>
             <Link href="/dashboard" className="landing-nav-cta">
-              Try Demo
+              Try Calagent-Ultra
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* ── Hero ─────────────────────────────────────────────────── */}
+      {/* ── Hero ───────────────────────────────────────────────── */}
       <section className="landing-hero">
         <div className="landing-container">
+          <p className="landing-hero-eyebrow">OPEN-SOURCE · VERIFIABLE · SELF-HOSTED</p>
           <h1 className="landing-hero-title">
-            The economic layer for autonomous agents
+            The orchestration framework you can verify
           </h1>
           <p className="landing-hero-subtitle">
-            Open-source economic infrastructure for autonomous agents on <span className="landing-celo-yellow">Celo</span> — identity,
-            reputation, payments, governance, discovery, coordination, and audit. All on-chain.
+            Cal-AgentKit routes your prompt to a team of specialized agents, powered by
+            <span className="landing-celo-yellow"> any LLM you choose</span> via OpenRouter.
+            Every response is cryptographically receipted on <span className="landing-celo-yellow">Celo</span>.
+            Bring your own models. Set your own pricing. Stay in control.
           </p>
           <div className="landing-hero-ctas">
-            <a
-              href="https://github.com/calebcauthon/agent-kit"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="landing-btn landing-btn-outline"
-            >
-              View on GitHub
+            <a href="https://github.com/Calebux/CAL-AGENTKIT" target="_blank" rel="noopener noreferrer" className="landing-btn landing-btn-outline">
+              View Source
             </a>
             <Link href="/dashboard" className="landing-btn landing-btn-primary">
-              Try Demo
+              Try Calagent-Ultra
             </Link>
           </div>
-          <CopyTerminal command="npm install @calebux/agent-kit" />
+          <CopyTerminal command="npm install @calagent/agent-kit" />
         </div>
       </section>
 
-      {/* ── Layers ──────────────────────────────────────────────── */}
+      {/* ── How It Works ──────────────────────────────────────── */}
       <section className="landing-section landing-section-alt">
         <div className="landing-container">
-          <h2 className="landing-section-title">Seven infrastructure layers</h2>
+          <h2 className="landing-section-title">How Calagent-Ultra Works</h2>
           <p className="landing-section-subtitle">
-            Everything agents need to operate as autonomous, accountable participants in a multi-agent economy.
+            One API call. A team of agents. Verifiable results.
+          </p>
+          <div className="landing-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+            {[
+              { step: "1", title: "You Send a Prompt", desc: "Standard OpenAI-compatible API. POST to /v1/chat/completions with model: calagent-ultra." },
+              { step: "2", title: "x402 Payment", desc: "The endpoint returns 402 Payment Required. CalagentClient auto-pays on Celo and retries. You set the price." },
+              { step: "3", title: "Reactive Orchestration", desc: "Scout gathers data, Ledger reads on-chain metrics, Signal identifies patterns. Each step adapts to what the last one found." },
+              { step: "4", title: "Verified Response", desc: "Scribe synthesizes everything. You get the answer + a cryptographic receipt hash + the on-chain attestation tx." },
+            ].map((s) => (
+              <div key={s.step} className="landing-card landing-card--dark">
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#FCFF52', display: 'block', marginBottom: '0.5rem' }}>{s.step}</span>
+                <h3>{s.title}</h3>
+                <p>{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Infrastructure Layers ─────────────────────────────── */}
+      <section className="landing-section">
+        <div className="landing-container">
+          <h2 className="landing-section-title">Powered by Eight Infrastructure Layers</h2>
+          <p className="landing-section-subtitle">
+            The open-source economic stack behind the orchestration model.
           </p>
           <div className="landing-grid">
             {[
               { layer: "Identity", desc: "On-chain agent registration, manifest hashes, ERC-8004 NFTs, Self Protocol verification" },
               { layer: "Reputation", desc: "Live trust scores from task completion, staking, and consensus — updated after every run" },
-              { layer: "Payments", desc: "x402 micropayments, agent-to-agent USDm/XLM transfers, multi-chain settlement" },
+              { layer: "Payments", desc: "x402 micropayments, agent-to-agent cUSD transfers, multi-chain settlement" },
               { layer: "Governance", desc: "Spend caps, session policies, human approval gates, scoped credentials" },
               { layer: "Discovery", desc: "Capability-based routing, federated peer registry, trust-ranked agent DNS" },
-              { layer: "Coordination", desc: "Task orchestration, delegation with linked receipts, consensus voting" },
+              { layer: "Coordination", desc: "Reactive orchestration, delegation with linked receipts, consensus voting" },
+              { layer: "Memory", desc: "Persistent knowledge graph via gBrain. Agents recall past runs and build compounding context" },
               { layer: "Audit", desc: "SHA-256 hashed receipts, Ed25519 signatures, on-chain attestation, escrow with conditional release" },
             ].map((l) => (
-              <div key={l.layer} className="landing-card">
+              <div key={l.layer} className="landing-card landing-card--dark">
                 <h3>{l.layer}</h3>
                 <p>{l.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Calagent-Ultra API ─────────────────────────────────────── */}
+      <section className="landing-section landing-section-alt">
+        <div className="landing-container">
+          <h2 className="landing-section-title">Calagent-Ultra API</h2>
+          <p className="landing-section-subtitle">
+            A drop-in orchestration model with OpenAI-compatible API.
+            Plug in your own models, set your own pricing, and verify every output.
+          </p>
+          <div className="landing-mcp-layout" style={{ marginTop: '2rem' }}>
+            <div className="landing-mcp-tools">
+              <div className="landing-mcp-tool" style={{ borderColor: 'var(--celo-yellow)' }}>
+                <h3 style={{ color: 'var(--celo-yellow)', marginBottom: '0.5rem' }}>Collective Intelligence</h3>
+                <p>One API call routes to a team of specialized agents (Scout, Ledger, Signal, Scribe). We use fast models for gathering and frontier models for synthesis.</p>
+              </div>
+              <div className="landing-mcp-tool">
+                <h3 style={{ marginBottom: '0.5rem' }}>Native x402 Micropayments</h3>
+                <p>No API keys or monthly subscriptions needed. The endpoint is entirely permissionless. Your wallet pays the agents directly via the x402 protocol.</p>
+              </div>
+              <div className="landing-mcp-tool">
+                <h3 style={{ marginBottom: '0.5rem' }}>Cryptographic Verifiability</h3>
+                <p>Every response includes an <code>L402</code> receipt and an on-chain attestation hash. You can prove exactly how your answer was derived.</p>
+              </div>
+            </div>
+            <div className="landing-mcp-code">
+              <div className="landing-terminal" style={{ maxWidth: "100%", margin: 0 }}>
+                <div className="landing-terminal-dots">
+                  <span /><span /><span />
+                </div>
+                <code>{`import { CalagentClient } from "@calagent/agent-kit";
+
+// CalagentClient catches the 402 challenge,
+// pays the cUSD invoice on Celo, and retries.
+const client = new CalagentClient({
+  celoPrivateKey: process.env.CELO_PRIVATE_KEY
+});
+
+const response = await client.chat.completions.create({
+  model: "calagent-ultra",
+  messages: [{ role: "user", content: "Analyze the Celo market" }]
+});
+
+console.log(response.choices[0].message.content);
+// response.receiptHash — on-chain verification
+// response.txHash — cUSD payment tx hash
+`}</code>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -337,13 +429,24 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── CTA Section ──────────────────────────────────────────── */}
+      {/* ── CTA Section ──────────────────────────────────────── */}
       <section className="landing-cta-section">
         <div className="landing-container" style={{ textAlign: "center" }}>
-          <CopyTerminal command="npm install @calebux/agent-kit" />
-          <Link href="/dashboard" className="landing-btn landing-btn-dark">
-            Try the live demo
-          </Link>
+          <h2 style={{ color: '#fff', fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.75rem' }}>
+            Stop paying for black boxes.
+          </h2>
+          <p style={{ color: '#8b949e', marginBottom: '2rem', maxWidth: 500, margin: '0 auto 2rem' }}>
+            Verify every output. Choose your own models. Self-host and own your infrastructure.
+          </p>
+          <CopyTerminal command="npm install @calagent/agent-kit" />
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '1.5rem' }}>
+            <a href="https://github.com/Calebux/CAL-AGENTKIT" target="_blank" rel="noopener noreferrer" className="landing-btn landing-btn-outline">
+              View Source
+            </a>
+            <Link href="/dashboard" className="landing-btn landing-btn-dark">
+              Try Calagent-Ultra
+            </Link>
+          </div>
         </div>
       </section>
 

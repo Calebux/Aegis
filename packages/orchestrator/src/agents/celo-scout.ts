@@ -9,8 +9,8 @@
 import { LinkupClient } from "linkup-sdk";
 import Anthropic from "@anthropic-ai/sdk";
 import type { Account } from "viem";
-import { CeloIdentityRegistry } from "@calebux/agent-kit";
-import type { LLMProvider } from "@calebux/agent-kit";
+import { CeloIdentityRegistry } from "@calagent/agent-kit";
+import type { LLMProvider } from "@calagent/agent-kit";
 import { bus } from "../lib/bus.js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────

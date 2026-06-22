@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-/// @title AegisCeloPolicy
+/// @title CalagentCeloPolicy
 /// @notice Minimal Celo spend policy contract for agent execution.
-contract AegisCeloPolicy {
+contract CalagentCeloPolicy {
     struct Policy {
         uint256 maxSpendPerTask;
         uint256 maxSpendPerSession;

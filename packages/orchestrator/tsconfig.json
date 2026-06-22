@@ -14,7 +14,7 @@
     "skipLibCheck": true,
     "paths": {
       "@calagent/shared": ["../shared/src/index.ts"],
-      "@calebux/agent-kit": ["../agent-kit/src/index.ts"]
+      "@calagent/agent-kit": ["../agent-kit/src/index.ts"]
     }
   },
   "include": ["src"],

@@ -1,5 +1,5 @@
 {
-  "name": "@calebux/calagent-chain-celo",
+  "name": "@calagent/calagent-chain-celo",
   "version": "0.1.0",
   "description": "Celo adapter constants and manifest helpers for Cal-AgentKit agent infrastructure",
   "license": "MIT",
@@ -19,7 +19,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@calebux/agent-kit": "*",
+    "@calagent/agent-kit": "*",
     "viem": "^2.0.0"
   },
   "devDependencies": {

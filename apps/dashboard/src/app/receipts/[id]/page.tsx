@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { verifyRunReceipt } from "@calebux/agent-kit";
+import { verifyRunReceipt } from "@calagent/agent-kit";
 import { RunReceiptPanel } from "@/components/RunReceiptPanel";
 import { receipts, tasks } from "@/lib/taskStore";
 
