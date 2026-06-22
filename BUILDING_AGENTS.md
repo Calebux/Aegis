@@ -1,6 +1,6 @@
-# Building Agents with @calebux/agent-kit
+# Building Agents with @calagent/agent-kit
 
-`@calebux/agent-kit` is the governed multi-agent framework extracted from Cal-AgentKit.
+`@calagent/agent-kit` is the governed multi-agent framework extracted from Cal-AgentKit.
 It handles the infrastructure so you can focus on agent logic:
 
 - Each agent gets a **fresh Stellar testnet wallet**, auto-funded via Friendbot
@@ -13,17 +13,17 @@ It handles the infrastructure so you can focus on agent logic:
 ## Install
 
 ```bash
-npm install @calebux/agent-kit
+npm install @calagent/agent-kit
 ```
 
-Or inside this monorepo, add `"@calebux/agent-kit": "*"` to your `package.json`.
+Or inside this monorepo, add `"@calagent/agent-kit": "*"` to your `package.json`.
 
 ---
 
 ## Minimal example
 
 ```ts
-import { defineAgent, createOrchestrator } from '@calebux/agent-kit'
+import { defineAgent, createOrchestrator } from '@calagent/agent-kit'
 
 // 1. Define your agents
 const researcher = defineAgent({
@@ -92,7 +92,7 @@ import {
   createAgentManifest,
   createAgentManifests,
   discoverAgents,
-} from '@calebux/agent-kit'
+} from '@calagent/agent-kit'
 
 const manifest = createAgentManifest(researcher, {
   walletAddress: 'G...',
@@ -128,7 +128,7 @@ provisioned, with wallet addresses attached.
 
 ```ts
 import Anthropic from '@anthropic-ai/sdk'
-import { defineAgent, createOrchestrator } from '@calebux/agent-kit'
+import { defineAgent, createOrchestrator } from '@calagent/agent-kit'
 
 const anthropic = new Anthropic()
 
@@ -218,7 +218,7 @@ import {
   agentToAgentPayment,
   ShieldContract,
   IdentityRegistry,
-} from '@calebux/agent-kit'
+} from '@calagent/agent-kit'
 import { SorobanRpc, Keypair } from '@stellar/stellar-sdk'
 
 // x402 payment
@@ -263,19 +263,19 @@ bash contracts/deploy.sh
 
 ## Building Celo agents
 
-`@calebux/agent-kit` includes first-class Celo support using viem and the
-AegisCeloRegistry / AegisCeloPolicy contracts deployed on Celo mainnet.
+`@calagent/agent-kit` includes first-class Celo support using viem and the
+CalagentCeloRegistry / CalagentCeloPolicy contracts deployed on Celo mainnet.
 
 ### Install
 
 ```bash
-npm install @calebux/agent-kit viem
+npm install @calagent/agent-kit viem
 ```
 
 ### Celo agent with USDm x402 payments
 
 ```ts
-import { payAndFetchCelo, celoAgentToAgentPayment } from '@calebux/agent-kit'
+import { payAndFetchCelo, celoAgentToAgentPayment } from '@calagent/agent-kit'
 import { privateKeyToAccount, generatePrivateKey } from 'viem/accounts'
 
 // Load or generate an EVM wallet
@@ -298,10 +298,10 @@ await celoAgentToAgentPayment(account, '0xRecipientAddress', '0.001')
 ### On-chain identity and reputation (Celo)
 
 ```ts
-import { CeloIdentityRegistry, CeloPolicyManager } from '@calebux/agent-kit'
+import { CeloIdentityRegistry, CeloPolicyManager } from '@calagent/agent-kit'
 
 const registry = new CeloIdentityRegistry(
-  process.env.CELO_REGISTRY_ADDRESS!,    // AegisCeloRegistry on Celo mainnet
+  process.env.CELO_REGISTRY_ADDRESS!,    // CalagentCeloRegistry on Celo mainnet
   process.env.CELO_DEPLOYER_PRIVATE_KEY!
 )
 
@@ -342,6 +342,6 @@ const allowed = await policy.authorizeSpend('my-agent', BigInt('100000'), 'USDm'
 ## Cal-AgentKit is the reference implementation
 
 The Cal-AgentKit orchestrator (`packages/orchestrator`) is built entirely on top of
-`@calebux/agent-kit`. If you want to see a full real-world example with four
+`@calagent/agent-kit`. If you want to see a full real-world example with four
 specialized agents (Scout, Ledger, Signal, Scribe), x402 dual-role
 (provider + consumer), and a live Next.js dashboard, read the source there.

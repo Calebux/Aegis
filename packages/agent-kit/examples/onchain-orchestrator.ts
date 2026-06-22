@@ -20,7 +20,7 @@ import {
   createCeloOrchestrator,
   createMemoryProvider,
   createRunReceipt,
-} from "@calebux/agent-kit";
+} from "@calagent/agent-kit";
 
 // ── Define agents ────────────────────────────────────────────────────────────
 

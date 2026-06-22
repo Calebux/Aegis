@@ -6,7 +6,7 @@
  */
 import { createPublicClient, http, formatEther, parseEther } from "viem";
 import { celo } from "viem/chains";
-import { defineAgent, createAutomation } from "@calebux/agent-kit";
+import { defineAgent, createAutomation } from "@calagent/agent-kit";
 
 const WHALE_THRESHOLD = parseEther("10000"); // 10k CELO
 const BLOCKS_TO_SCAN = 20;

@@ -24,9 +24,9 @@ import type { MemoryProvider } from "./memory.js";
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface CeloOrchestratorOptions {
-  /** AegisCeloRegistry contract address */
+  /** CalagentCeloRegistry contract address */
   registryAddress?: string;
-  /** AegisCeloPolicy contract address */
+  /** CalagentCeloPolicy contract address */
   policyAddress?: string;
   /** Admin private key for on-chain registration (hex, with or without 0x) */
   adminPrivateKey?: string;

@@ -13,7 +13,7 @@ policy controls, on-chain reputation, verifiable outputs, and MCP tooling.
 - `/agents` - visual agent registry.
 - `/receipts` - visual index of verifiable run receipts.
 - `/receipts/:id` - public proof page for one Cal-AgentKit run.
-- `@calebux/agent-kit` - SDK for governed Stellar agents.
+- `@calagent/agent-kit` - SDK for governed Stellar agents.
 - `calagent-mcp-stellar` - MCP server for Stellar agent discovery.
 - Shield Contract - Soroban spend policy enforcement.
 - Identity Registry - on-chain agent identity and reputation.

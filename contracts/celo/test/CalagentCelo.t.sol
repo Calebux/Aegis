@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "../src/AegisCeloRegistry.sol";
-import "../src/AegisCeloPolicy.sol";
+import "../src/CalagentCeloRegistry.sol";
+import "../src/CalagentCeloPolicy.sol";
 
-contract AegisCeloTest {
-    AegisCeloRegistry private registry;
-    AegisCeloPolicy private policy;
+contract CalagentCeloTest {
+    CalagentCeloRegistry private registry;
+    CalagentCeloPolicy private policy;
 
     function setUp() public {
-        registry = new AegisCeloRegistry(address(this));
-        policy = new AegisCeloPolicy(address(this));
+        registry = new CalagentCeloRegistry(address(this));
+        policy = new CalagentCeloPolicy(address(this));
     }
 
     function testRegistryLifecycle() public {
@@ -18,7 +18,7 @@ contract AegisCeloTest {
 
         registry.registerAgent("celo-ledger", "Celo Ledger", "celo", manifestHash);
 
-        AegisCeloRegistry.AgentIdentity memory agent = registry.getAgent("celo-ledger");
+        CalagentCeloRegistry.AgentIdentity memory agent = registry.getAgent("celo-ledger");
         require(agent.registered, "agent not registered");
         require(agent.manifestHash == manifestHash, "manifest hash mismatch");
         require(agent.reputation == 0, "initial reputation mismatch");

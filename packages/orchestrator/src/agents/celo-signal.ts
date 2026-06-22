@@ -8,7 +8,7 @@
  */
 
 import type { Account } from "viem";
-import { payAndFetchCelo } from "@calebux/agent-kit";
+import { payAndFetchCelo } from "@calagent/agent-kit";
 import { bus, type AgentMessage } from "../lib/bus.js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────

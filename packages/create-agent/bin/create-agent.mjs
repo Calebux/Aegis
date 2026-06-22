@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * create-agent — Scaffold an AI agent project with @calebux/agent-kit.
+ * create-agent — Scaffold an AI agent project with @calagent/agent-kit.
  *
  * Usage:
  *   npx create-agent my-agent
@@ -74,7 +74,7 @@ const pkg = {
     dev: "npx tsx --watch src/index.ts",
   },
   dependencies: {
-    "@calebux/agent-kit": "^0.6.0",
+    "@calagent/agent-kit": "^0.6.0",
   },
 };
 
@@ -146,7 +146,7 @@ writeFileSync(
   join(projectDir, "AGENTS.md"),
   `# ${projectName}
 
-AI agent built with [@calebux/agent-kit](https://www.npmjs.com/package/@calebux/agent-kit).
+AI agent built with [@calagent/agent-kit](https://www.npmjs.com/package/@calagent/agent-kit).
 
 ## Quick start
 
@@ -205,7 +205,7 @@ import {
   webFetchTool,
   fileWriteTool,
   defineTool,
-} from "@calebux/agent-kit";
+} from "@calagent/agent-kit";
 
 // Memory persists between runs
 const memory = createMemoryProvider({
@@ -260,7 +260,7 @@ const STELLAR_TEMPLATE = `/**
  */
 
 import { EventEmitter } from "events";
-import { defineAgent, createOrchestrator, createMemoryProvider } from "@calebux/agent-kit";
+import { defineAgent, createOrchestrator, createMemoryProvider } from "@calagent/agent-kit";
 
 const memory = createMemoryProvider({ type: "file", filePath: "./.agent-memory/data.json" });
 
@@ -299,7 +299,7 @@ const CELO_TEMPLATE = `/**
  */
 
 import { EventEmitter } from "events";
-import { defineAgent, createCeloOrchestrator, createMemoryProvider } from "@calebux/agent-kit";
+import { defineAgent, createCeloOrchestrator, createMemoryProvider } from "@calagent/agent-kit";
 
 const memory = createMemoryProvider({ type: "file", filePath: "./.agent-memory/data.json" });
 

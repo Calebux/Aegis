@@ -24,7 +24,7 @@ import {
   type RunReceipt,
   type LLMProvider,
   type LLMProviderConfig,
-} from "@calebux/agent-kit";
+} from "@calagent/agent-kit";
 import {
   tasks,
   emitters,

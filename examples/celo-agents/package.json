@@ -11,7 +11,7 @@
     "cli": "tsx src/cli.ts"
   },
   "dependencies": {
-    "@calebux/agent-kit": "file:../../packages/agent-kit",
+    "@calagent/agent-kit": "file:../../packages/agent-kit",
     "express": "^4.21.0",
     "viem": "^2.21.0"
   },

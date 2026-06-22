@@ -16,7 +16,7 @@ import {
   grepTool,
   defineTool,
   toOpenAIFunctions,
-} from "@calebux/agent-kit";
+} from "@calagent/agent-kit";
 
 // ── Tools ────────────────────────────────────────────────────────────────────
 

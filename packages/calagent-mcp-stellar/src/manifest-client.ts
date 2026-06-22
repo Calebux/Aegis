@@ -2,7 +2,7 @@ import {
   discoverAgents,
   type AgentDiscoveryQuery,
   type AgentManifest,
-} from "@calebux/agent-kit";
+} from "@calagent/agent-kit";
 
 export interface AgentListResponse {
   count: number;

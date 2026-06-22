@@ -1,6 +1,6 @@
-# Aegis Agentic Infrastructure Roadmap
+# Calagent Agentic Infrastructure Roadmap
 
-Aegis should be positioned as the agent execution and trust layer for Stellar:
+Calagent should be positioned as the agent execution and trust layer for Stellar:
 wallets, policies, payments, identity, reputation, and verifiable agent actions.
 
 The goal is to move from a strong hackathon demo to infrastructure that other
@@ -15,7 +15,7 @@ AI agents need four things before they can safely operate on Stellar:
 - A discovery layer for finding trusted agents and paid services.
 - A verification layer for proving who produced an output and what it cost.
 
-Aegis already has early versions of these pieces through agent wallets, x402
+Calagent already has early versions of these pieces through agent wallets, x402
 payments, the Shield Contract, the Identity Registry, signed outputs, and the
 dashboard. The next phase is to standardize those pieces into reusable APIs.
 
@@ -28,7 +28,7 @@ Do not lead with "multi-agent research dashboard." Lead with:
 The dashboard remains the reference application, but the product is the
 infrastructure:
 
-- `@calebux/agent-kit` for developers embedding governed agents.
+- `@calagent/agent-kit` for developers embedding governed agents.
 - Agent manifests for discovery and payment metadata.
 - Soroban contracts for spend policies, identity, reputation, and attestations.
 - MCP tools for AI assistants and agents to discover, pay, run, and verify
@@ -86,7 +86,7 @@ Priority:
 x402 is ideal for request-level payment. MPP is better for long-running or
 high-frequency sessions.
 
-Aegis should support:
+Calagent should support:
 
 - `openSession`.
 - `authorizeSessionBudget`.
@@ -97,13 +97,13 @@ Aegis should support:
 ### 5. MCP Server
 
 Build `calagent-mcp-stellar` so agent runtimes and AI coding assistants can use
-Aegis directly.
+Calagent directly.
 
 Implemented tools:
 
 - `discover_agents`
 - `get_agent_manifest`
-- `aegis_agents_endpoint`
+- `calagent_agents_endpoint`
 - `run_agent_task`
 - `call_external_agent`
 - `get_task_status`
@@ -142,7 +142,7 @@ under a specific budget.
 The strongest demo is a Stellar DeFi copilot:
 
 1. User grants a USDC budget.
-2. Aegis discovers trusted agents.
+2. Calagent discovers trusted agents.
 3. Reputation and policy checks run.
 4. Agents query paid data sources using x402 or MPP.
 5. Outputs are signed and summarized.

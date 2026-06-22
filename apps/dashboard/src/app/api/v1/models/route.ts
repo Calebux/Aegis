@@ -3,21 +3,21 @@ import { NextResponse } from "next/server";
 export async function GET() {
   const models = [
     {
-      id: "aegis-base",
+      id: "calagent-base",
       object: "model",
       created: 1715367400,
       owned_by: "calagentkit",
       permission: [],
-      root: "aegis-base",
+      root: "calagent-base",
       parent: null,
     },
     {
-      id: "aegis-ultra",
+      id: "calagent-ultra",
       object: "model",
       created: 1715367400,
       owned_by: "calagentkit",
       permission: [],
-      root: "aegis-ultra",
+      root: "calagent-ultra",
       parent: null,
     },
   ];

@@ -1,10 +1,10 @@
-# @calebux/agent-kit — AI Agent Infrastructure SDK
+# @calagent/agent-kit — AI Agent Infrastructure SDK
 
 > Use this guide when helping developers build AI agents with memory, loops, tools, orchestration, or on-chain capabilities.
 
 ## What this package does
 
-`@calebux/agent-kit` is a TypeScript SDK for building AI agents that:
+`@calagent/agent-kit` is a TypeScript SDK for building AI agents that:
 - **Remember** — persistent memory via Obsidian/markdown vaults, JSON files, or gBrain knowledge graphs
 - **Reason autonomously** — think→act→observe agentic loops with configurable LLMs and tool-use
 - **Use tools** — built-in tools (web fetch, file I/O, shell, grep) plus a `defineTool()` API for custom tools
@@ -15,7 +15,7 @@
 ## Install
 
 ```bash
-npm install @calebux/agent-kit
+npm install @calagent/agent-kit
 ```
 
 ## Quick patterns
@@ -23,7 +23,7 @@ npm install @calebux/agent-kit
 ### Off-chain agent with memory (no blockchain needed)
 
 ```ts
-import { createAgentLoop, createMemoryProvider, webFetchTool, defineTool } from '@calebux/agent-kit'
+import { createAgentLoop, createMemoryProvider, webFetchTool, defineTool } from '@calagent/agent-kit'
 
 const memory = createMemoryProvider({ type: 'markdown', vaultPath: './vault' })
 
@@ -55,7 +55,7 @@ const myTool = defineTool({
 ### OpenAI function-calling format
 
 ```ts
-import { toOpenAIFunctions, webFetchTool, fileWriteTool } from '@calebux/agent-kit'
+import { toOpenAIFunctions, webFetchTool, fileWriteTool } from '@calagent/agent-kit'
 
 const functions = toOpenAIFunctions([webFetchTool, fileWriteTool])
 // Pass to openai.chat.completions.create({ functions })
@@ -64,7 +64,7 @@ const functions = toOpenAIFunctions([webFetchTool, fileWriteTool])
 ### On-chain orchestrator (Stellar)
 
 ```ts
-import { defineAgent, createOrchestrator } from '@calebux/agent-kit'
+import { defineAgent, createOrchestrator } from '@calagent/agent-kit'
 
 const agent = defineAgent({
   id: 'researcher',
@@ -84,7 +84,7 @@ const { run } = createOrchestrator([agent], {
 ### On-chain orchestrator (Celo)
 
 ```ts
-import { defineAgent, createCeloOrchestrator } from '@calebux/agent-kit'
+import { defineAgent, createCeloOrchestrator } from '@calagent/agent-kit'
 
 const { run } = createCeloOrchestrator([agent], {
   registryAddress: process.env.CELO_REGISTRY_ADDRESS,

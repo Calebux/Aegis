@@ -5,7 +5,6 @@ import {
   buildStellarX402Requirement,
   paymentRequiredResponse,
   verifyAndSettleX402Payment,
-  x402Enforced,
 } from "@/lib/stellarX402";
 import {
   CELO_NETWORK_ID,
@@ -16,23 +15,22 @@ import {
   celoPaymentReceiver,
   celoX402Enforced,
 } from "@/lib/celoX402";
-import { tasks, emitters, persistTasks, receipts, persistReceipts } from "@/lib/taskStore";
+import { tasks, emitters, persistTasks } from "@/lib/taskStore";
 import type { Task } from "@calagent/shared";
-import { createRunReceipt, signRunReceipt, createLLMProvider, type RunReceipt, type OrchestratorReport } from "@calebux/agent-kit";
-import { Keypair } from "@stellar/stellar-sdk";
+import { createLLMProvider, type RunReceipt } from "@calagent/agent-kit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
-  let body: any;
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const model = body.model || "aegis-ultra";
+  const model = body.model || "calagent-ultra";
   const messages = body.messages || [];
   if (!Array.isArray(messages) || messages.length === 0) {
     return NextResponse.json({ error: "messages array is required" }, { status: 400 });
@@ -47,11 +45,11 @@ export async function POST(req: NextRequest) {
   }
 
   // --- x402 Gating ---
-  const displayAmount = "0.05"; // Flat rate 0.05 USDm for Aegis-Ultra per prompt
+  const displayAmount = "0.05"; // Flat rate 0.05 USDm for Calagent-Ultra per prompt
   const requirement = {
     ...buildStellarX402Requirement({
       resource: `${req.nextUrl.origin}/api/v1/chat/completions`,
-      description: `Aegis Ultra Orchestration Request`,
+      description: `Calagent Ultra Orchestration Request`,
       amount: displayAmount,
       payTo: celoPaymentReceiver(),
     }),
@@ -62,7 +60,7 @@ export async function POST(req: NextRequest) {
     displayAmount,
     amount: celoAmountToBaseUnits(displayAmount),
     payTo: celoPaymentReceiver(),
-    description: `Aegis Ultra Orchestration Request`,
+    description: `Calagent Ultra Orchestration Request`,
     facilitatorUrl: celoFacilitatorUrl(),
   };
 
@@ -74,7 +72,7 @@ export async function POST(req: NextRequest) {
   const enforced = celoX402Enforced();
 
   if (enforced && !payment.headerPresent) {
-    return paymentRequiredResponse({ requirement, agent: { id: "aegis-ultra" } as any });
+    return paymentRequiredResponse({ requirement, agent: { id: "calagent-ultra" } as never });
   }
 
   if (enforced && payment.headerPresent && !payment.verified) {
@@ -119,7 +117,7 @@ export async function POST(req: NextRequest) {
       finalReceipt = r;
     });
 
-    emitter.once("complete", (payload: any) => {
+    emitter.once("complete", (payload: { spent?: Record<string, number>, report: string, txHashes?: Record<string, string[]> }) => {
       for (const stroops of Object.values(payload.spent || {}) as number[]) {
         totalSpent += stroops;
       }
@@ -138,7 +136,7 @@ export async function POST(req: NextRequest) {
 
   // Resolve which OpenRouter model to use:
   //  1. Caller can pass body.openrouter_model to override (e.g. "anthropic/claude-sonnet-4")
-  //  2. Env vars AEGIS_MODEL_ULTRA / AEGIS_MODEL_BASE set the server default per tier
+  //  2. Env vars CALAGENT_MODEL_ULTRA / CALAGENT_MODEL_BASE set the server default per tier
   //  3. Fallback: deepseek/deepseek-reasoner (ultra) / deepseek/deepseek-chat (base)
   let llmProvider;
   const openrouterKey = process.env.OPENROUTER_API_KEY;
@@ -151,9 +149,9 @@ export async function POST(req: NextRequest) {
   try {
     const callerModel = body.openrouter_model as string | undefined;
     const llmModel = callerModel
-      ?? (model === "aegis-base"
-        ? (process.env.AEGIS_MODEL_BASE ?? "deepseek/deepseek-chat")
-        : (process.env.AEGIS_MODEL_ULTRA ?? "deepseek/deepseek-reasoner"));
+      ?? (model === "calagent-base"
+        ? (process.env.CALAGENT_MODEL_BASE ?? "deepseek/deepseek-chat")
+        : (process.env.CALAGENT_MODEL_ULTRA ?? "deepseek/deepseek-reasoner"));
     llmProvider = createLLMProvider({
       provider: "openrouter",
       apiKey: openrouterKey,
@@ -209,8 +207,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(completionResponse, { headers });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Orchestration failed" }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: (error as Error).message || "Orchestration failed" }, { status: 500 });
   } finally {
     emitters.delete(taskId);
   }

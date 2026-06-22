@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { verifyRunReceipt } from "@calebux/agent-kit";
+import { verifyRunReceipt } from "@calagent/agent-kit";
 import { receiptOutputs, receipts, tasks } from "@/lib/taskStore";
 
 export const dynamic = "force-dynamic";

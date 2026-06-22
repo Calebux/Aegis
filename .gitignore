@@ -8,6 +8,7 @@ target/
 **/.turbo/
 .DS_Store
 *.tsbuildinfo
-.aegis-tasks.json
-.aegis-receipts.json
+.calagent-tasks.json
+.calagent-receipts.json
 packages/orchestrator/output/
+.npmrc

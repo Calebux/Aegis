@@ -1,21 +1,21 @@
 /**
- * AegisClient
+ * CalagentClient
  *
- * A lightweight client wrapper for the Aegis-Ultra API endpoint.
+ * A lightweight client wrapper for the Calagent-Ultra API endpoint.
  * It automatically handles the HTTP 402 Payment Required x402 challenge,
  * pays the Celo cUSD invoice using a viem wallet, and retries the request.
  *
  * @example
  * ```ts
- * import { AegisClient } from "@calebux/agent-kit";
+ * import { CalagentClient } from "@calagent/agent-kit";
  *
- * const client = new AegisClient({
- *   baseURL: "https://your-aegis-instance.com/api/v1",
+ * const client = new CalagentClient({
+ *   baseURL: "https://your-calagent-instance.com/api/v1",
  *   celoPrivateKey: process.env.CELO_PRIVATE_KEY,
  * });
  *
  * const response = await client.chat.completions.create({
- *   model: "aegis-ultra",
+ *   model: "calagent-ultra",
  *   messages: [{ role: "user", content: "Analyze the Celo market" }],
  * });
  * console.log(response.choices[0].message.content);
@@ -28,8 +28,8 @@ import type { Address } from "viem";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export interface AegisClientOptions {
-  /** Base URL of the Aegis API (e.g. "https://cal-agentkit.dev/api/v1") */
+export interface CalagentClientOptions {
+  /** Base URL of the Calagent API (e.g. "https://cal-agentkit.dev/api/v1") */
   baseURL?: string;
   /** Celo private key (hex, with or without 0x prefix) for automatic x402 payments */
   celoPrivateKey?: string;
@@ -37,28 +37,28 @@ export interface AegisClientOptions {
   celoRpcUrl?: string;
 }
 
-export interface AegisChatMessage {
+export interface CalagentChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
 }
 
-export interface AegisChatCompletionRequest {
+export interface CalagentChatCompletionRequest {
   model: string;
-  messages: AegisChatMessage[];
+  messages: CalagentChatMessage[];
 }
 
-export interface AegisChatCompletionChoice {
+export interface CalagentChatCompletionChoice {
   index: number;
   message: { role: string; content: string };
   finish_reason: string;
 }
 
-export interface AegisChatCompletionResponse {
+export interface CalagentChatCompletionResponse {
   id: string;
   object: string;
   created: number;
   model: string;
-  choices: AegisChatCompletionChoice[];
+  choices: CalagentChatCompletionChoice[];
   usage: {
     prompt_tokens: number;
     completion_tokens: number;
@@ -74,12 +74,12 @@ export interface AegisChatCompletionResponse {
 
 // ── Client ────────────────────────────────────────────────────────────────────
 
-export class AegisClient {
+export class CalagentClient {
   public baseURL: string;
   private account?: PrivateKeyAccount;
   private celoRpcUrl?: string;
 
-  constructor(options?: AegisClientOptions) {
+  constructor(options?: CalagentClientOptions) {
     this.baseURL = options?.baseURL ?? "https://cal-agentkit.dev/api/v1";
     this.celoRpcUrl = options?.celoRpcUrl;
 
@@ -94,8 +94,8 @@ export class AegisClient {
   public chat = {
     completions: {
       create: async (
-        body: AegisChatCompletionRequest
-      ): Promise<AegisChatCompletionResponse> => {
+        body: CalagentChatCompletionRequest
+      ): Promise<CalagentChatCompletionResponse> => {
         return this._requestWithX402("/chat/completions", body);
       },
     },
@@ -103,9 +103,9 @@ export class AegisClient {
 
   private async _requestWithX402(
     path: string,
-    body: AegisChatCompletionRequest,
+    body: CalagentChatCompletionRequest,
     paymentHeader?: string
-  ): Promise<AegisChatCompletionResponse> {
+  ): Promise<CalagentChatCompletionResponse> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
@@ -129,7 +129,7 @@ export class AegisClient {
           [
             "402 Payment Required.",
             `Amount: ${challenge.payment?.accepts?.[0]?.extra?.displayAmount ?? "unknown"} cUSD`,
-            "Provide a celoPrivateKey to the AegisClient constructor to auto-pay.",
+            "Provide a celoPrivateKey to the CalagentClient constructor to auto-pay.",
           ].join(" ")
         );
       }
@@ -145,7 +145,7 @@ export class AegisClient {
       }
 
       console.log(
-        `[AegisClient] 402 Payment Required: ${displayAmount} cUSD → ${payTo}. Paying...`
+        `[CalagentClient] 402 Payment Required: ${displayAmount} cUSD → ${payTo}. Paying...`
       );
 
       // Submit real cUSD payment on Celo
@@ -157,7 +157,7 @@ export class AegisClient {
       );
 
       console.log(
-        `[AegisClient] Payment confirmed: ${txHash}. Retrying request...`
+        `[CalagentClient] Payment confirmed: ${txHash}. Retrying request...`
       );
 
       // Retry with payment proof
@@ -166,10 +166,10 @@ export class AegisClient {
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "unknown error");
-      throw new Error(`Aegis API Error ${response.status}: ${errorText}`);
+      throw new Error(`Calagent API Error ${response.status}: ${errorText}`);
     }
 
-    const data = (await response.json()) as AegisChatCompletionResponse;
+    const data = (await response.json()) as CalagentChatCompletionResponse;
 
     // Attach verification headers to the response object
     data.receiptHash =

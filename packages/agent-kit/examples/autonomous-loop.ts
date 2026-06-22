@@ -21,7 +21,7 @@ import {
   shellTool,
   grepTool,
   defineTool,
-} from "@calebux/agent-kit";
+} from "@calagent/agent-kit";
 
 // ── Memory (persists between runs) ───────────────────────────────────────────
 

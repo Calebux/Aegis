@@ -7,7 +7,7 @@
  *
  * @example
  * ```ts
- * import { defineTool, webFetchTool, createToolkit } from '@calebux/agent-kit'
+ * import { defineTool, webFetchTool, createToolkit } from '@calagent/agent-kit'
  *
  * const myTool = defineTool({
  *   name: 'calculate',

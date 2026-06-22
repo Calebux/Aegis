@@ -9,7 +9,7 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
-import type { LLMProvider } from "@calebux/agent-kit";
+import type { LLMProvider } from "@calagent/agent-kit";
 import { bus } from "../lib/bus.js";
 
 // ── System prompt ─────────────────────────────────────────────────────────────

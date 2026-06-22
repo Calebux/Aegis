@@ -1,5 +1,5 @@
 {
-  "name": "@calebux/agent-kit",
+  "name": "@calagent/agent-kit",
   "version": "0.7.0",
   "description": "Infrastructure for autonomous agent economies — identity, reputation, payments, governance, discovery, coordination, and audit on Celo and Stellar. Also works fully off-chain with persistent memory, agentic loops, and tool-use.",
   "keywords": [

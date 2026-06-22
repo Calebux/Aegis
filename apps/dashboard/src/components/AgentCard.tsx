@@ -204,7 +204,7 @@ export function AgentCard({
             <>
               <span style={{ color: "#2a8a3a", marginLeft: 4 }}>⛓{reputationOnChain}</span>
               {" "}
-              <span className="infra-badge" data-tooltip="Live trust score from AegisCeloRegistry">On-Chain</span>
+              <span className="infra-badge" data-tooltip="Live trust score from CalagentCeloRegistry">On-Chain</span>
             </>
           )}
         </span>

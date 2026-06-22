@@ -18,7 +18,7 @@ import {
   fileWriteTool,
   defineTool,
   MarkdownMemoryProvider,
-} from "@calebux/agent-kit";
+} from "@calagent/agent-kit";
 
 // ── 1. Set up Obsidian-style vault memory ────────────────────────────────────
 

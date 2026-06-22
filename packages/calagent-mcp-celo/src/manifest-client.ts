@@ -3,7 +3,7 @@
  * Calls /api/agents?chain=celo to get Celo-specific agent manifests.
  */
 
-import type { AgentManifest, AgentDiscoveryQuery } from "@calebux/agent-kit";
+import type { AgentManifest, AgentDiscoveryQuery } from "@calagent/agent-kit";
 
 const BASE_URL = process.env.CALAGENT_BASE_URL ?? "http://localhost:3000";
 const AGENTS_URL =

@@ -7,7 +7,6 @@ import { NextRequest } from "next/server";
 // ── Input validation ──────────────────────────────────────────────────────────
 
 const MAX_TASK_LENGTH = 4000;
-// eslint-disable-next-line no-control-regex
 const CONTROL_CHAR_RE = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/;
 
 export function validateTaskInput(task: string): { valid: true } | { valid: false; error: string } {

@@ -1,5 +1,5 @@
 /**
- * CeloPolicyManager — SDK wrapper around AegisCeloPolicy on Celo.
+ * CeloPolicyManager — SDK wrapper around CalagentCeloPolicy on Celo.
  *
  * Provides spend-cap enforcement for Celo agents. All write methods
  * require admin-level access (deployer private key).

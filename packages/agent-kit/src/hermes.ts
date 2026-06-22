@@ -31,7 +31,7 @@ interface HermesResponse {
  *
  * @example
  * ```ts
- * import { createHermesAgent, createOrchestrator } from '@calebux/agent-kit'
+ * import { createHermesAgent, createOrchestrator } from '@calagent/agent-kit'
  *
  * const hermes = createHermesAgent({
  *   hermesUrl: 'http://localhost:8080',

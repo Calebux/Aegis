@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { AgentDiscoveryQuery } from "@calebux/agent-kit";
+import type { AgentDiscoveryQuery } from "@calagent/agent-kit";
 import { queryAgentManifests, buildFederatedManifests } from "@/lib/agentRegistry";
 
 export const dynamic = "force-dynamic";

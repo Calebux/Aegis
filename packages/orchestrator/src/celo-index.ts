@@ -6,7 +6,7 @@
  *
  * Pipeline:
  *   1. Load viem Accounts from CELO_*_PRIVATE_KEY env vars (random fallback)
- *   2. Register agents on AegisCeloRegistry
+ *   2. Register agents on CalagentCeloRegistry
  *   3. Wire ConsensusManager (reused — chain-agnostic)
  *   4. Wire CeloSignalAgent, CeloScribeAgent, CeloExecutorAgent
  *   5. Fire CeloScoutAgent + CeloLedgerAgent in parallel
@@ -23,8 +23,8 @@ dotenv.config();
 import { EventEmitter } from "events";
 import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
 import type { Account, Address } from "viem";
-import { CeloIdentityRegistry } from "@calebux/agent-kit";
-import type { OrchestratorReport, LLMProvider } from "@calebux/agent-kit";
+import { CeloIdentityRegistry } from "@calagent/agent-kit";
+import type { OrchestratorReport, LLMProvider } from "@calagent/agent-kit";
 
 import { bus, type AgentMessage, type AgentTopic } from "./lib/bus.js";
 import { ConsensusManager } from "./agents/consensus.js";
@@ -181,13 +181,13 @@ export async function runCeloTask(
     emit("log", { message: `   ${agentId.padEnd(12)} → ${addr}`, level: "info" });
   }
 
-  // ── 2. Register agents on AegisCeloRegistry ────────────────────────────────
+  // ── 2. Register agents on CalagentCeloRegistry ────────────────────────────────
   const registryAddr  = process.env.CELO_REGISTRY_ADDRESS;
   const deployerKey   = process.env.CELO_DEPLOYER_PRIVATE_KEY;
   let registry: CeloIdentityRegistry | null = null;
 
   if (registryAddr && deployerKey) {
-    emit("log", { message: "🛡️  Registering Celo agents on AegisCeloRegistry…", level: "info" });
+    emit("log", { message: "🛡️  Registering Celo agents on CalagentCeloRegistry…", level: "info" });
     try {
       registry = new CeloIdentityRegistry(
         registryAddr,

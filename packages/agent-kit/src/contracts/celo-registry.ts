@@ -1,5 +1,5 @@
 /**
- * CeloIdentityRegistry — SDK wrapper around AegisCeloRegistry on Celo.
+ * CeloIdentityRegistry — SDK wrapper around CalagentCeloRegistry on Celo.
  *
  * Mirrors the Stellar IdentityRegistry but targets the EVM contract
  * via viem. All write methods require `privateKey` (admin key).

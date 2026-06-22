@@ -8,7 +8,7 @@
  */
 
 import type { Account } from "viem";
-import { payAndFetchCelo, CeloIdentityRegistry, CeloPolicyManager } from "@calebux/agent-kit";
+import { payAndFetchCelo, CeloIdentityRegistry, CeloPolicyManager } from "@calagent/agent-kit";
 import { bus } from "../lib/bus.js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────

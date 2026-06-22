@@ -6,7 +6,7 @@
  */
 import { createPublicClient, http, type Address } from "viem";
 import { celo } from "viem/chains";
-import { defineAgent, createAutomation } from "@calebux/agent-kit";
+import { defineAgent, createAutomation } from "@calagent/agent-kit";
 
 // Celo Governance proxy (mainnet)
 const GOVERNANCE_ADDRESS: Address = "0xD533Ca259b330c7A88f74E000a3FaEa2d63B7972";

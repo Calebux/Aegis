@@ -27,7 +27,7 @@ import {
   fetchTaskStatus,
   fetchRunReceipt,
 } from "./manifest-client.js";
-import type { AgentDiscoveryQuery } from "@calebux/agent-kit";
+import type { AgentDiscoveryQuery } from "@calagent/agent-kit";
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 
@@ -128,7 +128,7 @@ const TOOLS: Json[] = [
   {
     name: "get_run_receipt",
     description:
-      "Fetch a Cal-AgentKit Celo run receipt by receiptId. Includes Celo tx hashes and AegisCeloRegistry attestation data.",
+      "Fetch a Cal-AgentKit Celo run receipt by receiptId. Includes Celo tx hashes and CalagentCeloRegistry attestation data.",
     inputSchema: {
       type: "object",
       required: ["receiptId"],
@@ -154,7 +154,7 @@ const TOOLS: Json[] = [
   {
     name: "verify_celo_receipt",
     description:
-      "Verify a Cal-AgentKit Celo run receipt: hash chain integrity + AegisCeloRegistry manifest hash attestation.",
+      "Verify a Cal-AgentKit Celo run receipt: hash chain integrity + CalagentCeloRegistry manifest hash attestation.",
     inputSchema: {
       type: "object",
       required: ["receiptId"],

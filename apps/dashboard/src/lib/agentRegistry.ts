@@ -5,7 +5,7 @@ import {
   type AgentDefinition,
   type AgentDiscoveryQuery,
   type AgentManifest,
-} from "@calebux/agent-kit";
+} from "@calagent/agent-kit";
 import { lastReputation, lastWallets } from "@/lib/taskStore";
 import {
   CALAGENT_CELO_AGENT_PRICE,

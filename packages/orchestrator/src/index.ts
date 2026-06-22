@@ -30,8 +30,8 @@ import {
   createCeloSettlement,
   createBaseSettlement,
   getDefaultChainPreference,
-} from "@calebux/agent-kit";
-import type { OrchestratorReport, SettlementProvider, LLMProvider } from "@calebux/agent-kit";
+} from "@calagent/agent-kit";
+import type { OrchestratorReport, SettlementProvider, LLMProvider } from "@calagent/agent-kit";
 
 import { bus, type AgentMessage, type AgentTopic } from "./lib/bus.js";
 import { generateTaskGraph, graphHasAgent, type TaskGraph } from "./orchestrator/planner.js";

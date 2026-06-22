@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-/// @title AegisCeloRegistry
-/// @notice EVM/Celo counterpart to the Aegis identity registry.
-contract AegisCeloRegistry {
+/// @title CalagentCeloRegistry
+/// @notice EVM/Celo counterpart to the Calagent identity registry.
+contract CalagentCeloRegistry {
     struct AgentIdentity {
         string name;
         string capability;

@@ -6,7 +6,7 @@
  */
 import { createPublicClient, http, formatGwei } from "viem";
 import { celo } from "viem/chains";
-import { defineAgent, createAutomation } from "@calebux/agent-kit";
+import { defineAgent, createAutomation } from "@calagent/agent-kit";
 
 const SPIKE_MULTIPLIER = 2n;
 const WINDOW_SIZE = 10;

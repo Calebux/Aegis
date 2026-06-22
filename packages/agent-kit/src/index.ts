@@ -1,5 +1,5 @@
 /**
- * @calebux/agent-kit
+ * @calagent/agent-kit
  *
  * Infrastructure for autonomous agent economies on Celo and Stellar.
  * Identity, reputation, payments, governance, discovery, coordination,
@@ -7,7 +7,7 @@
  *
  * @example
  * ```ts
- * import { defineAgent, createOrchestrator } from '@calebux/agent-kit'
+ * import { defineAgent, createOrchestrator } from '@calagent/agent-kit'
  *
  * const researcher = defineAgent({
  *   id: 'researcher',
@@ -240,10 +240,10 @@ export type {
 } from "./types.js";
 
 // Client
-export { AegisClient } from "./client.js";
+export { CalagentClient } from "./client.js";
 export type {
-  AegisClientOptions,
-  AegisChatMessage,
-  AegisChatCompletionRequest,
-  AegisChatCompletionResponse,
+  CalagentClientOptions,
+  CalagentChatMessage,
+  CalagentChatCompletionRequest,
+  CalagentChatCompletionResponse,
 } from "./client.js";

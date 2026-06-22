@@ -1,5 +1,5 @@
 /**
- * Celo payment utilities for @calebux/agent-kit.
+ * Celo payment utilities for @calagent/agent-kit.
  *
  * Celo equivalent of payments.ts — uses viem ERC-20 transfer on cUSD
  * rather than Stellar native XLM. Supports x402 probe→pay→retry flow

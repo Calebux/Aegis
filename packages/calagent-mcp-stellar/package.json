@@ -30,7 +30,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@calebux/agent-kit": "*"
+    "@calagent/agent-kit": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

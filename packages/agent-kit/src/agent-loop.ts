@@ -7,7 +7,7 @@
  *
  * @example
  * ```ts
- * import { createAgentLoop, webFetchTool, createMemoryProvider } from '@calebux/agent-kit'
+ * import { createAgentLoop, webFetchTool, createMemoryProvider } from '@calagent/agent-kit'
  *
  * const loop = createAgentLoop({
  *   goal: 'Find the top 3 Celo DeFi protocols by TVL',

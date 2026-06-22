@@ -1,59 +1,59 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Aegis vs Fugu — Why Verifiable Orchestration Wins",
+  title: "Calagent vs Fugu — Why Verifiable Orchestration Wins",
   description:
-    "A technical comparison between Cal-AgentKit's Aegis-Ultra and Sakana AI's Fugu orchestration model. Open vs closed, reactive vs static, transparent vs opaque.",
+    "A technical comparison between Cal-AgentKit's Calagent-Ultra and Sakana AI's Fugu orchestration model. Open vs closed, reactive vs static, transparent vs opaque.",
 };
 
 const COMPARISON_ROWS = [
   {
     dimension: "Architecture",
-    aegis: "Reactive orchestrator — plans at t+1 using results from t. Each agent step informs the next.",
+    calagent: "Reactive orchestrator — plans at t+1 using results from t. Each agent step informs the next.",
     fugu: "Static planner — predicts entire workflow at t=0 before any agent runs. Capped at 5 steps.",
-    verdict: "aegis",
+    verdict: "calagent",
   },
   {
     dimension: "Model Pool",
-    aegis: "Open pool via OpenRouter. Swap DeepSeek, Llama, Mistral, Claude, or 200+ models. No retraining needed.",
+    calagent: "Open pool via OpenRouter. Swap DeepSeek, Llama, Mistral, Claude, or 200+ models. No retraining needed.",
     fugu: "Closed pool of undisclosed models. Adding a new LLM requires retraining the classifier.",
-    verdict: "aegis",
+    verdict: "calagent",
   },
   {
     dimension: "Cost Transparency",
-    aegis: "Every response includes x-calagent-cost-stroops header. Per-agent spend is on-chain and auditable.",
+    calagent: "Every response includes x-calagent-cost-stroops header. Per-agent spend is on-chain and auditable.",
     fugu: "Never reports output tokens or cost in any benchmark or API response.",
-    verdict: "aegis",
+    verdict: "calagent",
   },
   {
     dimension: "Verifiability",
-    aegis: "SHA-256 receipt hashes, Ed25519 signatures, on-chain attestation via AegisCeloRegistry.",
+    calagent: "SHA-256 receipt hashes, Ed25519 signatures, on-chain attestation via CalagentCeloRegistry.",
     fugu: "Black box. No receipts, no audit trail, no way to verify which models were used.",
-    verdict: "aegis",
+    verdict: "calagent",
   },
   {
     dimension: "Payment Model",
-    aegis: "Pay-per-prompt via native x402 micropayments. No subscription. No API keys required.",
+    calagent: "Pay-per-prompt via native x402 micropayments. No subscription. No API keys required.",
     fugu: "Closed API access. Pricing undisclosed at launch.",
-    verdict: "aegis",
+    verdict: "calagent",
   },
   {
     dimension: "Source Code",
-    aegis: "Fully open-source. npm install @calebux/agent-kit. Inspect every line.",
+    calagent: "Fully open-source. npm install @calagent/agent-kit. Inspect every line.",
     fugu: "Closed source. The orchestrator, router, and classifier are proprietary.",
-    verdict: "aegis",
+    verdict: "calagent",
   },
   {
     dimension: "Sovereignty",
-    aegis: "Self-hosted. You control which models run, which chains settle, which agents participate.",
+    calagent: "Self-hosted. You control which models run, which chains settle, which agents participate.",
     fugu: "Sakana controls the model pool, routing, and access. Export controls can shut it down overnight.",
-    verdict: "aegis",
+    verdict: "calagent",
   },
   {
     dimension: "Benchmark Rigor",
-    aegis: "Reports cost per task, agent-level breakdowns, and on-chain tx hashes for every run.",
+    calagent: "Reports cost per task, agent-level breakdowns, and on-chain tx hashes for every run.",
     fugu: 'Compares against unnamed "Model A, B, C" in AutoResearch. Wrong Fable 5 score on TerminalBench.',
-    verdict: "aegis",
+    verdict: "calagent",
   },
 ];
 
@@ -85,7 +85,7 @@ export default function ComparePage() {
       <section className="landing-hero" style={{ padding: "4rem 2rem 3rem" }}>
         <div className="landing-container">
           <h1 className="landing-hero-title" style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}>
-            Aegis-Ultra vs Fugu
+            Calagent-Ultra vs Fugu
           </h1>
           <p className="landing-hero-subtitle" style={{ maxWidth: 720 }}>
             Sakana AI calls Fugu &ldquo;AI sovereignty.&rdquo; But it&rsquo;s a closed-source
@@ -122,7 +122,7 @@ export default function ComparePage() {
             </div>
 
             <div className="compare-card compare-card--solution">
-              <h3>Aegis-Ultra: Reactive Orchestration</h3>
+              <h3>Calagent-Ultra: Reactive Orchestration</h3>
               <p>
                 Cal-AgentKit&rsquo;s orchestrator runs Scout first, evaluates results, then decides
                 what Ledger, Signal, and Scribe do next. Every step adapts to what was actually
@@ -143,7 +143,7 @@ export default function ComparePage() {
               <thead>
                 <tr>
                   <th></th>
-                  <th className="compare-th--aegis">Aegis-Ultra</th>
+                  <th className="compare-th--calagent">Calagent-Ultra</th>
                   <th className="compare-th--fugu">Fugu</th>
                 </tr>
               </thead>
@@ -151,7 +151,7 @@ export default function ComparePage() {
                 {COMPARISON_ROWS.map((row) => (
                   <tr key={row.dimension}>
                     <td className="compare-dimension">{row.dimension}</td>
-                    <td className="compare-cell compare-cell--aegis">{row.aegis}</td>
+                    <td className="compare-cell compare-cell--calagent">{row.calagent}</td>
                     <td className="compare-cell compare-cell--fugu">{row.fugu}</td>
                   </tr>
                 ))}
@@ -174,7 +174,7 @@ export default function ComparePage() {
           </p>
           <div className="compare-cards" style={{ gridTemplateColumns: "1fr 1fr" }}>
             <div className="compare-card">
-              <h3>What Aegis Reports</h3>
+              <h3>What Calagent Reports</h3>
               <ul style={{ paddingLeft: "1.2rem", marginTop: "0.75rem", lineHeight: 2 }}>
                 <li>Cost per prompt in cUSD (on-chain)</li>
                 <li>Per-agent execution breakdown</li>
@@ -209,7 +209,7 @@ export default function ComparePage() {
           </p>
           <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
             <a
-              href="https://github.com/Calebux/CAL-AGENTKIT"
+              href="https://github.com/Calagent/CAL-AGENTKIT"
               target="_blank"
               rel="noopener noreferrer"
               className="landing-btn landing-btn-outline"
@@ -217,7 +217,7 @@ export default function ComparePage() {
               View Source
             </a>
             <Link href="/dashboard" className="landing-btn landing-btn-dark">
-              Try Aegis-Ultra
+              Try Calagent-Ultra
             </Link>
           </div>
         </div>

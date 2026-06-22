@@ -15,7 +15,7 @@
     "ignoreDeprecations": "5.0",
     "baseUrl": ".",
     "paths": {
-      "@calebux/agent-kit": ["../agent-kit/src/index.ts"]
+      "@calagent/agent-kit": ["../agent-kit/src/index.ts"]
     }
   },
   "include": ["src"],

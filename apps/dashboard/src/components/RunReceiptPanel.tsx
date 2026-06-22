@@ -1,6 +1,6 @@
 "use client";
 
-import type { RunReceipt, RunReceiptVerification } from "@calebux/agent-kit";
+import type { RunReceipt, RunReceiptVerification } from "@calagent/agent-kit";
 
 function shortHash(value: string, left = 10, right = 8): string {
   if (!value) return "-";

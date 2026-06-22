@@ -13,8 +13,8 @@
   "dependencies": {
     "@calagent/orchestrator": "*",
     "@calagent/shared": "*",
-    "@calebux/calagent-chain-celo": "*",
-    "@calebux/agent-kit": "*",
+    "@calagent/calagent-chain-celo": "*",
+    "@calagent/agent-kit": "*",
     "@stellar/stellar-sdk": "^12.0.0",
     "@x402/core": "^2.14.0",
     "@x402/express": "^2.14.0",

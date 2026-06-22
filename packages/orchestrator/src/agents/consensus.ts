@@ -9,8 +9,8 @@
  */
 
 import { Keypair } from "@stellar/stellar-sdk";
-import { IdentityRegistry } from "@calebux/agent-kit";
-import type { LLMProvider } from "@calebux/agent-kit";
+import { IdentityRegistry } from "@calagent/agent-kit";
+import type { LLMProvider } from "@calagent/agent-kit";
 import { bus, type AgentMessage } from "../lib/bus.js";
 import { ValidatorAgent } from "./validator.js";
 

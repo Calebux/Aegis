@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
-import { delegateTask } from "@calebux/agent-kit";
+import { delegateTask } from "@calagent/agent-kit";
 import { buildAgentManifests } from "@/lib/agentRegistry";
-import { receipts, persistReceipts } from "@/lib/taskStore";
 
 export const dynamic = "force-dynamic";
 
