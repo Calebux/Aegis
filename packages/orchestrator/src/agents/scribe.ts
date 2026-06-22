@@ -10,7 +10,6 @@ import Anthropic from "@anthropic-ai/sdk";
 import { keypairFromSecret } from "@calagent/shared";
 import { Keypair } from "@stellar/stellar-sdk";
 import { bus } from "../lib/bus.js";
-import { agentToAgentPayment } from "@calagent/agent-kit";
 import type { LLMProvider } from "@calagent/agent-kit";
 import { publishSigned } from "../lib/signer.js";
 
@@ -98,12 +97,12 @@ Total: ${totalXlm.toFixed(4)} XLM paid for data access
   /**
    * Wire Scribe to the bus for a specific run.
    * Listens for consensus:reached (from ConsensusManager, not self),
-   * synthesises a final report, pays Scout, then publishes final consensus:reached.
+   * synthesises a final report, then publishes final consensus:reached.
    */
   wire(
     runId: string,
     keypair?: Keypair,
-    scoutPublicKey?: string,
+    _scoutPublicKey?: string,
     onComplete?: (report: string) => void
   ): void {
     if (keypair) {
@@ -132,15 +131,7 @@ Total: ${totalXlm.toFixed(4)} XLM paid for data access
           report = agreedOutput;
         }
 
-        // Agent-to-agent payment: Scribe pays Scout for research (Upgrade 1)
-        if (keypair && scoutPublicKey) {
-          await agentToAgentPayment(
-            keypair,
-            scoutPublicKey,
-            "0.0010000",
-            "calagent:scribe->scout"
-          ).catch(() => {});
-        }
+
 
         onComplete?.(report);
 

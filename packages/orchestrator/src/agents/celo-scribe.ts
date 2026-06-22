@@ -1,14 +1,12 @@
 /**
  * Celo Scribe Agent
  *
- * Mirrors scribe.ts but uses celoAgentToAgentPayment (cUSD) instead of
- * Stellar XLM for the Scribe→Scout settlement. Listens for consensus:reached
- * from ConsensusManager, synthesises with Claude, then re-publishes as Scribe.
+ * Listens for consensus:reached from ConsensusManager, synthesises with
+ * the configured LLM, then re-publishes as Scribe.
  */
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { Account, Address } from "viem";
-import { celoAgentToAgentPayment } from "@calagent/agent-kit";
 import type { LLMProvider } from "@calagent/agent-kit";
 import { bus } from "../lib/bus.js";
 
@@ -70,11 +68,10 @@ ${agreedOutput}
   wire(
     runId: string,
     account?: Account,
-    scoutAddress?: Address,
+    _scoutAddress?: Address,
     onComplete?: (report: string) => void
   ): void {
     if (account) this.account = account;
-    if (scoutAddress) this.scoutAddress = scoutAddress;
 
     bus.subscribe(
       "consensus:reached",
@@ -88,15 +85,6 @@ ${agreedOutput}
 
         const report = await this.synthesise(agreedOutput);
 
-        // Agent-to-agent cUSD payment: Scribe pays Scout (fire-and-forget)
-        if (this.account && this.scoutAddress) {
-          await celoAgentToAgentPayment(
-            this.account,
-            this.scoutAddress,
-            "0.001",
-            process.env.CELO_RPC_URL
-          ).catch(() => {});
-        }
 
         onComplete?.(report);
 
