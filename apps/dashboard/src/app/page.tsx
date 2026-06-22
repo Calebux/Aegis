@@ -176,8 +176,9 @@ const USE_CASES = [
 
 const FOOTER_LINKS = {
   Product: [
-    { label: "Live Demo", href: "/dashboard" },
+    { label: "Aegis-Ultra API", href: "/dashboard" },
     { label: "Agent Registry", href: "/agents" },
+    { label: "Aegis vs Fugu", href: "/compare" },
     { label: "Receipts", href: "/receipts" },
   ],
   Developers: [
@@ -207,56 +208,79 @@ export default function LandingPage() {
               npm
             </a>
             <Link href="/agents">Agents</Link>
+            <Link href="/compare">Aegis vs Fugu</Link>
             <Link href="/dashboard" className="landing-nav-cta">
-              Try Demo
+              Try Aegis-Ultra
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* ── Hero ─────────────────────────────────────────────────── */}
+      {/* ── Hero ───────────────────────────────────────────────── */}
       <section className="landing-hero">
         <div className="landing-container">
+          <p className="landing-hero-eyebrow">OPEN-SOURCE · VERIFIABLE · PAY-PER-PROMPT</p>
           <h1 className="landing-hero-title">
-            The economic layer for autonomous agents
+            The orchestration model you can verify
           </h1>
           <p className="landing-hero-subtitle">
-            Open-source economic infrastructure for autonomous agents on <span className="landing-celo-yellow">Celo</span> — identity,
-            reputation, payments, governance, discovery, coordination, memory, and audit. All on-chain.
+            Aegis-Ultra routes your prompt to a team of specialized agents, powered by
+            <span className="landing-celo-yellow"> DeepSeek</span> via OpenRouter.
+            Every response is cryptographically receipted on <span className="landing-celo-yellow">Celo</span>.
+            No subscriptions. No API keys. Just pay <strong>0.05 cUSD per prompt</strong> via x402.
           </p>
           <div className="landing-hero-ctas">
-            <a
-              href="https://github.com/Calebux/CAL-AGENTKIT"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="landing-btn landing-btn-outline"
-            >
-              View on GitHub
-            </a>
+            <Link href="/compare" className="landing-btn landing-btn-outline">
+              See How We Compare
+            </Link>
             <Link href="/dashboard" className="landing-btn landing-btn-primary">
-              Try Demo
+              Try Aegis-Ultra
             </Link>
           </div>
           <CopyTerminal command="npm install @calebux/agent-kit" />
         </div>
       </section>
 
-      {/* ── Layers ──────────────────────────────────────────────── */}
+      {/* ── How It Works ──────────────────────────────────────── */}
       <section className="landing-section landing-section-alt">
         <div className="landing-container">
-          <h2 className="landing-section-title">Eight infrastructure layers</h2>
+          <h2 className="landing-section-title">How Aegis-Ultra Works</h2>
           <p className="landing-section-subtitle">
-            Everything agents need to operate as autonomous, accountable participants in a multi-agent economy.
+            One API call. A team of agents. Verifiable results.
+          </p>
+          <div className="landing-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+            {[
+              { step: "1", title: "You Send a Prompt", desc: "Standard OpenAI-compatible API. POST to /v1/chat/completions with model: aegis-ultra." },
+              { step: "2", title: "x402 Payment", desc: "The endpoint returns 402 Payment Required. AegisClient auto-pays 0.05 cUSD on Celo and retries." },
+              { step: "3", title: "Reactive Orchestration", desc: "Scout gathers data, Ledger reads on-chain metrics, Signal identifies patterns. Each step adapts to what the last one found." },
+              { step: "4", title: "Verified Response", desc: "Scribe synthesizes everything. You get the answer + a cryptographic receipt hash + the on-chain attestation tx." },
+            ].map((s) => (
+              <div key={s.step} className="landing-card landing-card--dark">
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#FCFF52', display: 'block', marginBottom: '0.5rem' }}>{s.step}</span>
+                <h3>{s.title}</h3>
+                <p>{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Infrastructure Layers ─────────────────────────────── */}
+      <section className="landing-section">
+        <div className="landing-container">
+          <h2 className="landing-section-title">Powered by Eight Infrastructure Layers</h2>
+          <p className="landing-section-subtitle">
+            The open-source economic stack behind the orchestration model.
           </p>
           <div className="landing-grid">
             {[
               { layer: "Identity", desc: "On-chain agent registration, manifest hashes, ERC-8004 NFTs, Self Protocol verification" },
               { layer: "Reputation", desc: "Live trust scores from task completion, staking, and consensus — updated after every run" },
-              { layer: "Payments", desc: "x402 micropayments, agent-to-agent USDm/XLM transfers, multi-chain settlement" },
+              { layer: "Payments", desc: "x402 micropayments, agent-to-agent cUSD transfers, multi-chain settlement" },
               { layer: "Governance", desc: "Spend caps, session policies, human approval gates, scoped credentials" },
               { layer: "Discovery", desc: "Capability-based routing, federated peer registry, trust-ranked agent DNS" },
-              { layer: "Coordination", desc: "Task orchestration, delegation with linked receipts, consensus voting" },
-              { layer: "Memory", desc: "Persistent knowledge graph via gBrain. Agents recall past runs, store patterns, and build compounding context" },
+              { layer: "Coordination", desc: "Reactive orchestration, delegation with linked receipts, consensus voting" },
+              { layer: "Memory", desc: "Persistent knowledge graph via gBrain. Agents recall past runs and build compounding context" },
               { layer: "Audit", desc: "SHA-256 hashed receipts, Ed25519 signatures, on-chain attestation, escrow with conditional release" },
             ].map((l) => (
               <div key={l.layer} className="landing-card landing-card--dark">
@@ -268,8 +292,59 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Features ─────────────────────────────────────────────── */}
+      {/* ── Aegis-Ultra API ─────────────────────────────────────── */}
       <section className="landing-section landing-section-alt">
+        <div className="landing-container">
+          <h2 className="landing-section-title">Aegis-Ultra API</h2>
+          <p className="landing-section-subtitle">
+            Don't pay $20/month for a monolithic, black-box subscription. 
+            Use our drop-in orchestration model and pay exactly <strong>0.05 USDm per prompt</strong>.
+          </p>
+          <div className="landing-mcp-layout" style={{ marginTop: '2rem' }}>
+            <div className="landing-mcp-tools">
+              <div className="landing-mcp-tool" style={{ borderColor: 'var(--celo-yellow)' }}>
+                <h3 style={{ color: 'var(--celo-yellow)', marginBottom: '0.5rem' }}>Collective Intelligence</h3>
+                <p>One API call routes to a team of specialized agents (Scout, Ledger, Signal, Scribe). We use fast models for gathering and frontier models for synthesis.</p>
+              </div>
+              <div className="landing-mcp-tool">
+                <h3 style={{ marginBottom: '0.5rem' }}>Native x402 Micropayments</h3>
+                <p>No API keys or monthly subscriptions needed. The endpoint is entirely permissionless. Your wallet pays the agents directly via the x402 protocol.</p>
+              </div>
+              <div className="landing-mcp-tool">
+                <h3 style={{ marginBottom: '0.5rem' }}>Cryptographic Verifiability</h3>
+                <p>Every response includes an <code>L402</code> receipt and an on-chain attestation hash. You can prove exactly how your answer was derived.</p>
+              </div>
+            </div>
+            <div className="landing-mcp-code">
+              <div className="landing-terminal" style={{ maxWidth: "100%", margin: 0 }}>
+                <div className="landing-terminal-dots">
+                  <span /><span /><span />
+                </div>
+                <code>{`import { AegisClient } from "@calebux/agent-kit";
+
+// AegisClient catches the 402 challenge,
+// pays the cUSD invoice on Celo, and retries.
+const client = new AegisClient({
+  celoPrivateKey: process.env.CELO_PRIVATE_KEY
+});
+
+const response = await client.chat.completions.create({
+  model: "aegis-ultra",
+  messages: [{ role: "user", content: "Analyze the Celo market" }]
+});
+
+console.log(response.choices[0].message.content);
+// response.receiptHash — on-chain verification
+// response.txHash — cUSD payment tx hash
+`}</code>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Features ─────────────────────────────────────────────── */}
+      <section className="landing-section">
         <div className="landing-container">
           <h2 className="landing-section-title">What&apos;s inside</h2>
           <p className="landing-section-subtitle">
@@ -356,13 +431,24 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── CTA Section ──────────────────────────────────────────── */}
+      {/* ── CTA Section ──────────────────────────────────────── */}
       <section className="landing-cta-section">
         <div className="landing-container" style={{ textAlign: "center" }}>
+          <h2 style={{ color: '#fff', fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.75rem' }}>
+            Stop paying for black boxes.
+          </h2>
+          <p style={{ color: '#8b949e', marginBottom: '2rem', maxWidth: 500, margin: '0 auto 2rem' }}>
+            Verify every output. Control your model pool. Pay per prompt, not per month.
+          </p>
           <CopyTerminal command="npm install @calebux/agent-kit" />
-          <Link href="/dashboard" className="landing-btn landing-btn-dark">
-            Try the live demo
-          </Link>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '1.5rem' }}>
+            <Link href="/compare" className="landing-btn landing-btn-outline">
+              See the Comparison
+            </Link>
+            <Link href="/dashboard" className="landing-btn landing-btn-dark">
+              Try Aegis-Ultra
+            </Link>
+          </div>
         </div>
       </section>
 

@@ -238,3 +238,12 @@ export type {
   OrchestratorReport,
   Orchestrator,
 } from "./types.js";
+
+// Client
+export { AegisClient } from "./client.js";
+export type {
+  AegisClientOptions,
+  AegisChatMessage,
+  AegisChatCompletionRequest,
+  AegisChatCompletionResponse,
+} from "./client.js";
