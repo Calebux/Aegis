@@ -178,7 +178,6 @@ const FOOTER_LINKS = {
   Product: [
     { label: "Calagent-Ultra API", href: "/dashboard" },
     { label: "Agent Registry", href: "/agents" },
-    { label: "Calagent vs Fugu", href: "/compare" },
     { label: "Receipts", href: "/receipts" },
   ],
   Developers: [
@@ -208,7 +207,6 @@ export default function LandingPage() {
               npm
             </a>
             <Link href="/agents">Agents</Link>
-            <Link href="/compare">Calagent vs Fugu</Link>
             <Link href="/dashboard" className="landing-nav-cta">
               Try Calagent-Ultra
             </Link>
@@ -219,20 +217,20 @@ export default function LandingPage() {
       {/* ── Hero ───────────────────────────────────────────────── */}
       <section className="landing-hero">
         <div className="landing-container">
-          <p className="landing-hero-eyebrow">OPEN-SOURCE · VERIFIABLE · PAY-PER-PROMPT</p>
+          <p className="landing-hero-eyebrow">OPEN-SOURCE · VERIFIABLE · SELF-HOSTED</p>
           <h1 className="landing-hero-title">
-            The orchestration model you can verify
+            The orchestration framework you can verify
           </h1>
           <p className="landing-hero-subtitle">
-            Calagent-Ultra routes your prompt to a team of specialized agents, powered by
-            <span className="landing-celo-yellow"> DeepSeek</span> via OpenRouter.
+            Cal-AgentKit routes your prompt to a team of specialized agents, powered by
+            <span className="landing-celo-yellow"> any LLM you choose</span> via OpenRouter.
             Every response is cryptographically receipted on <span className="landing-celo-yellow">Celo</span>.
-            No subscriptions. No API keys. Just pay <strong>0.05 cUSD per prompt</strong> via x402.
+            Bring your own models. Set your own pricing. Stay in control.
           </p>
           <div className="landing-hero-ctas">
-            <Link href="/compare" className="landing-btn landing-btn-outline">
-              See How We Compare
-            </Link>
+            <a href="https://github.com/Calebux/CAL-AGENTKIT" target="_blank" rel="noopener noreferrer" className="landing-btn landing-btn-outline">
+              View Source
+            </a>
             <Link href="/dashboard" className="landing-btn landing-btn-primary">
               Try Calagent-Ultra
             </Link>
@@ -251,7 +249,7 @@ export default function LandingPage() {
           <div className="landing-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
             {[
               { step: "1", title: "You Send a Prompt", desc: "Standard OpenAI-compatible API. POST to /v1/chat/completions with model: calagent-ultra." },
-              { step: "2", title: "x402 Payment", desc: "The endpoint returns 402 Payment Required. CalagentClient auto-pays 0.05 cUSD on Celo and retries." },
+              { step: "2", title: "x402 Payment", desc: "The endpoint returns 402 Payment Required. CalagentClient auto-pays on Celo and retries. You set the price." },
               { step: "3", title: "Reactive Orchestration", desc: "Scout gathers data, Ledger reads on-chain metrics, Signal identifies patterns. Each step adapts to what the last one found." },
               { step: "4", title: "Verified Response", desc: "Scribe synthesizes everything. You get the answer + a cryptographic receipt hash + the on-chain attestation tx." },
             ].map((s) => (
@@ -297,8 +295,8 @@ export default function LandingPage() {
         <div className="landing-container">
           <h2 className="landing-section-title">Calagent-Ultra API</h2>
           <p className="landing-section-subtitle">
-            Don&apos;t pay $20/month for a monolithic, black-box subscription. 
-            Use our drop-in orchestration model and pay exactly <strong>0.05 USDm per prompt</strong>.
+            A drop-in orchestration model with OpenAI-compatible API.
+            Plug in your own models, set your own pricing, and verify every output.
           </p>
           <div className="landing-mcp-layout" style={{ marginTop: '2rem' }}>
             <div className="landing-mcp-tools">
@@ -438,13 +436,13 @@ console.log(response.choices[0].message.content);
             Stop paying for black boxes.
           </h2>
           <p style={{ color: '#8b949e', marginBottom: '2rem', maxWidth: 500, margin: '0 auto 2rem' }}>
-            Verify every output. Control your model pool. Pay per prompt, not per month.
+            Verify every output. Choose your own models. Self-host and own your infrastructure.
           </p>
           <CopyTerminal command="npm install @calagent/agent-kit" />
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '1.5rem' }}>
-            <Link href="/compare" className="landing-btn landing-btn-outline">
-              See the Comparison
-            </Link>
+            <a href="https://github.com/Calebux/CAL-AGENTKIT" target="_blank" rel="noopener noreferrer" className="landing-btn landing-btn-outline">
+              View Source
+            </a>
             <Link href="/dashboard" className="landing-btn landing-btn-dark">
               Try Calagent-Ultra
             </Link>
